@@ -6,6 +6,9 @@
 		"lint": "designmd lint DESIGN.md"
 	},
 	"devDependencies": {
-		"@google/design.md": "0.4.0"
+		"@google/design.md": "0.4.0",
+		"@types/node": "24.19.4",
+		"playwright-core": "1.64.1",
+		"typescript": "7.0.2"
 	}
 }
