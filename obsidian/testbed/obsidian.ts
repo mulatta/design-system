@@ -7,6 +7,7 @@ import {
 	readdirSync,
 	readFileSync,
 	rmSync,
+	statSync,
 	writeFileSync,
 	writeSync,
 } from "node:fs";
@@ -1480,6 +1481,32 @@ const editChecks: EditCheck[] = [
 	},
 ];
 
+const vaultFiles = (vault: string): Map<string, Buffer> =>
+	new Map(
+		readdirSync(vault, { recursive: true, encoding: "utf8" })
+			.filter(
+				(name) =>
+					!name.startsWith(".obsidian") && statSync(join(vault, name)).isFile(),
+			)
+			.map((name) => [name, readFileSync(join(vault, name))]),
+	);
+
+function restoreVault(vault: string, before: Map<string, Buffer>): string[] {
+	const now = vaultFiles(vault);
+	const undone: string[] = [];
+	for (const name of now.keys())
+		if (!before.has(name)) {
+			rmSync(join(vault, name));
+			undone.push(`removed ${name}`);
+		}
+	for (const [name, content] of before)
+		if (!now.get(name)?.equals(content)) {
+			writeFileSync(join(vault, name), content);
+			undone.push(`restored ${name}`);
+		}
+	return undone;
+}
+
 async function editcheck(args: string[]): Promise<void> {
 	const { values } = parseArgs({
 		args,
@@ -1495,58 +1522,72 @@ async function editcheck(args: string[]): Promise<void> {
 	const state = readState(values.run);
 	if (!alive(state.pid))
 		fail(`run "${values.run}" is not live; launch it again`);
+	const before = vaultFiles(state.vault);
 	const { browser, page } = await connect(state);
 	const cdp = await page.context().newCDPSession(page);
 	const report: Record<string, Outcome & { shot?: string }> = {};
-	for (const check of editChecks) {
-		const prepared = await prepare(page, {
-			width: 1440,
-			height: 900,
-			mobile: false,
-			note: values.note,
-			view: check.view,
-			scheme: values.scheme,
-			hideRight: true,
-			open: check.open ?? "none",
-		});
-		if ("error" in prepared) fail(prepared.error);
-		await page.waitForTimeout(600);
-		const outcome = await check.run(page);
-		await page.waitForTimeout(200);
-		const box = await page.evaluate((s) => {
-			const el = document.querySelector(s);
-			if (!el) return null;
-			const r = el.getBoundingClientRect();
-			return { x: r.x, y: r.y, width: r.width, height: r.height };
-		}, check.shot);
-		const entry: Outcome & { shot?: string } = outcome;
-		if (box && box.width > 0) {
-			const pad = 24;
-			const shot = join(
-				state.runDir,
-				"shots",
-				`editcheck-${values.scheme}-${check.id}.png`,
-			);
-			const { data } = await cdp.send("Page.captureScreenshot", {
-				format: "png",
-				clip: {
-					x: Math.max(0, box.x - pad),
-					y: Math.max(0, box.y - pad),
-					width: box.width + 2 * pad,
-					height: box.height + 2 * pad,
-					scale: 2,
-				},
+	let undone: string[] = [];
+	try {
+		for (const check of editChecks) {
+			const prepared = await prepare(page, {
+				width: 1440,
+				height: 900,
+				mobile: false,
+				note: values.note,
+				view: check.view,
+				scheme: values.scheme,
+				hideRight: true,
+				open: check.open ?? "none",
 			});
-			mkdirSync(dirname(shot), { recursive: true });
-			writeFileSync(shot, Buffer.from(data, "base64"));
-			entry.shot = shot;
+			if ("error" in prepared) fail(prepared.error);
+			await page.waitForTimeout(600);
+			const outcome = await check.run(page);
+			await page.waitForTimeout(200);
+			const box = await page.evaluate((s) => {
+				const el = document.querySelector(s);
+				if (!el) return null;
+				const r = el.getBoundingClientRect();
+				return { x: r.x, y: r.y, width: r.width, height: r.height };
+			}, check.shot);
+			const entry: Outcome & { shot?: string } = outcome;
+			if (box && box.width > 0) {
+				const pad = 24;
+				const shot = join(
+					state.runDir,
+					"shots",
+					`editcheck-${values.scheme}-${check.id}.png`,
+				);
+				const { data } = await cdp.send("Page.captureScreenshot", {
+					format: "png",
+					clip: {
+						x: Math.max(0, box.x - pad),
+						y: Math.max(0, box.y - pad),
+						width: box.width + 2 * pad,
+						height: box.height + 2 * pad,
+						scale: 2,
+					},
+				});
+				mkdirSync(dirname(shot), { recursive: true });
+				writeFileSync(shot, Buffer.from(data, "base64"));
+				entry.shot = shot;
+			}
+			report[check.id] = entry;
+			await page.evaluate(() =>
+				(document.activeElement as HTMLElement)?.blur(),
+			);
 		}
-		report[check.id] = entry;
-		await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+	} finally {
+		await page.evaluate(async () => {
+			const app = (window as any).app;
+			for (const leaf of app.workspace.getLeavesOfType("markdown"))
+				await leaf.view.save?.();
+		});
+		undone = restoreVault(state.vault, before);
 	}
 	await page.keyboard.press("Escape");
 	if (state.hidden) await conceal(page);
 	await browser.close();
+	for (const line of undone) console.log(`VAULT ${line}`);
 	const path = join(state.runDir, `editcheck-${values.scheme}.json`);
 	writeFileSync(path, JSON.stringify(report, null, 2));
 	const failed = Object.entries(report).filter(([, o]) => !o.pass);
