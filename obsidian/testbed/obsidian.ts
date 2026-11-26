@@ -1269,14 +1269,21 @@ const selectRows = async (page: Page): Promise<Outcome> => {
 			const y = r.y + r.height / 2;
 			for (let x = r.right - 6; x > r.x; x -= 12) {
 				const hit = document.elementFromPoint(x, y);
-				if (hit === value || hit === el)
+				if (hit === value || hit === el) {
+					const label = el.querySelector(".metadata-property-key");
+					if (!label) return null;
+					const k = label.getBoundingClientRect();
 					return {
 						key: el.getAttribute("data-property-key"),
 						x,
 						y,
+						labelX: k.x + k.width * 0.6,
+						labelY: k.y + k.height / 2,
 						ring: w.__ring(el),
 						background: getComputedStyle(el).backgroundColor,
+						labelBackground: getComputedStyle(label).backgroundColor,
 					};
+				}
 			}
 			return null;
 		});
@@ -1285,18 +1292,40 @@ const selectRows = async (page: Page): Promise<Outcome> => {
 			row.evaluate((el) => ({
 				ring: (window as any).__ring(el) as string,
 				background: getComputedStyle(el).backgroundColor,
+				labelBackground: getComputedStyle(
+					el.querySelector(".metadata-property-key") ?? el,
+				).backgroundColor,
 				selected: document.activeElement === el,
 			}));
-		await page.mouse.move(rest.x, rest.y);
-		await page.waitForTimeout(250);
-		const hover = await state();
-		await page.mouse.click(rest.x, rest.y);
+		const unchanged = (s: Awaited<ReturnType<typeof state>>) =>
+			s.ring === rest.ring &&
+			s.background === rest.background &&
+			s.labelBackground === rest.labelBackground;
+		const hovers: Record<string, Awaited<ReturnType<typeof state>>> = {};
+		for (const [part, x, y] of [
+			["name", rest.labelX, rest.labelY],
+			["value", rest.x, rest.y],
+		] as const) {
+			await page.mouse.move(x, y);
+			await page.waitForTimeout(250);
+			hovers[part] = await state();
+			if (!unchanged(hovers[part]))
+				problems.push(
+					`hovering ${rest.key}'s ${part} changes the row: ${JSON.stringify(hovers[part])}`,
+				);
+		}
+		await page.mouse.down();
+		await page.waitForTimeout(150);
+		const pressed = await state();
+		await page.mouse.up();
 		await page.mouse.move(-10, -10);
 		await page.waitForTimeout(250);
 		const chosen = await state();
-		facts.push({ ...rest, hover, chosen });
-		if (hover.ring !== rest.ring)
-			problems.push(`hovering ${rest.key} rings it: ${hover.ring}`);
+		facts.push({ ...rest, hovers, pressed, chosen });
+		if (pressed.background !== rest.background)
+			problems.push(
+				`pressing beside ${rest.key}'s value tints the row before release: ${pressed.background}`,
+			);
 		if (!chosen.selected)
 			problems.push(
 				`clicking beside ${rest.key}'s value did not select the row`,
@@ -1322,7 +1351,7 @@ const selectRows = async (page: Page): Promise<Outcome> => {
 		pass: problems.length === 0,
 		reason:
 			problems.length === 0
-				? `hovering and selecting ${facts.map((f) => f.key).join(", ")} draws no ring; selection tints the row`
+				? `hovering, pressing, and selecting ${facts.map((f) => f.key).join(", ")} draw no ring; only a released selection tints the row`
 				: problems.join(" | "),
 		facts: { rows: facts },
 	};
