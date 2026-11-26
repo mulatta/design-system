@@ -11,7 +11,7 @@ Editing view is where the note is written: Live Preview renders most markdown in
 - `edit-tags` draws `#tag` as a square cell in D2Coding in the accent.
 - `edit-caret` shows a proof-red caret in the editor, and the line holding it gets no fill.
 - `edit-title-focus` lets the inline title be clicked and edited with no outline around it; the caret shows the focus.
-- `edit-property-focus` lets a property's value or name be clicked and edited with no ring around the property row.
+- `edit-property-focus` lets a property's value or name be clicked and edited with no ring around the property row and no fill behind the value.
 - `edit-property-select` draws no ring around a property row under the pointer, and shows a row selected by a click beside its value with the selected-item tint of the file tree, not a ring.
 - `edit-table` draws a Live Preview table across the note column, as wide as in reading view.
 - `edit-code-active` keeps a code line on the code block's tint while the caret is on it.

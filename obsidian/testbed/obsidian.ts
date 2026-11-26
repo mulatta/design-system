@@ -1355,7 +1355,10 @@ const ringsOnClick = async (page: Page, selector: string): Promise<Outcome> => {
 				const w = window as any;
 				w.__before = new WeakMap();
 				for (let e: Element | null = el; e; e = e.parentElement)
-					w.__before.set(e, w.__ring(e));
+					w.__before.set(e, {
+						ring: w.__ring(e),
+						background: getComputedStyle(e).backgroundColor,
+					});
 			});
 			await target.evaluate((el) =>
 				el.scrollIntoView({
@@ -1393,19 +1396,25 @@ const ringsOnClick = async (page: Page, selector: string): Promise<Outcome> => {
 					const label = (e: Element) =>
 						`${e.tagName.toLowerCase()}.${[...e.classList].slice(0, 2).join(".")}`;
 					const rings: string[] = [];
+					const fills: string[] = [];
 					for (
 						let e: Element | null = active;
 						e && e !== document.body;
 						e = e.parentElement
 					) {
+						const before = w.__before.get(e) ?? { ring: "", background: "" };
 						const ring = w.__ring(e);
-						if (ring && ring !== (w.__before.get(e) ?? ""))
+						if (ring && ring !== before.ring)
 							rings.push(`${label(e)}: ${ring}`);
+						const background = getComputedStyle(e).backgroundColor;
+						if (before.background && background !== before.background)
+							fills.push(`${label(e)}: ${before.background} to ${background}`);
 					}
 					return {
 						focused: active ? label(active) : "none",
 						editable: active?.matches(":read-write") ?? false,
 						rings,
+						fills,
 					};
 				}),
 			);
@@ -1422,6 +1431,7 @@ const ringsOnClick = async (page: Page, selector: string): Promise<Outcome> => {
 	const problems = clicked.flatMap((c) => [
 		...(c.editable ? [] : [`clicking reached ${c.focused}, not editable text`]),
 		...(c.rings as string[]).map((r) => `clicking ${c.focused} rings ${r}`),
+		...(c.fills as string[]).map((f) => `clicking ${c.focused} fills ${f}`),
 	]);
 	if (clicked.length === 0)
 		return { pass: false, reason: `no visible ${selector}`, facts: {} };
@@ -1429,7 +1439,7 @@ const ringsOnClick = async (page: Page, selector: string): Promise<Outcome> => {
 		pass: problems.length === 0,
 		reason:
 			problems.length === 0
-				? `no ring around ${clicked.map((c) => c.focused).join(", ")}${left ? `; ${left} left the DOM before their click` : ""}`
+				? `no ring or fill around ${clicked.map((c) => c.focused).join(", ")}${left ? `; ${left} left the DOM before their click` : ""}`
 				: problems.join(" | "),
 		facts: { clicked, left },
 	};
