@@ -59,6 +59,7 @@ body,
 	--metadata-property-radius-hover: var(--wg-radius-none);
 	--metadata-property-box-shadow-hover: none;
 	--metadata-property-box-shadow-focus: none;
+	--metadata-input-background-active: transparent;
 	--mobile-sidebar-radius: var(--wg-radius-none);
 	--modal-radius: var(--wg-radius-none);
 	--nav-item-radius: var(--wg-radius-none);
