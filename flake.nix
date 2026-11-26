@@ -24,7 +24,13 @@
 
       eachSystem = lib.genAttrs systems;
 
-      pkgsFor = eachSystem (system: import nixpkgs { inherit system; });
+      pkgsFor = eachSystem (
+        system:
+        import nixpkgs {
+          inherit system;
+          config.allowUnfreePredicate = pkg: lib.getName pkg == "obsidian";
+        }
+      );
 
       treefmtEval = eachSystem (
         system: treefmt-nix.lib.evalModule pkgsFor.${system} (import ./nix/treefmt.nix)
