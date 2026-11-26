@@ -12,6 +12,7 @@ Editing view is where the note is written: Live Preview renders most markdown in
 - `edit-caret` shows a proof-red caret in the editor, and the line holding it gets no fill.
 - `edit-title-focus` lets the inline title be clicked and edited with no outline around it; the caret shows the focus.
 - `edit-property-focus` lets a property's value or name be clicked and edited with no ring around the property row.
+- `edit-property-select` draws no ring around a property row under the pointer, and shows a row selected by a click beside its value with the selected-item tint of the file tree, not a ring.
 - `edit-table` draws a Live Preview table across the note column, as wide as in reading view.
 - `edit-code-active` keeps a code line on the code block's tint while the caret is on it.
 
@@ -30,7 +31,7 @@ Preconditions:
 - **Source mode.** Run `obs shot --run agent --note elements-ko --view source --scheme light` and with `--scroll 900`. The captures show `edit-markers` and `edit-code-lines`.
 - **Dark.** Repeat both with `--scheme dark`.
 - **Caret.** `edit-caret` needs focus in the editor; write a custom drive over CDP (port in `build/verify/agent/run.json`) that clicks into a paragraph and captures. `shot` focuses the editor, but the caret blinks, so a plain `shot` may capture it switched off.
-- **States.** Run `obs editcheck --run agent --scheme light`, then `--scheme dark`. `text-focus` proves `edit-title-focus` and `edit-property-focus`, `live-table` proves `edit-table`, and `code-active-line` proves `edit-code-active`.
+- **States.** Run `obs editcheck --run agent --scheme light`, then `--scheme dark`. `text-focus` proves `edit-title-focus` and `edit-property-focus`, `property-select` proves `edit-property-select`, `live-table` proves `edit-table`, and `code-active-line` proves `edit-code-active`.
 - **Proof.** Report each sub-feature with its capture path.
 
 ## Gotchas

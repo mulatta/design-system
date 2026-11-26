@@ -1225,6 +1225,109 @@ const clickCentre = async (page: Page, selector: string) => {
 	return box !== null;
 };
 
+const installRing = (page: Page) =>
+	page.evaluate(() => {
+		const w = window as any;
+		w.__ring = (el: Element) => {
+			const cs = getComputedStyle(el);
+			const outline =
+				cs.outlineStyle !== "none" && Number.parseFloat(cs.outlineWidth) > 0
+					? `outline ${cs.outlineWidth} ${cs.outlineColor}`
+					: "";
+			const shadow = /(^|[\s(,])(0?\.\d*[1-9]|[1-9][\d.]*)px/.test(cs.boxShadow)
+				? `box-shadow ${cs.boxShadow}`
+				: "";
+			return [outline, shadow].filter(Boolean).join(", ");
+		};
+	});
+
+const selectRows = async (page: Page): Promise<Outcome> => {
+	await installRing(page);
+	const rows = await page.evaluate(() => {
+		const rows = [
+			...document.querySelectorAll(
+				".workspace-leaf.mod-active .metadata-property",
+			),
+		].filter((el) => el.checkVisibility());
+		for (const [i, el] of rows.entries())
+			el.setAttribute("data-ring-target", String(i));
+		return rows.length;
+	});
+	const problems: string[] = [];
+	const facts: Record<string, unknown>[] = [];
+	for (let i = 0; i < rows; i++) {
+		await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+		await page.mouse.move(-10, -10);
+		await page.waitForTimeout(150);
+		const row = page.locator(`[data-ring-target="${i}"]`);
+		const rest = await row.evaluate((el) => {
+			const w = window as any;
+			const value = el.querySelector(".metadata-property-value");
+			if (!value) return null;
+			el.scrollIntoView({ block: "center" });
+			const r = value.getBoundingClientRect();
+			const y = r.y + r.height / 2;
+			for (let x = r.right - 6; x > r.x; x -= 12) {
+				const hit = document.elementFromPoint(x, y);
+				if (hit === value || hit === el)
+					return {
+						key: el.getAttribute("data-property-key"),
+						x,
+						y,
+						ring: w.__ring(el),
+						background: getComputedStyle(el).backgroundColor,
+					};
+			}
+			return null;
+		});
+		if (!rest) continue;
+		const state = () =>
+			row.evaluate((el) => ({
+				ring: (window as any).__ring(el) as string,
+				background: getComputedStyle(el).backgroundColor,
+				selected: document.activeElement === el,
+			}));
+		await page.mouse.move(rest.x, rest.y);
+		await page.waitForTimeout(250);
+		const hover = await state();
+		await page.mouse.click(rest.x, rest.y);
+		await page.mouse.move(-10, -10);
+		await page.waitForTimeout(250);
+		const chosen = await state();
+		facts.push({ ...rest, hover, chosen });
+		if (hover.ring !== rest.ring)
+			problems.push(`hovering ${rest.key} rings it: ${hover.ring}`);
+		if (!chosen.selected)
+			problems.push(
+				`clicking beside ${rest.key}'s value did not select the row`,
+			);
+		else if (chosen.ring !== rest.ring)
+			problems.push(`selecting ${rest.key} rings it: ${chosen.ring}`);
+		else if (chosen.background === rest.background)
+			problems.push(
+				`selecting ${rest.key} leaves its background ${rest.background}`,
+			);
+	}
+	await page.evaluate(() => {
+		for (const el of document.querySelectorAll("[data-ring-target]"))
+			el.removeAttribute("data-ring-target");
+	});
+	if (facts.length === 0)
+		return {
+			pass: false,
+			reason: "no property row with an empty value area",
+			facts: {},
+		};
+	return {
+		pass: problems.length === 0,
+		reason:
+			problems.length === 0
+				? `hovering and selecting ${facts.map((f) => f.key).join(", ")} draws no ring; selection tints the row`
+				: problems.join(" | "),
+		facts: { rows: facts },
+	};
+};
+
 const ringsOnClick = async (page: Page, selector: string): Promise<Outcome> => {
 	const clicked: Record<string, unknown>[] = [];
 	let left = 0;
@@ -1244,23 +1347,10 @@ const ringsOnClick = async (page: Page, selector: string): Promise<Outcome> => {
 			continue;
 		}
 		try {
-			await page.evaluate(() => {
-				(document.activeElement as HTMLElement)?.blur();
-				const w = window as any;
-				w.__ring = (el: Element) => {
-					const cs = getComputedStyle(el);
-					const outline =
-						cs.outlineStyle !== "none" && Number.parseFloat(cs.outlineWidth) > 0
-							? `outline ${cs.outlineWidth} ${cs.outlineColor}`
-							: "";
-					const shadow = /(^|[\s(,])(0?\.\d*[1-9]|[1-9][\d.]*)px/.test(
-						cs.boxShadow,
-					)
-						? `box-shadow ${cs.boxShadow}`
-						: "";
-					return [outline, shadow].filter(Boolean).join(", ");
-				};
-			});
+			await page.evaluate(() =>
+				(document.activeElement as HTMLElement)?.blur(),
+			);
+			await installRing(page);
 			await target.evaluate((el) => {
 				const w = window as any;
 				w.__before = new WeakMap();
@@ -1375,6 +1465,12 @@ const editChecks: EditCheck[] = [
 		open: "search",
 		shot: ":focus",
 		run: (page) => ringsOnClick(page, ":read-write"),
+	},
+	{
+		id: "property-select",
+		view: "live",
+		shot: ".workspace-leaf.mod-active .metadata-container",
+		run: selectRows,
 	},
 	{
 		id: "control-focus",
