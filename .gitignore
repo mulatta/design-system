@@ -3,3 +3,6 @@
 result
 result-*
 /.agents/skills/impeccable
+
+# npm
+node_modules/

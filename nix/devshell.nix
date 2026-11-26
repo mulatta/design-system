@@ -7,6 +7,7 @@ pkgs.mkShellNoCC {
   packages = [
     formatter
     impeccable
+    pkgs.nodejs
   ];
   env = {
     IMPECCABLE_BIN = pkgs.lib.getExe impeccable;
