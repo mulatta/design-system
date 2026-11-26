@@ -22,6 +22,8 @@ const testbed = dirname(fileURLToPath(import.meta.url));
 const repo = process.cwd();
 const verifyRoot = join(repo, "build", "verify");
 
+type InstalledPlugin = { attr: string; id: string };
+
 type RunState = {
 	pid: number;
 	port: number;
@@ -29,6 +31,7 @@ type RunState = {
 	vault: string;
 	theme: string;
 	snippets: string[];
+	plugins: InstalledPlugin[];
 	hidden: boolean;
 	startedAt: string;
 };
@@ -46,7 +49,7 @@ function readState(run: string): RunState {
 	const file = join(runDirFor(run), "run.json");
 	if (!existsSync(file))
 		fail(`no run named "${run}" (missing ${file}); launch first`);
-	return JSON.parse(readFileSync(file, "utf8")) as RunState;
+	return { plugins: [], ...JSON.parse(readFileSync(file, "utf8")) } as RunState;
 }
 
 function alive(pid: number): boolean {
@@ -145,7 +148,63 @@ function installStyles(
 	return names;
 }
 
-function stylesCurrent(state: RunState): boolean {
+function buildPlugin(attr: string): string {
+	const built = spawnSync(
+		"nix",
+		[
+			"build",
+			`.#${attr}`,
+			"-o",
+			join("build", "plugins", attr),
+			"--print-out-paths",
+		],
+		{ encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] },
+	);
+	if (built.status !== 0) fail(`nix build .#${attr} failed`);
+	return built.stdout.trim();
+}
+
+function pluginDir(vault: string, id: string): string {
+	return join(vault, ".obsidian", "plugins", id);
+}
+
+function installPlugins(vault: string, attrs: string[]): InstalledPlugin[] {
+	return attrs.map((attr) => {
+		const out = buildPlugin(attr);
+		const manifest = join(out, "manifest.json");
+		if (!existsSync(manifest))
+			fail(`.#${attr} is not an Obsidian plugin: ${manifest} is missing`);
+		const { id } = JSON.parse(readFileSync(manifest, "utf8")) as { id: string };
+		const dir = pluginDir(vault, id);
+		mkdirSync(dir, { recursive: true });
+		for (const name of readdirSync(out))
+			writeFileSync(join(dir, name), readFileSync(join(out, name)));
+		return { attr, id };
+	});
+}
+
+async function startPlugins(page: Page, ids: string[]): Promise<void> {
+	if (ids.length === 0) return;
+	await page.evaluate(async (ids) => {
+		const plugins = (window as any).app.plugins;
+		await plugins.setEnable(true);
+		await plugins.loadManifests();
+		for (const id of ids) {
+			await plugins.disablePlugin(id);
+			await plugins.enablePluginAndSave(id);
+		}
+	}, ids);
+	await page.waitForFunction(
+		(ids) =>
+			ids.every(
+				(id) => (window as any).app.plugins.plugins[id]?._loaded === true,
+			),
+		ids,
+		{ timeout: 15000, polling: 250 },
+	);
+}
+
+function installCurrent(state: RunState): boolean {
 	const installed = (path: string) =>
 		existsSync(path) ? readFileSync(path, "utf8") : "";
 	if (
@@ -155,11 +214,22 @@ function stylesCurrent(state: RunState): boolean {
 		).includes(buildTheme())
 	)
 		return false;
-	return state.snippets.every((path) =>
-		installed(
-			join(state.vault, ".obsidian", "snippets", basename(path)),
-		).startsWith(readFileSync(path, "utf8")),
-	);
+	if (
+		!state.snippets.every((path) =>
+			installed(
+				join(state.vault, ".obsidian", "snippets", basename(path)),
+			).startsWith(readFileSync(path, "utf8")),
+		)
+	)
+		return false;
+	return state.plugins.every(({ attr, id }) => {
+		const out = buildPlugin(attr);
+		return readdirSync(out).every(
+			(name) =>
+				installed(join(pluginDir(state.vault, id), name)) ===
+				readFileSync(join(out, name), "utf8"),
+		);
+	});
 }
 
 async function conceal(page: Page): Promise<void> {
@@ -185,10 +255,18 @@ async function sync(args: string[]): Promise<void> {
 	const state = readState(values.run);
 	if (!alive(state.pid))
 		fail(`run "${values.run}" is not live; launch it again`);
-	if (state.theme !== "wongoji" && state.snippets.length === 0)
-		fail("this run has no theme or snippet to sync");
+	if (
+		state.theme !== "wongoji" &&
+		state.snippets.length === 0 &&
+		state.plugins.length === 0
+	)
+		fail("this run has no theme, snippet, or plugin to sync");
 	const token = `sync-${Date.now()}`;
 	installStyles(state.vault, state.theme, state.snippets, token);
+	installPlugins(
+		state.vault,
+		state.plugins.map((p) => p.attr),
+	);
 	const { browser, page } = await connect(state);
 	const expected = (state.theme === "wongoji" ? 1 : 0) + state.snippets.length;
 	await page
@@ -204,6 +282,13 @@ async function sync(args: string[]): Promise<void> {
 			await browser.close();
 			fail("Obsidian did not reload the synced CSS within 15 s");
 		});
+	await startPlugins(
+		page,
+		state.plugins.map((p) => p.id),
+	).catch(async (error) => {
+		await browser.close();
+		fail(`Obsidian did not reload the synced plugins: ${error}`);
+	});
 	if (state.hidden) await conceal(page);
 	await browser.close();
 	console.log(`SYNCED run=${values.run} ${token}`);
@@ -216,6 +301,7 @@ async function launch(args: string[]): Promise<void> {
 			run: { type: "string", default: "main" },
 			theme: { type: "string", default: "wongoji" },
 			snippet: { type: "string", multiple: true, default: [] },
+			plugin: { type: "string", multiple: true, default: [] },
 			cssclass: { type: "string", multiple: true, default: [] },
 			notes: { type: "string", default: join(testbed, "notes") },
 			scheme: { type: "string", default: "light" },
@@ -273,6 +359,7 @@ async function launch(args: string[]): Promise<void> {
 		snippetPaths,
 		null,
 	);
+	const plugins = installPlugins(vault, values.plugin);
 	writeFileSync(
 		join(vault, ".obsidian", "appearance.json"),
 		JSON.stringify(appearance, null, 2),
@@ -320,6 +407,7 @@ async function launch(args: string[]): Promise<void> {
 		vault,
 		theme: values.theme,
 		snippets: snippetPaths,
+		plugins,
 		hidden: !values.foreground && !values.visible,
 		startedAt: new Date().toISOString(),
 	};
@@ -336,6 +424,10 @@ async function launch(args: string[]): Promise<void> {
 			() => (window as any).app?.workspace?.layoutReady === true,
 			null,
 			{ timeout: 60000 },
+		);
+		await startPlugins(
+			page,
+			plugins.map((p) => p.id),
 		);
 		if (state.hidden) await conceal(page);
 		await browser.close();
@@ -383,6 +475,7 @@ async function doctor(args: string[]): Promise<void> {
 					vaultPath: app?.vault?.adapter?.basePath ?? null,
 					cssTheme: app?.customCss?.theme ?? null,
 					enabledSnippets: [...(app?.customCss?.enabledSnippets ?? [])],
+					enabledPlugins: Object.keys(app?.plugins?.plugins ?? {}),
 					scheme: document.body.classList.contains("theme-dark")
 						? "dark"
 						: "light",
@@ -399,7 +492,8 @@ async function doctor(args: string[]): Promise<void> {
 		);
 		await browser.close();
 	}
-	report.stylesCurrent = stylesCurrent(state);
+	report.installCurrent = installCurrent(state);
+	const enabled = (report.enabledPlugins ?? []) as string[];
 	const ok =
 		report.processAlive === true &&
 		typeof report.cdp === "string" &&
@@ -407,7 +501,8 @@ async function doctor(args: string[]): Promise<void> {
 		report.layoutReady === true &&
 		report.vaultPath === state.vault &&
 		(state.theme !== "wongoji" || report.cssTheme === "Wongoji") &&
-		report.stylesCurrent === true;
+		state.plugins.every((p) => enabled.includes(p.id)) &&
+		report.installCurrent === true;
 	console.log(JSON.stringify({ ok, ...report }, null, 2));
 	if (!ok) process.exit(1);
 }
@@ -2689,6 +2784,454 @@ async function editcheck(args: string[]): Promise<void> {
 	if (failed.length > 0) process.exit(1);
 }
 
+type Fence = { language: string; line: number; source: string };
+
+function sequenceFences(note: string): Fence[] {
+	const lines = note.split("\n");
+	const found: Fence[] = [];
+	for (let i = 0; i < lines.length; i++) {
+		const open = /^```(fasta|dna|protein)\s*$/.exec(lines[i]);
+		if (!open) continue;
+		const close = lines.findIndex((l, j) => j > i && /^```\s*$/.test(l));
+		if (close < 0) break;
+		found.push({
+			language: open[1],
+			line: i,
+			source: lines.slice(i + 1, close).join("\n"),
+		});
+		i = close;
+	}
+	return found;
+}
+
+function fastaOf(source: string): string {
+	const records: { header: string | null; residues: string }[] = [];
+	for (const line of source.split("\n")) {
+		const text = line.trim();
+		if (text.startsWith(">")) records.push({ header: text, residues: "" });
+		else if (text !== "") {
+			if (records.length === 0) records.push({ header: null, residues: "" });
+			records[records.length - 1].residues += text.replace(/\s+/g, "");
+		}
+	}
+	return records
+		.map((r) => (r.header === null ? r.residues : `${r.header}\n${r.residues}`))
+		.join("\n");
+}
+
+type Check = { pass: boolean; reason: string };
+
+async function seqcheck(args: string[]): Promise<void> {
+	const { values } = parseArgs({
+		args,
+		options: {
+			run: { type: "string" },
+			note: { type: "string", default: "sequences" },
+			view: { type: "string", default: "reading" },
+			scheme: { type: "string", default: "light" },
+			size: { type: "string", default: "1440x900" },
+			mobile: { type: "boolean", default: false },
+			"hide-right": { type: "boolean", default: false },
+		},
+	});
+	if (!values.run) fail("seqcheck needs --run <run>");
+	if (!["reading", "live"].includes(values.view))
+		fail(`unknown --view ${values.view} (reading|live)`);
+	const state = readState(values.run);
+	if (!alive(state.pid))
+		fail(`run "${values.run}" is not live; launch it again`);
+	const [width, height] = checkShotOptions({
+		...values,
+		scroll: "0",
+		open: "none",
+	});
+	const { browser, page } = await connect(state);
+	const prepared = await prepare(page, {
+		width,
+		height,
+		mobile: values.mobile,
+		note: values.note,
+		view: values.view,
+		scheme: values.scheme,
+		open: "none",
+		hideRight: values["hide-right"],
+	});
+	if ("error" in prepared) {
+		await browser.close();
+		fail(prepared.error);
+	}
+	await page.evaluate(() => document.fonts.ready);
+	await page.emulateMedia({ reducedMotion: "reduce" });
+	await page.waitForTimeout(500);
+	const cdp = await page.context().newCDPSession(page);
+	await cdp.send("DOM.enable");
+	await cdp.send("CSS.enable");
+	await page.evaluate(() => {
+		const w = window as any;
+		w.__seqFind = (view: string, line: number): HTMLElement | null => {
+			const v = w.app.workspace.activeLeaf.view;
+			if (view === "reading") {
+				const s = v.previewMode.renderer.sections.find(
+					(s: any) => s.start.line === line,
+				);
+				return s?.el.isConnected ? s.el.querySelector(".seq-block") : null;
+			}
+			const cm = v.editor.cm;
+			for (const b of cm.contentDOM.querySelectorAll(".seq-block"))
+				if (cm.state.doc.lineAt(cm.posAtDOM(b)).number - 1 === line) return b;
+			return null;
+		};
+	});
+	const find = (fence: Fence, scroll: boolean) =>
+		page
+			.waitForFunction(
+				({ view, line, scroll }) => {
+					const w = window as any;
+					if (scroll) {
+						const v = w.app.workspace.activeLeaf.view;
+						if (view === "reading") v.previewMode.applyScroll(line);
+						else
+							v.editor.scrollIntoView(
+								{ from: { line, ch: 0 }, to: { line, ch: 0 } },
+								true,
+							);
+					}
+					const block = w.__seqFind(view, line);
+					if (!block) return null;
+					if (scroll) block.scrollIntoView({ block: "center" });
+					const r = block.getBoundingClientRect();
+					return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+				},
+				{ view: values.view, line: fence.line, scroll },
+				{ timeout: 10000, polling: 250 },
+			)
+			.then((h) => h.jsonValue())
+			.catch(() => null);
+
+	const stem = `${values.view}-${values.scheme}-${values.size}${values.mobile ? "-mobile" : ""}`;
+	const note = readFileSync(join(state.vault, prepared.note), "utf8");
+	const fences = sequenceFences(note);
+	const blocks: Record<string, unknown>[] = [];
+	for (const [index, fence] of fences.entries()) {
+		const entry: Record<string, unknown> = {
+			index,
+			language: fence.language,
+			line: fence.line + 1,
+			header:
+				fence.source
+					.split("\n")
+					.find((l) => l.trim().startsWith(">"))
+					?.trim() ?? null,
+		};
+		blocks.push(entry);
+		const checks: Record<string, Check> = {};
+		entry.checks = checks;
+		if (!(await find(fence, true))) {
+			checks.rendered = {
+				pass: false,
+				reason: "no .seq-block rendered for this fence",
+			};
+			continue;
+		}
+		await page.waitForTimeout(400);
+		const center = await find(fence, false);
+		if (!center) {
+			checks.rendered = {
+				pass: false,
+				reason: "block left the DOM after scrolling to it",
+			};
+			continue;
+		}
+		await cdp.send("DOM.getDocument", { depth: 0 });
+		const { result: blockRef } = await cdp.send("Runtime.evaluate", {
+			expression: `__seqFind(${JSON.stringify(values.view)}, ${fence.line})`,
+		});
+		const { nodeId: blockNode } = await cdp.send("DOM.requestNode", {
+			objectId: blockRef.objectId as string,
+		});
+		await cdp.send("CSS.forcePseudoState", {
+			nodeId: blockNode,
+			forcedPseudoClasses: ["hover"],
+		});
+		const m = await page.evaluate(
+			({ view, line }) => {
+				type Box = { x: number; y: number; w: number; h: number };
+				const block = (window as any).__seqFind(view, line) as HTMLElement;
+				const r1 = (n: number) => Math.round(n * 10) / 10;
+				const box = (r: DOMRect): Box => ({
+					x: r1(r.x),
+					y: r1(r.y),
+					w: r1(r.width),
+					h: r1(r.height),
+				});
+				const inner = (el: Element): Box => {
+					const r = el.getBoundingClientRect();
+					return {
+						x: r1(r.x + el.clientLeft),
+						y: r1(r.y + el.clientTop),
+						w: el.clientWidth,
+						h: el.clientHeight,
+					};
+				};
+				const name = (el: Element) =>
+					`${el.tagName.toLowerCase()}${[...el.classList].map((c) => `.${c}`).join("")}`;
+				const rect = box(block.getBoundingClientRect());
+				const scrollerEl = block.closest(
+					".cm-scroller, .markdown-preview-view",
+				) as HTMLElement;
+				const clippedBy: { el: string; clip: Box }[] = [];
+				for (let e = block.parentElement; e; e = e.parentElement) {
+					const cs = getComputedStyle(e);
+					const c = inner(e);
+					if (
+						(cs.overflowX !== "visible" || cs.overflowY !== "visible") &&
+						(rect.x < c.x - 0.5 || rect.x + rect.w > c.x + c.w + 0.5)
+					)
+						clippedBy.push({ el: name(e), clip: c });
+					if (e === scrollerEl) break;
+				}
+				const columnEl = block.closest(
+					view === "reading" ? ".markdown-preview-sizer" : ".cm-content",
+				) as HTMLElement;
+				const columnStyle = getComputedStyle(columnEl);
+				const columnBox = inner(columnEl);
+				const column: Box = {
+					...columnBox,
+					x: r1(columnBox.x + parseFloat(columnStyle.paddingLeft)),
+					w: r1(
+						columnBox.w -
+							parseFloat(columnStyle.paddingLeft) -
+							parseFloat(columnStyle.paddingRight),
+					),
+				};
+				const badges = [...block.querySelectorAll(".seq-record")].map((r) => {
+					const badge = r.querySelector(":scope > .seq-head > .seq-badge");
+					return badge ? box(badge.getBoundingClientRect()) : null;
+				});
+				const headers = [...block.querySelectorAll(".seq-header")].map((h) => {
+					const range = document.createRange();
+					range.selectNodeContents(h);
+					return {
+						text: h.textContent ?? "",
+						box: box(range.getBoundingClientRect()),
+					};
+				});
+				const button = block.querySelector(".seq-copy");
+				const selection = getSelection() as Selection;
+				selection.removeAllRanges();
+				const range = document.createRange();
+				range.selectNodeContents(block);
+				selection.addRange(range);
+				const data = new DataTransfer();
+				block.dispatchEvent(
+					new ClipboardEvent("copy", {
+						clipboardData: data,
+						bubbles: true,
+						cancelable: true,
+					}),
+				);
+				selection.removeAllRanges();
+				return {
+					rect,
+					column,
+					badges,
+					scroller: inner(scrollerEl),
+					clippedBy,
+					scrollWidth: block.scrollWidth,
+					clientWidth: block.clientWidth,
+					headers,
+					groups: [...block.querySelectorAll(".seq-group")].map((g) =>
+						box(g.getBoundingClientRect()),
+					),
+					records: block.querySelectorAll(".seq-record").length,
+					copy: button
+						? {
+								box: box(button.getBoundingClientRect()),
+								opacity: getComputedStyle(button).opacity,
+							}
+						: null,
+					selectionText: data.getData("text/plain"),
+				};
+			},
+			{ view: values.view, line: fence.line },
+		);
+		const { badges } = m;
+		const meets = (a: Box, b: Box) =>
+			Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 0.5 &&
+			Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 0.5;
+		const hits = (b: Box) => [
+			...m.headers
+				.filter((h) => meets(b, h.box))
+				.map((h) => `header "${h.text}"`),
+			...m.groups.flatMap((g, i) => (meets(b, g) ? [`group ${i}`] : [])),
+		];
+		entry.facts = m;
+		const cx = Math.max(0, m.rect.x - 8);
+		const cy = Math.max(0, m.rect.y - 8);
+		entry.shot = join(state.runDir, "shots", `seqcheck-${stem}-${index}.png`);
+		await page.screenshot({
+			path: entry.shot as string,
+			clip: {
+				x: cx,
+				y: cy,
+				width: Math.min(width, m.rect.x + m.rect.w + 8) - cx,
+				height: Math.min(height, m.rect.y + m.rect.h + 8) - cy,
+			},
+		});
+		await cdp.send("CSS.forcePseudoState", {
+			nodeId: blockNode,
+			forcedPseudoClasses: [],
+		});
+		const span = (b: Box) => `${b.x}..${Math.round((b.x + b.w) * 10) / 10}`;
+		const cut = m.clippedBy.map(
+			(c) => `${c.el} (block x ${span(m.rect)}, clip x ${span(c.clip)})`,
+		);
+		if (m.rect.x < m.scroller.x - 0.5)
+			cut.unshift(
+				`scroller left edge ${m.scroller.x} (block left ${m.rect.x})`,
+			);
+		checks["not-clipped"] = {
+			pass: cut.length === 0,
+			reason:
+				cut.length === 0
+					? "both edges inside every clipping ancestor"
+					: `cut by ${cut.join(", ")}`,
+		};
+		const fits = m.scrollWidth <= m.clientWidth + 1;
+		checks.fits = {
+			pass: fits,
+			reason: `scrollWidth ${m.scrollWidth}, clientWidth ${m.clientWidth}`,
+		};
+		const left = Math.round((m.rect.x - m.column.x) * 10) / 10;
+		const right =
+			Math.round((m.column.x + m.column.w - m.rect.x - m.rect.w) * 10) / 10;
+		checks["in-column"] = {
+			pass: Math.abs(left) <= 1 && Math.abs(right) <= 1,
+			reason: `block x ${span(m.rect)}, column x ${span(m.column)}`,
+		};
+		const badgeHits = badges.flatMap((b, i) =>
+			b ? hits(b).map((h) => `badge ${i} covers ${h}`) : [],
+		);
+		checks["badge-clear"] = {
+			pass: badgeHits.length === 0,
+			reason:
+				badgeHits.join("; ") ||
+				`${badges.filter(Boolean).length} badge(s) clear`,
+		};
+		const copyHits = m.copy
+			? [
+					...hits(m.copy.box),
+					...badges.flatMap((b, i) =>
+						b && m.copy && meets(m.copy.box, b) ? [`badge ${i}`] : [],
+					),
+				]
+			: [];
+		checks["copy-clear"] = m.copy
+			? {
+					pass: copyHits.length === 0,
+					reason:
+						copyHits.length === 0
+							? "button clear"
+							: `button covers ${copyHits.join(", ")}`,
+				}
+			: { pass: false, reason: "no .seq-copy button" };
+		const fasta = fastaOf(fence.source);
+		const at = [...fasta].findIndex((c, i) => m.selectionText[i] !== c);
+		const near = (t: string) =>
+			JSON.stringify(t.slice(Math.max(0, at - 12), at + 24));
+		checks["copy-selection"] = {
+			pass: m.selectionText === fasta,
+			reason:
+				m.selectionText === fasta
+					? "FASTA text"
+					: at < 0
+						? `got ${m.selectionText.length - fasta.length} extra char(s) after the FASTA text`
+						: `differs at char ${at}: got ${near(m.selectionText)}, want ${near(fasta)}`,
+		};
+		if (!m.copy) {
+			checks["copy-button"] = { pass: false, reason: "no .seq-copy button" };
+			continue;
+		}
+		await page.evaluate(() => {
+			const w = window as any;
+			w.__seqWrites = [];
+			w.__seqOwn = Object.getOwnPropertyDescriptor(
+				navigator.clipboard,
+				"writeText",
+			);
+			Object.defineProperty(navigator.clipboard, "writeText", {
+				configurable: true,
+				writable: true,
+				value: (text: string) => {
+					w.__seqWrites.push(text);
+					return Promise.resolve();
+				},
+			});
+		});
+		let writes: string[] = [];
+		let target = "";
+		try {
+			const b = m.copy.box;
+			const at = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+			target = await page.evaluate(({ x, y }) => {
+				const el = document.elementFromPoint(x, y);
+				return el
+					? `${el.tagName.toLowerCase()}.${[...el.classList].join(".")}`
+					: "none";
+			}, at);
+			await page.mouse.click(at.x, at.y);
+			await page.waitForTimeout(250);
+		} finally {
+			writes = await page.evaluate(() => {
+				const w = window as any;
+				if (w.__seqOwn)
+					Object.defineProperty(navigator.clipboard, "writeText", w.__seqOwn);
+				else delete (navigator.clipboard as any).writeText;
+				return w.__seqWrites as string[];
+			});
+		}
+		(entry.facts as Record<string, unknown>).copyTarget = target;
+		const exact = writes.length === 1 && writes[0] === fence.source;
+		checks["copy-button"] = {
+			pass: exact,
+			reason: exact
+				? "writeText got the source"
+				: writes.length === 0
+					? `writeText not called; click hit ${target}`
+					: `got ${JSON.stringify(writes[0].slice(0, 80))} (${writes.length} call(s))`,
+		};
+	}
+	await page.keyboard.press("Escape");
+	await page.mouse.move(-10, -10);
+	if (state.hidden) await conceal(page);
+	await browser.close();
+
+	const failures = blocks.flatMap((b) =>
+		Object.entries(b.checks as Record<string, Check>)
+			.filter(([, c]) => !c.pass)
+			.map(([k, c]) => `block ${b.index} ${b.language}: ${k}: ${c.reason}`),
+	);
+	const report = {
+		run: values.run,
+		note: prepared.note,
+		view: values.view,
+		scheme: values.scheme,
+		size: values.size,
+		mobile: values.mobile,
+		blocks,
+		failures,
+	};
+	const out = join(state.runDir, `seqcheck-${stem}.json`);
+	writeFileSync(out, JSON.stringify(report, null, 2));
+	console.log(JSON.stringify(report, null, 2));
+	for (const f of failures) console.log(`FAIL ${f}`);
+	console.log(`REPORT ${out}`);
+	console.log(
+		failures.length === 0 ? "SEQCHECK ok" : `SEQCHECK fail ${failures.length}`,
+	);
+	if (failures.length > 0) process.exit(1);
+}
+
 function stop(args: string[]): void {
 	const { values } = parseArgs({
 		args,
@@ -2750,11 +3293,14 @@ switch (command) {
 	case "sync":
 		await sync(rest);
 		break;
+	case "seqcheck":
+		await seqcheck(rest);
+		break;
 	case "stop":
 		stop(rest);
 		break;
 	default:
 		fail(
-			"usage: obsidian.ts <launch|doctor|shot|compare|layers|joins|editcheck|sync|stop> [options]",
+			"usage: obsidian.ts <launch|doctor|shot|compare|layers|joins|editcheck|seqcheck|sync|stop> [options]",
 		);
 }

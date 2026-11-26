@@ -1,16 +1,16 @@
 ---
 name: verify-obsidian-theme
-description: Launch the devshell's Obsidian against a disposable vault with this repository's working-tree Wongoji theme (generated from DESIGN.md and obsidian/theme/src, plus the nix-built fonts) and capture screenshots of reading view, editing view, app chrome, and mobile, in light and dark, and compare component geometry part by part with stock Obsidian at 2x. Use to prove any change to the Obsidian theme or to compare it with another stylesheet in the real app.
+description: Launch the devshell's Obsidian against a disposable vault with this repository's working-tree Wongoji theme (generated from DESIGN.md and obsidian/theme/src, plus the nix-built fonts) and capture screenshots of reading view, editing view, app chrome, and mobile, in light and dark, and compare component geometry part by part with stock Obsidian at 2x. Can also install the repository's sequence plugin (fasta, dna, protein blocks) into the vault. Use to prove any change to the Obsidian theme or the sequence plugin, or to compare the theme with another stylesheet in the real app.
 ---
 
 # Verify the Obsidian theme
 
-The surface is Obsidian's desktop app, an Electron window. The thing under test is the theme as the working tree generates it: `obsidian/theme/build.ts` reads the tokens in `DESIGN.md`, writes them as `--wg-*` variables, and appends the rule files in `obsidian/theme/src/`; the harness puts the embedded fonts from `nix build .#fonts` in front. `nix build .#obsidian-theme` builds the same file as the package a vault installs. A theme change is proven only by captures from this skill.
+The surface is Obsidian's desktop app, an Electron window. The thing under test is the theme as the working tree generates it: `obsidian/theme/build.ts` reads the tokens in `DESIGN.md`, writes them as `--wg-*` variables, and appends the rule files in `obsidian/theme/src/`; the harness puts the embedded fonts from `nix build .#fonts` in front. `nix build .#obsidian-theme` builds the same file as the package a vault installs. A theme change is proven only by captures from this skill. With `--plugin obsidian-sequence-plugin`, a run also installs the sequence plugin from `obsidian/sequence-plugin/`, built by `nix build .#obsidian-sequence-plugin`; [Sequence blocks](features/sequence-blocks.md) is its recipe.
 
 Every command runs from the repository root inside the devshell, so `obsidian`, `node`, and `playwright-core` are the flake's own:
 
 ```sh
-nix develop -c node obsidian/testbed/obsidian.ts <launch|doctor|shot|compare|layers|joins|editcheck|sync|stop> [options]
+nix develop -c node obsidian/testbed/obsidian.ts <launch|doctor|shot|compare|layers|joins|editcheck|seqcheck|sync|stop> [options]
 ```
 
 Below, `obs` stands for that whole command. The same harness backs the owner's npm scripts (`npm run obsidian`, `obsidian:doctor`, `obsidian:shot`, `obsidian:compare`, `obsidian:layers`, `obsidian:sync`, `obsidian:stop`), so a run the owner started by hand is the same kind of run. `npm run obsidian` is `launch --foreground`: it stays in the terminal, streams Obsidian's log there and into `obsidian.log`, and tears the run down on Ctrl+C, hangup, or when Obsidian quits. Agents use plain `launch`, which detaches and returns after `READY`, and keep the owner's run for the owner: launch your own run name (for example `--run agent`) instead of driving `main` while the owner looks at it.
@@ -30,14 +30,15 @@ obs launch --run agent
 - Options:
   - `--theme wongoji|none`: `none` launches stock Obsidian.
   - `--snippet <file.css>`: repeatable, copied and enabled as a CSS snippet.
+  - `--plugin <flake-attr>`: repeatable. Builds `nix build .#<attr> -o build/plugins/<attr>`, reads the plugin id from the build's `manifest.json`, copies the build output into `.obsidian/plugins/<id>/`, and after `layoutReady` turns off restricted mode and enables the plugin. `READY` prints only once every plugin has loaded; a plugin that fails to load tears the run down like any failed launch. The repository's plugin is `--plugin obsidian-sequence-plugin` (id `sequence-blocks`).
   - `--cssclass <class>`: added to every note's `cssclasses`.
   - `--scheme light|dark`: the scheme at start.
   - `--notes <dir>`: replaces the fixture notes.
-- After editing `DESIGN.md`, a file in `obsidian/theme/src/`, a `--snippet` file, or `nix/fonts/`, run `obs sync --run <run>`. It rewrites the theme and snippets into the live vault, waits until Obsidian has loaded the new CSS, and prints `SYNCED`. No relaunch is needed. Notes are not synced; relaunch to pick up edited fixture notes.
+- After editing `DESIGN.md`, a file in `obsidian/theme/src/`, a `--snippet` file, `nix/fonts/`, or the source of a `--plugin` (for the sequence plugin, `obsidian/sequence-plugin/`), run `obs sync --run <run>`. It rewrites the theme and snippets into the live vault, waits until Obsidian has loaded the new CSS, rebuilds and recopies each plugin, disables and re-enables it, waits until it has loaded again, and prints `SYNCED`. A run with only a theme, only snippets, or only plugins syncs what it has. No relaunch is needed. Notes are not synced; relaunch to pick up edited fixture notes.
 - The disposable Obsidian config sets `updateDisabled`, so the app makes no update request.
 - Runs are isolated by name. `--run a` and `--run b` can be live side by side. `launch` refuses a name whose recorded process is still alive.
 - Teardown is `obs stop --run <run>`.
-- Always pass `--run`. `doctor`, `shot`, and `sync` default to `main` and `compare`, `layers`, and `joins` to `agent`; `stop` refuses to run without `--run`, so it can never stop the owner's run by omission. `editcheck` refuses too, since it clicks into the window and moves its focus.
+- Always pass `--run`. `doctor`, `shot`, and `sync` default to `main` and `compare`, `layers`, and `joins` to `agent`; `stop` and `seqcheck` refuse to run without `--run`, so they never touch the owner's run by omission. `editcheck` refuses too, since it clicks into the window and moves its focus.
 - The owner may have run `main` live from `npm run obsidian`, on screen. Leave it alone: do not drive or stop it. Run `obs doctor --run agent` first; if it reports ok, reuse that invisible run instead of launching again, and leave it live for the next proof unless the task is over. Stop only runs you launched.
 
 ## Doctor
@@ -46,15 +47,16 @@ obs launch --run agent
 obs doctor --run agent
 ```
 
-This is read-only and prints JSON. `"ok": true` requires all of these:
+This changes nothing in the run and prints JSON. For a run with plugins it runs `nix build` for each, which is quick when the plugin source has not changed. `"ok": true` requires all of these:
 - The recorded process is alive.
 - The CDP endpoint answers with an `obsidian/<version>` user agent.
 - The workspace layout is ready.
 - `vaultPath` is this run's disposable vault. A different path means you are attached to the wrong Obsidian; stop.
 - `cssTheme` is `Wongoji` when launched with the theme. A stock run reports `""`.
-- `stylesCurrent` is true: the theme in the live vault contains what `buildTheme()` makes from the working tree now, and each snippet starts with its source file. False means an edit has not been synced; run `obs sync`.
+- Every `--plugin` id is in `enabledPlugins`, the plugins Obsidian has loaded.
+- `installCurrent` is true: the theme in the live vault contains what `buildTheme()` makes from the working tree now, each snippet starts with its source file, and each plugin's files in the vault equal what `nix build .#<attr>` makes from the working tree now. False means an edit has not been synced; run `obs sync`.
 
-It also lists the open vault's notes and the enabled snippets. Run it first whenever a shot looks wrong.
+It also lists the open vault's notes, the enabled snippets, and the loaded plugins. Run it first whenever a shot looks wrong.
 
 ## Drive
 
@@ -83,6 +85,7 @@ Fixture notes, in `obsidian/testbed/notes/`. The lab and element notes come in a
 - `elements-ko`, `elements-en`: headings 1 to 4, inline marks, an editing note (`%%`), a strikethrough long enough to wrap, resolved and unresolved links, a tag, a footnote, nested lists, tasks including a two-line one, note, tip, danger, quote, summary, todo, and important callouts, a blockquote, a horizontal rule, block math, nix/typescript/bash/yaml code, and a right-aligned table.
 - `long-note`: 30 H2 sections of plain paragraphs, for anything that must still hold after Obsidian unloads off-screen sections.
 - `protocols/pcr-protocol`: a note inside a folder, so the file tree shows a folder row and a nested file.
+- `sequences`: one sequence block per input shape the sequence plugin accepts: a `fasta` record on one 174 nt line, `fasta` wrapped at 70 and at 80, a multi-FASTA block of 42, 60, and 132 nt records, a `dna` block without a header, a 214 aa `protein` block, and an inline primer in prose. It renders as plain code unless the run has `--plugin obsidian-sequence-plugin`. All sequences are synthetic.
 
 ### Compare with stock Obsidian
 
@@ -136,10 +139,29 @@ obs editcheck --run agent [--scheme light|dark] [--mobile] [--note lab-note-ko]
 
 It prints one `ok` or `FAIL` line per check with its measurement, `REPORT <path>`, and last `EDITCHECK ok` or `EDITCHECK fail <count>`; it exits 1 on any failure. The report goes to `build/verify/<run>/editcheck-<scheme>[-mobile].json`, and a 2x capture of each check's element to `build/verify/<run>/shots/editcheck-<scheme>[-mobile]-<check>.png`.
 
+### Check sequence blocks
+
+```sh
+obs seqcheck --run agent [--note sequences] [--view reading|live] [--scheme light|dark] \
+  [--size 1440x900] [--mobile] [--hide-right]
+```
+
+`seqcheck` needs a run launched with `--plugin obsidian-sequence-plugin`. It prepares the window as `shot` does, reads the note from the run's vault, and finds each `fasta`, `dna`, and `protein` fence in it. For each fence it scrolls the rendered block into view, because reading view and CodeMirror drop off-screen blocks from the DOM. Then it forces the block into its hover state with CDP `CSS.forcePseudoState`, measures it, and checks seven invariants. A real mouse hover is not reliable here: macOS still sends the owner's cursor to the click-through window, so moving the mouse anywhere on screen can take the hover away. The run emulates `prefers-reduced-motion: reduce`, so the button shows without its fade.
+
+- `not-clipped`: no ancestor up to the view's scroller whose overflow is not `visible` cuts the block's left or right edge, and the block's left edge is not left of the scroller's.
+- `fits`: the block has no horizontal scroll (`scrollWidth <= clientWidth + 1`), on desktop and with `--mobile`.
+- `in-column`: the block's left and right edges each lie within 1px of the note column's content edges: `.markdown-preview-sizer` in reading view, `.cm-content` in Live Preview.
+- `badge-clear`: each record's length badge (`.seq-badge` on its head row) overlaps no `.seq-group` and no header text. The header text box comes from a Range over the header's text, not the full-width header div.
+- `copy-clear`: the `.seq-copy` button, in its hover state, overlaps no header text, no group, and no badge.
+- `copy-button`: a mouse click at the button's centre passes exactly the fence's text to `navigator.clipboard.writeText`. The check replaces `writeText` with a recorder for the click and restores it afterwards, so the system clipboard is never written.
+- `copy-selection`: with the whole block selected, a `copy` event carrying a fresh `DataTransfer` yields FASTA text. Each record gives its `>` header line, when it has one, then its residues without whitespace, and records are joined by newlines. The expected text is built from the fence's text, not from the plugin's output.
+
+It prints the report as JSON, one `FAIL block <n> <language>: <invariant>: <reason>` line per failure, `REPORT <path>`, and last `SEQCHECK ok` or `SEQCHECK fail <count>`; it exits 1 on any failure. The report goes to `build/verify/<run>/seqcheck-<view>-<scheme>-<size>[-mobile].json`, and a capture of each hovered block to `build/verify/<run>/shots/seqcheck-<view>-<scheme>-<size>[-mobile]-<index>.png`. A fence with no rendered block fails as `rendered`.
+
 ## Evidence
 
-- Shots land in `build/verify/<run>/shots/`. The name encodes the note, view, scheme, mobile, open panel, and scroll, unless `--out` is given. Obsidian's own log is `build/verify/<run>/obsidian.log`; each `launch` of the same run name appends to it after a `--- launch <time> ---` line. `build/` is gitignored.
-- A proof captures the state a user sees after doing the action. Pick the note, view, and scheme the changed CSS affects. For hover or focus states, write a custom drive with `playwright-core` `connectOverCDP` against the port in `build/verify/<run>/run.json`. Do not inject CSS: the theme must come from the launched files.
+- Shots land in `build/verify/<run>/shots/`. The name encodes the note, view, scheme, mobile, open panel, and scroll, unless `--out` is given. `seqcheck` writes its reports to `build/verify/<run>/`. Obsidian's own log is `build/verify/<run>/obsidian.log`; each `launch` of the same run name appends to it after a `--- launch <time> ---` line. `build/` is gitignored.
+- A proof captures the state a user sees after doing the action. Pick the note, view, and scheme the changed CSS affects. For hover or focus states, force the pseudo-class with CDP `CSS.forcePseudoState` rather than moving the mouse, for the reason `seqcheck` gives, in a custom drive with `playwright-core` `connectOverCDP` against the port in `build/verify/<run>/run.json`. Do not inject CSS: the theme must come from the launched files.
 - Prove both schemes for any colour change, and add `--mobile --size 390x844` for anything inside the note column.
 - Judge size, position, and joins of components with `compare` against stock, not from a full-window capture: at 1x a broken corner or a box a few pixels short is too small to see.
 - Look at every capture before reporting it. A capture of the wrong note, a half-loaded window, or the default theme (`doctor` would show `cssTheme: ""`) proves nothing.

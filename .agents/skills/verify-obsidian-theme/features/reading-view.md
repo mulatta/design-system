@@ -42,7 +42,7 @@ Preconditions:
 
 ## Gotchas
 
-- The `fasta` block renders as a plain code block.
+- The `fasta` block in the lab notes renders as a plain code block unless the run was launched with `--plugin obsidian-sequence-plugin`. The plugin's rendering is covered in [Sequence blocks](./sequence-blocks.md).
 - `--scroll` values depend on the window height; check that the capture shows the intended part before reporting.
 - Math is MathJax's own font; the theme does not style it.
 - On desktop Obsidian shifts the properties block 4px left with a `transform`, so its unpainted rows' text lines up with the column. The theme paints the rows, the key cells, and the rule under the block, so it removes the shift; the phone has none.

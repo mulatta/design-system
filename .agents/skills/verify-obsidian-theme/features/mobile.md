@@ -44,4 +44,5 @@ Preconditions:
 - The search drawer covers the note, so `editcheck --mobile` reaches only the search field in `text-focus` and the note's editing roots in `note-text-focus`.
 - On the phone Obsidian sizes the task checkbox at 1.15 times the font size, 18.4px, and hangs it 1.5 box widths, 27.6px, into the list item's indent. The theme widens the indent to that hang, so list items start 27.6px in on the phone and 24px (3ch) on desktop, and the box sits on the column edge in both.
 - With floating navigation the phone's view header is fixed over the note with a transparent background. The theme's desktop underline is transparent there; it keeps its width so no box moves.
+- The sequence plugin is not installed in these runs, so the `.seq-*` rules for phone width are not exercised. The reduced-motion rule is not provable with `shot`.
 - Emulation is a stand-in. It does not prove behaviour on a real iOS or Android WebView: safe-area insets, real font loading from a synced vault, and touch states stay unverified until checked on a device.
