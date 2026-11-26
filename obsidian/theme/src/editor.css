@@ -45,7 +45,6 @@
 	padding-right: 0.3em;
 }
 
-.markdown-source-view.mod-cm6 .cm-active-line,
-.markdown-source-view.mod-cm6 .cm-line.cm-active {
-	background: transparent;
+.markdown-source-view.mod-cm6 .cm-table-widget .table-wrapper {
+	width: 100%;
 }

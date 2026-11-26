@@ -2,7 +2,7 @@
 	background: var(--text-selection);
 }
 
-:focus-visible {
+:focus-visible:not(:read-write) {
 	outline: 2px solid var(--wg-rule);
 	outline-offset: 2px;
 }

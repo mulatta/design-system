@@ -36,5 +36,4 @@ Preconditions:
 
 - Live Preview H2 has no trailing rule: drawing one inside a CodeMirror line means painting the text spans over it, which hides the editor's selection.
 - Live Preview reveals markers only on the active line; without a focused line, markers mostly stay hidden.
-- On 2026-11-27 `editcheck` fails `title-focus`, `live-table`, and `code-active-line` against the theme at commit 35f61fc: the global `:focus-visible` outline reaches the editable title, Live Preview's table widget keeps its content width (238px of 700), and the rule that leaves the caret's line unfilled also clears a code line's tint. Remove this line once the theme passes.
 - `--scroll` scrolls `.cm-scroller`, whose height differs from reading view; adjust the value per capture.
