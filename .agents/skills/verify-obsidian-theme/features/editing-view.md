@@ -6,7 +6,7 @@ Editing view is where the note is written: Live Preview renders most markdown in
 
 - `edit-live` renders headings, emphasis, links, and inline code like reading view; H2 opens with the same square marker, without reading view's trailing rule.
 - `edit-markers` shows markdown markers (`#`, `*`, `` ` ``) in the faint colour.
-- `edit-inline` sets inline code in D2Coding on the tint between fine rules, and `==highlight==` as a pale blue wash with a blue underline.
+- `edit-inline` sets inline code in D2Coding on the tint between fine rules, `==highlight==` as a pale blue wash with no underline, and `~~strikethrough~~` in mute under a red strike. The editing note shows its `%%` marks in bold red and its text in mute; a comment inside a code block keeps the code comment colour.
 - `edit-code-lines` sets fenced code lines in D2Coding on the tint, with a rule above the opening fence and the same token colours as reading view, in Live Preview and source mode.
 - `edit-tags` draws `#tag` as a square cell in D2Coding in the accent.
 - `edit-caret` shows a proof-red caret in the editor, and the line holding it gets no fill.

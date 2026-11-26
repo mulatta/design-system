@@ -67,7 +67,38 @@
 .markdown-rendered mark,
 .markdown-source-view.mod-cm6 .cm-highlight {
 	color: var(--wg-ink);
-	box-shadow: inset 0 -1px var(--wg-rule);
+}
+
+.markdown-rendered del,
+.markdown-source-view.mod-cm6 .cm-strikethrough {
+	color: var(--wg-mute);
+	text-decoration-line: line-through;
+	text-decoration-color: var(--wg-proof);
+	text-decoration-thickness: 1.5px;
+}
+
+.markdown-rendered del::after {
+	content: "";
+	display: inline-block;
+	width: 0.5em;
+	height: 0.7em;
+	margin-left: -0.05em;
+	vertical-align: -0.02em;
+	background: var(--wg-proof);
+	-webkit-mask:
+		url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'><path d='M0 9.5H5C8.2 9.5 9.6 6.4 8.2 4.2C6.8 2 4 3 4.6 5.6C5.2 8.2 8 9.6 10 9.5' fill='none' stroke='black' stroke-width='1.6'/></svg>")
+		center / contain no-repeat;
+}
+
+.markdown-source-view.mod-cm6 .cm-line:not(.HyperMD-codeblock) .cm-comment {
+	color: var(--wg-mute);
+}
+
+.markdown-source-view.mod-cm6
+	.cm-line:not(.HyperMD-codeblock)
+	.cm-comment.cm-formatting {
+	color: var(--wg-proof);
+	font-weight: 700;
 }
 
 .markdown-rendered h2::after {

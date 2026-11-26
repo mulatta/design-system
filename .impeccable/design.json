@@ -498,9 +498,16 @@
 		{
 			"name": "Highlight",
 			"kind": "custom",
-			"description": "==text== keeps ink text on rule blue at 12% with a 1px rule-blue underline.",
+			"description": "==text== keeps ink text on rule blue at 12%, with no underline, which would read as a link.",
 			"html": "<p class=\"ds-p\">Band at <mark class=\"ds-mark\">720 bp</mark> as expected.</p>",
-			"css": ".ds-p { font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #1a1a1a; } .ds-mark { color: #1a1a1a; background: rgba(3, 89, 176, 0.12); box-shadow: inset 0 -1px #0359b0; }"
+			"css": ".ds-p { font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #1a1a1a; } .ds-mark { color: #1a1a1a; background: rgba(3, 89, 176, 0.12); }"
+		},
+		{
+			"name": "Proof marks",
+			"kind": "custom",
+			"description": "~~text~~ turns mute under a 1.5px proof-red strike that reading view ends with an upward delete loop; in the editor an editing note shows its %% marks in bold proof red and its text in mute.",
+			"html": "<p class=\"ds-p\">Anneal at <del class=\"ds-del\">58</del> 62 °C. <span class=\"ds-memo\"><b>%%</b>check the gradient run<b>%%</b></span></p>",
+			"css": ".ds-p { font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #1a1a1a; } .ds-del { color: #5c5c5c; text-decoration: line-through #b23a30 1.5px; } .ds-memo { color: #5c5c5c; } .ds-memo b { color: #b23a30; }"
 		},
 		{
 			"name": "File tree",

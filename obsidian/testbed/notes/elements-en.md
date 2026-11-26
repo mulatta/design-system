@@ -10,6 +10,8 @@ aliases:
 
 A body paragraph. **Bold**, *italic*, ~~strikethrough~~, ==highlight==, `inline code`, [[missing note]], [[lab-note-en|existing note]], [external link](https://example.org), and a #specimen tag. There is a footnote too.[^1]
 
+An editing note stays in the source %%tighten this sentence in the next draft%% and is hidden in reading view.
+
 ## Heading 2
 
 ### Heading 3

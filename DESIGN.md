@@ -81,7 +81,7 @@ A cool neutral paper with one printed blue and one correcting red; each scheme, 
 - **Manuscript Rule Blue** (`rule`, `rule-soft`): the colour of the printed grid. Links, tags, the H2 marker, the title rule, the top rule of code blocks and callouts, the active tab's rule, folder markers in the file tree, the ring on raised mobile controls, and focus rings. A highlight is this blue at 12% over the page with a 1px underline in full blue. `rule-soft` is its hover and secondary-string tone.
 
 ### Secondary
-- **Proofreader's Red** (`proof`): only for marks a proofreader would make on the sheet. The text caret, the active-file caret, the active tab's mark, the X and strike line of a done task, and warning and danger callouts.
+- **Proofreader's Red** (`proof`): only for marks a proofreader would make on the sheet. The text caret, the active-file caret, the active tab's mark, the X and strike line of a done task, the strike and delete loop of deleted text, the marks around an editing note, and warning and danger callouts.
 
 ### Neutral
 - **Paper** (`paper`): the note page.
@@ -147,7 +147,12 @@ Every component looks printed on the sheet or marked on it afterwards. Obsidian 
 - **Style:** a 2px Manuscript Rule Blue rule under the note title that turns down the 45° cut at its right end. It belongs to the title, 0.2em below it, so it shows whether or not the note has properties.
 
 ### Highlight
-- **Style:** `==text==` keeps ink text on Manuscript Rule Blue at 12%, with a 1px blue underline, in reading view and the editor.
+- **Style:** `==text==` keeps ink text on Manuscript Rule Blue at 12%, in reading view and the editor. It takes no underline, which would read as a link.
+
+### Proof marks
+- **Delete:** `~~text~~` turns `mute` under a 1.5px Proofreader's Red strike. Reading view ends the strike with the delete loop, curling up from the line as a proofreader draws it.
+- **Editing note:** in the editor the `%%` marks of a comment are bold Proofreader's Red and the note between them is `mute`. Reading view hides the note.
+- A footnote reference stays blue: the writer adds it, a proofreader does not.
 
 ### Callouts and code blocks
 - **Corner Style:** square, with the one 45° cut.
