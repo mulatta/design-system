@@ -4,7 +4,7 @@ App chrome is everything around the note: the left ribbon, the sidebar with the 
 
 ## Sub-features
 
-- `chrome-tree` lists notes and folders; a folder shows a blue square in the gutter where stock draws its chevron (outlined when collapsed, filled when open), so folder and file names line up; the open note carries the red caret right before its bold label at any depth; no stray strips or columns narrow the list. Geometry: `geo-nav-active`, `geo-folder-row`, `geo-split-edge`.
+- `chrome-tree` lists notes and folders; a folder shows a blue cell in the gutter where stock draws its chevron, with a plus when collapsed and a minus when open, so folder and file names line up; the open note carries the red caret right before its bold label at any depth; no stray strips or columns narrow the list. Geometry: `geo-nav-active`, `geo-folder-row`, `geo-split-edge`.
 - `chrome-ribbon` shows the ribbon's icons in its own muted ink on the sidebar tone, with no line at its edge. Geometry: `geo-ribbon`.
 - `chrome-sidebar-tabs` shows the sidebar's own tab icons (files, search, bookmarks) without document-tab boxes. Geometry: `geo-sidebar-tabs`.
 - `chrome-rules` keeps every separator inside its own panel: the fine rule under the file-tree buttons ends at the sidebar's edge, and the vault bar at the bottom shows no line between help and settings. Geometry: `geo-nav-header`, `geo-vault-bar`.
@@ -29,7 +29,7 @@ Preconditions:
 - Baseline preconditions hold for run `agent`.
 
 - **Frame.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light`. The capture shows `chrome-tree`, `chrome-sidebar-tabs`, `chrome-tabs`, `chrome-status`.
-- **Nested file.** Run `obs shot --run agent --note protocols/pcr-protocol --view reading --scheme light`. The capture shows the open folder's filled square and the caret before the nested label.
+- **Nested file.** Run `obs shot --run agent --note protocols/pcr-protocol --view reading --scheme light`. The capture shows the open folder's minus cell and the caret before the nested label.
 - **Palette.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light --open palette`. The capture shows `chrome-palette` over the note.
 - **Settings.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light --open settings`. `shot` captures the settings window, not the main window, and closes it afterwards. The capture shows `chrome-settings`.
 - **Search.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light --open search`. The capture shows `chrome-search` in the left sidebar. The next `shot` brings the file explorer back.

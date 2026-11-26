@@ -157,11 +157,11 @@ Every component looks printed on the sheet or marked on it afterwards. Obsidian 
 ### Callouts and code blocks
 - **Corner Style:** square, with the one 45° cut.
 - **Background:** the `tint` layer, or the callout colour at low strength.
-- **Border:** a Manuscript Rule Blue top rule for code; warning and danger callouts take Proofreader's Red.
+- **Border:** a Manuscript Rule Blue top rule for code; warning and danger callouts take Proofreader's Red. Neither takes a side or bottom line: the tint already sets the block apart as its own layer.
 
 ### Navigation (file tree)
 - **Style:** plain rows on the `paper-alt` layer under a bold ink pane header with a fine `pale` underline.
-- **Folders:** a 9px Manuscript Rule Blue square in the collapse-icon gutter replaces the chevron, outlined when collapsed and filled when open.
+- **Folders:** an 11px cell drawn in a 1px Manuscript Rule Blue line replaces the chevron in the collapse-icon gutter, with a plus inside when collapsed and a minus when open. A filled square is the H2's mark and an empty cell is a checkbox's, so a folder takes neither.
 - **Active file:** bold ink with a red proof caret in the same gutter, never a filled row.
 
 ### Raised mobile controls
@@ -171,7 +171,7 @@ Every component looks printed on the sheet or marked on it afterwards. Obsidian 
 - **Style:** Obsidian's Lucide set at a 1.5px stroke, and 1.25px at the large size.
 
 ### Section heading marker
-A signature component. Each H2 opens with a filled square, 0.5em on a side, in Manuscript Rule Blue, 0.6em before the heading text, in reading view and Live Preview. Reading view runs a fine `pale` rule from the text to the column edge; Live Preview shows the square alone. The marker carries no number: Obsidian unloads sections outside the viewport, so a CSS counter numbers long notes wrong. Numbered H2 through the companion plugin is an open item and has not shipped.
+A signature component. Each H2 carries a filled square, 0.36em on a side, in Manuscript Rule Blue, in reading view and Live Preview. It hangs in the left margin 0.6em before the heading text, so the text starts at the column edge with the body; on a phone, where the margin is too narrow, it sits inside the line instead. Reading view runs a fine `pale` rule from the text to the column edge; Live Preview shows the square alone. The marker carries no number: Obsidian unloads sections outside the viewport, so a CSS counter numbers long notes wrong. Numbered H2 through the companion plugin is an open item and has not shipped.
 
 ## Do's and Don'ts
 

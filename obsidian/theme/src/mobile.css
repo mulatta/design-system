@@ -27,4 +27,9 @@ body,
 		font-size: 1.8em;
 		margin-top: 0.6em;
 	}
+
+	.markdown-rendered h2::before,
+	.markdown-source-view.is-live-preview .HyperMD-header-2::before {
+		margin-inline-start: 0;
+	}
 }

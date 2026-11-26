@@ -795,7 +795,7 @@ const parts: Part[] = [
 		id: "heading",
 		note: "lab-note-ko",
 		root: `${reading} h2`,
-		pad: [8, 8, 8, 8],
+		pad: [8, 8, 8, 32],
 		measure: {},
 	},
 	{

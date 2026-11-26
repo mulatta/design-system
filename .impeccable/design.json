@@ -470,9 +470,9 @@
 		{
 			"name": "Warning callout",
 			"kind": "card",
-			"description": "Square frame with one 45° cut, a red top rule, and a faint red wash.",
+			"description": "Faint red wash under a red top rule that turns down the one 45° cut; no side or bottom line.",
 			"html": "<div class=\"ds-callout\"><strong>Caution</strong><p>Lane 2 looks like primer dimer.</p></div>",
-			"css": ".ds-callout { padding: 12px 20px; border: 1px solid rgba(178, 58, 48, 0.3); background: linear-gradient(225deg, transparent 8px, #b23a30 8px 9.5px, transparent 9.5px) right top / 12px 12px no-repeat border-box, rgba(178, 58, 48, 0.08); box-shadow: inset 0 2px #b23a30; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #1a1a1a; } .ds-callout strong { color: #b23a30; font-size: 13px; }"
+			"css": ".ds-callout { padding: 12px 20px; background: linear-gradient(225deg, transparent 8px, #b23a30 8px 9.5px, transparent 9.5px) right top / 12px 12px no-repeat border-box, rgba(178, 58, 48, 0.08); box-shadow: inset 0 2px #b23a30; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #1a1a1a; } .ds-callout strong { color: #b23a30; font-size: 13px; }"
 		},
 		{
 			"name": "Code block",
@@ -484,9 +484,9 @@
 		{
 			"name": "Section heading marker",
 			"kind": "custom",
-			"description": "H2 opens with a filled 0.5em rule-blue square, 0.6em before the text; reading view runs a fine rule to the column edge, Live Preview shows the square alone. No number: Obsidian unloads off-screen sections, so a CSS counter miscounts. Numbered H2 via the companion plugin is open, not shipped.",
+			"description": "H2 carries a filled 0.36em rule-blue square hung in the left margin 0.6em before the text, so the text keeps the body's left edge; reading view runs a fine rule to the column edge, Live Preview shows the square alone. On a phone the square sits inside the line. No number: Obsidian unloads off-screen sections, so a CSS counter miscounts. Numbered H2 via the companion plugin is open, not shipped.",
 			"html": "<h2 class=\"ds-h2\">Primers</h2>",
-			"css": ".ds-h2 { display: flex; align-items: center; gap: 0.6em; margin: 0; font-family: \"Source Serif 4\", \"MaruBuri\", serif; font-size: 1.35em; font-weight: 700; line-height: 1.3; color: #1a1a1a; } .ds-h2::before { content: \"\"; flex: none; width: 0.5em; height: 0.5em; background: #0359b0; } .ds-h2::after { content: \"\"; flex: 1; height: 1px; background: #d4d7dd; }"
+			"css": ".ds-h2 { display: flex; align-items: center; gap: 0.6em; margin: 0; font-family: \"Source Serif 4\", \"MaruBuri\", serif; font-size: 1.35em; font-weight: 700; line-height: 1.3; color: #1a1a1a; } .ds-h2::before { content: \"\"; flex: none; width: 0.36em; height: 0.36em; margin-left: -0.96em; background: #0359b0; } .ds-h2::after { content: \"\"; flex: 1; height: 1px; background: #d4d7dd; }"
 		},
 		{
 			"name": "Title rule",
@@ -512,9 +512,9 @@
 		{
 			"name": "File tree",
 			"kind": "nav",
-			"description": "Plain rows on the paper-alt layer under a bold ink header with a fine pale underline. Folders show a 9px rule-blue square in the collapse-icon gutter, outlined when collapsed and filled when open; the active file is bold ink with a red proof caret in the same gutter.",
+			"description": "Plain rows on the paper-alt layer under a bold ink header with a fine pale underline. Folders show an 11px rule-blue cell in the collapse-icon gutter, with a plus when collapsed and a minus when open; the active file is bold ink with a red proof caret in the same gutter.",
 			"html": "<div class=\"ds-nav\"><div class=\"ds-nav-header\">Files</div><div class=\"ds-nav-row ds-folder\">protocols</div><div class=\"ds-nav-row ds-folder is-open\">experiments</div><div class=\"ds-nav-row\">elements-ko</div><div class=\"ds-nav-row is-active\">lab-note-ko</div></div>",
-			"css": ".ds-nav { background: #f0f1f3; padding: 0 12px 8px; font-family: \"Source Serif 4\", \"MaruBuri\", serif; font-size: 13px; } .ds-nav-header { padding: 8px 0; box-shadow: inset 0 -1px #d4d7dd; color: #1a1a1a; font-weight: 700; } .ds-nav-row { position: relative; min-height: 28px; display: flex; align-items: center; padding-left: 24px; color: #5c5c5c; } .ds-nav-row:hover { color: #1a1a1a; background: #ecedef; } .ds-folder { color: #1a1a1a; } .ds-folder::before { content: \"\"; position: absolute; left: 7px; top: 50%; width: 9px; height: 9px; margin-top: -5px; border: 1px solid #0359b0; } .ds-folder.is-open::before { background: #0359b0; } .ds-nav-row.is-active { color: #1a1a1a; font-weight: 700; } .ds-nav-row.is-active::before { content: \"\"; position: absolute; left: 7px; top: 50%; width: 10px; height: 7px; margin-top: -4px; background: #b23a30; clip-path: polygon(0 0, 18% 0, 50% 64%, 82% 0, 100% 0, 50% 100%); }"
+			"css": ".ds-nav { background: #f0f1f3; padding: 0 12px 8px; font-family: \"Source Serif 4\", \"MaruBuri\", serif; font-size: 13px; } .ds-nav-header { padding: 8px 0; box-shadow: inset 0 -1px #d4d7dd; color: #1a1a1a; font-weight: 700; } .ds-nav-row { position: relative; min-height: 28px; display: flex; align-items: center; padding-left: 24px; color: #5c5c5c; } .ds-nav-row:hover { color: #1a1a1a; background: #ecedef; } .ds-folder { color: #1a1a1a; } .ds-folder::before { content: \"\"; position: absolute; left: 6px; top: 50%; width: 11px; height: 11px; margin-top: -5px; background: #0359b0; -webkit-mask: url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11'><path d='M.5.5h10v10H.5zM3 5.5h5M5.5 3v5' fill='none' stroke='black'/></svg>\") center / 11px 11px no-repeat; } .ds-folder.is-open::before { -webkit-mask-image: url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11'><path d='M.5.5h10v10H.5zM3 5.5h5' fill='none' stroke='black'/></svg>\"); } .ds-nav-row.is-active { color: #1a1a1a; font-weight: 700; } .ds-nav-row.is-active::before { content: \"\"; position: absolute; left: 7px; top: 50%; width: 10px; height: 7px; margin-top: -4px; background: #b23a30; clip-path: polygon(0 0, 18% 0, 50% 64%, 82% 0, 100% 0, 50% 100%); }"
 		},
 		{
 			"name": "Raised mobile control",

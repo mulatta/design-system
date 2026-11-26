@@ -54,14 +54,15 @@
 	content: "";
 	flex: none;
 	display: inline-block;
-	width: 0.5em;
-	height: 0.5em;
+	width: 0.36em;
+	height: 0.36em;
+	margin-inline-start: -0.96em;
 	background: var(--wg-rule);
 }
 
 .markdown-source-view.is-live-preview .HyperMD-header-2::before {
 	margin-inline-end: 0.6em;
-	vertical-align: 0.12em;
+	vertical-align: 0.14em;
 }
 
 .markdown-rendered mark,

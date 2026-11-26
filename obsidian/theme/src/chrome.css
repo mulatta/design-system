@@ -71,13 +71,17 @@
 
 .nav-folder-title .collapse-icon::before {
 	content: "";
-	width: 9px;
-	height: 9px;
-	border: 1px solid var(--wg-rule);
+	width: 11px;
+	height: 11px;
+	translate: 0 2px;
+	background: var(--wg-rule);
+	-webkit-mask:
+		url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11'><path d='M.5.5h10v10H.5zM3 5.5h5' fill='none' stroke='black'/></svg>")
+		center / 11px 11px no-repeat;
 }
 
-.nav-folder:not(.is-collapsed) > .nav-folder-title .collapse-icon::before {
-	background: var(--wg-rule);
+.nav-folder.is-collapsed > .nav-folder-title .collapse-icon::before {
+	-webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11'><path d='M.5.5h10v10H.5zM3 5.5h5M5.5 3v5' fill='none' stroke='black'/></svg>");
 }
 
 .tree-item-self.is-active,

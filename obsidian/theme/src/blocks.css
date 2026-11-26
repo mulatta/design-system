@@ -35,8 +35,7 @@
 		)
 		right top / var(--wg-cut) var(--wg-cut) no-repeat border-box,
 		color-mix(in srgb, rgb(var(--callout-color)) 7%, var(--wg-paper));
-	border: 1px solid
-		color-mix(in srgb, rgb(var(--callout-color)) 35%, transparent);
+	border: 0;
 	border-top: 2px solid rgb(var(--callout-color));
 	border-radius: 0;
 	clip-path: polygon(
