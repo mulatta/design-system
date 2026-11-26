@@ -14,6 +14,7 @@ colors:
     rule-soft: "#3f6183"
     pale: "#d4d7dd"
     tint: "#ecedef"
+    cell-line: "#9fbfe2"
     proof: "#b23a30"
     ribbon: "#f0f1f3"
     on-ribbon: "#444444"
@@ -27,6 +28,7 @@ colors:
     rule-soft: "#9fb8d0"
     pale: "#31343c"
     tint: "#23262d"
+    cell-line: "#3a5878"
     proof: "#e2806f"
     ribbon: "#1e2025"
     on-ribbon: "#b8b8b8"
@@ -89,6 +91,7 @@ A cool neutral paper with one printed blue and one correcting red; each scheme, 
 - **Tint** (`tint`): blocks set into the page, such as code, inline code, and property keys. Table headers stay on the page and are marked by a rule, not a tone.
 - **Ink, Mute, Faint** (`ink`, `mute`, `faint`): body text, secondary text, and the faintest labels.
 - **Pale** (`pale`): dividers and inactive frames.
+- **Cell Line** (`cell-line`): the faint lines of sequence cells.
 - **Ribbon, On Ribbon** (`ribbon`, `on-ribbon`): the app's narrow left ribbon and its icons.
 
 `primary` at the top level points at the light scheme's rule blue for tools that expect a single brand colour.
@@ -107,13 +110,13 @@ A cool neutral paper with one printed blue and one correcting red; each scheme, 
 ### Hierarchy
 - **Body** (`text`, line height 1.8): long mixed Korean and Latin prose in a 700px column.
 - **Headings** (`heading`, line height 1.3; `h1` to `h4` at 1.75em, 1.35em, 1.15em, 1em, bold through `h3`): H2 opens with a filled square marker, and in reading view a fine rule runs on to the column edge; H3 and H4 stay plain.
-- **Code** (`code`): code blocks, inline code, and property values.
+- **Code and sequences** (`code`): code blocks, inline code, property values, and sequence blocks.
 
 **The True Italic Rule.** A Latin binomial or gene name is set in real italics from Source Serif 4. Never let it fall through to a synthesized slant.
 
 ## Layout
 
-The note column is 700px (`line-width`). `cell` (14px) is the grid unit for padding in the app chrome. On a phone the column takes the full width and blocks scroll inside their own frame.
+The note column is 700px (`line-width`). `cell` (14px) is the grid unit for padding in the app chrome. Sequence blocks stay inside the column and set as many GenBank groups of ten per line as fit, up to 60 residues, with the start position on each line. On a phone the column takes the full width and blocks fit it without scrolling sideways.
 
 ## Elevation & Depth
 

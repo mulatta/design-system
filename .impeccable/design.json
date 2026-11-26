@@ -139,6 +139,21 @@
 					"#eeeeef"
 				]
 			},
+			"light.cell-line": {
+				"role": "neutral",
+				"displayName": "Cell Line",
+				"canonical": "oklch(79.3% 0.061 250)",
+				"tonalRamp": [
+					"#060c12",
+					"#1a2633",
+					"#314458",
+					"#4a6480",
+					"#6a85a2",
+					"#92a7bf",
+					"#bccbdc",
+					"#e7f0fa"
+				]
+			},
 			"light.proof": {
 				"role": "secondary",
 				"displayName": "Proofreader's Red",
@@ -319,6 +334,21 @@
 					"#edeef1"
 				]
 			},
+			"dark.cell-line": {
+				"role": "neutral",
+				"displayName": "Cell Line (dark)",
+				"canonical": "oklch(45.1% 0.064 250)",
+				"tonalRamp": [
+					"#060c12",
+					"#1a2634",
+					"#304459",
+					"#496481",
+					"#6985a4",
+					"#91a8c0",
+					"#bbcbdd",
+					"#e6f0fa"
+				]
+			},
 			"dark.proof": {
 				"role": "secondary",
 				"displayName": "Proofreader's Red (dark)",
@@ -387,7 +417,7 @@
 			},
 			"code": {
 				"displayName": "Mono",
-				"purpose": "Code, inline code, and property values."
+				"purpose": "Code, inline code, property values, and sequence blocks."
 			},
 			"heading": {
 				"displayName": "Heading leading",
@@ -437,7 +467,13 @@
 			},
 			"purpose": "Set through Obsidian's --icon-{size}-stroke-width variables; the large size is 1.25px."
 		},
-		"motion": [],
+		"motion": [
+			{
+				"name": "ease-out-expo",
+				"value": "cubic-bezier(0.16, 1, 0.3, 1)",
+				"purpose": "The sequence block's copy button fading in."
+			}
+		],
 		"breakpoints": [
 			{
 				"name": "phone",

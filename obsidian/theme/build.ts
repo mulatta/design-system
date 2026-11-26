@@ -15,6 +15,7 @@ const partials = [
 	"chrome.css",
 	"note.css",
 	"code.css",
+	"sequence.css",
 	"blocks.css",
 	"editor.css",
 	"ui.css",

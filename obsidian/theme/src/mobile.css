@@ -37,3 +37,9 @@ body,
 		margin-inline-start: 0;
 	}
 }
+
+@media (prefers-reduced-motion: reduce) {
+	body .seq-copy {
+		transition: none;
+	}
+}
