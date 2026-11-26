@@ -1,0 +1,575 @@
+{
+	"schemaVersion": 2,
+	"generatedAt": "2026-11-26T14:03:39.000Z",
+	"title": "Design System: Wongoji",
+	"extensions": {
+		"colorMeta": {
+			"light.paper": {
+				"role": "neutral",
+				"displayName": "Paper",
+				"canonical": "oklch(98.5% 0.000 89)",
+				"tonalRamp": [
+					"#0b0b0b",
+					"#252525",
+					"#424242",
+					"#616161",
+					"#828282",
+					"#a5a5a5",
+					"#c9c9c9",
+					"#eeeeee"
+				]
+			},
+			"light.paper-alt": {
+				"role": "neutral",
+				"displayName": "Paper Alt",
+				"canonical": "oklch(95.8% 0.003 264)",
+				"tonalRamp": [
+					"#0b0b0b",
+					"#252526",
+					"#414243",
+					"#606163",
+					"#818284",
+					"#a4a5a6",
+					"#c9c9ca",
+					"#eeeeef"
+				]
+			},
+			"light.ink": {
+				"role": "neutral",
+				"displayName": "Ink",
+				"canonical": "oklch(21.8% 0.000 89)",
+				"tonalRamp": [
+					"#0b0b0b",
+					"#252525",
+					"#424242",
+					"#616161",
+					"#828282",
+					"#a5a5a5",
+					"#c9c9c9",
+					"#eeeeee"
+				]
+			},
+			"light.mute": {
+				"role": "neutral",
+				"displayName": "Mute",
+				"canonical": "oklch(47.5% 0.000 89)",
+				"tonalRamp": [
+					"#0b0b0b",
+					"#252525",
+					"#424242",
+					"#616161",
+					"#828282",
+					"#a5a5a5",
+					"#c9c9c9",
+					"#eeeeee"
+				]
+			},
+			"light.faint": {
+				"role": "neutral",
+				"displayName": "Faint",
+				"canonical": "oklch(52.8% 0.000 89)",
+				"tonalRamp": [
+					"#0b0b0b",
+					"#252525",
+					"#424242",
+					"#616161",
+					"#828282",
+					"#a5a5a5",
+					"#c9c9c9",
+					"#eeeeee"
+				]
+			},
+			"light.rule": {
+				"role": "primary",
+				"displayName": "Manuscript Rule Blue",
+				"canonical": "oklch(47.2% 0.156 255)",
+				"tonalRamp": [
+					"#010b1d",
+					"#072548",
+					"#134179",
+					"#1f60ae",
+					"#4383d4",
+					"#77a8e7",
+					"#a9ccfa",
+					"#e5f0fe"
+				]
+			},
+			"light.rule-soft": {
+				"role": "primary",
+				"displayName": "Manuscript Rule Blue, soft",
+				"canonical": "oklch(48.2% 0.068 249)",
+				"tonalRamp": [
+					"#060c13",
+					"#182634",
+					"#2e445a",
+					"#466483",
+					"#6686a6",
+					"#8fa8c2",
+					"#bacbde",
+					"#e5f0fb"
+				]
+			},
+			"light.pale": {
+				"role": "neutral",
+				"displayName": "Pale",
+				"canonical": "oklch(87.9% 0.009 264)",
+				"tonalRamp": [
+					"#0b0b0c",
+					"#242527",
+					"#404245",
+					"#5f6166",
+					"#808287",
+					"#a3a5a9",
+					"#c8c9cc",
+					"#eeeef0"
+				]
+			},
+			"light.tint": {
+				"role": "neutral",
+				"displayName": "Tint",
+				"canonical": "oklch(94.6% 0.003 264)",
+				"tonalRamp": [
+					"#0b0b0b",
+					"#252526",
+					"#414243",
+					"#606163",
+					"#818284",
+					"#a4a5a6",
+					"#c9c9ca",
+					"#eeeeef"
+				]
+			},
+			"light.proof": {
+				"role": "secondary",
+				"displayName": "Proofreader's Red",
+				"canonical": "oklch(52.1% 0.158 28)",
+				"tonalRamp": [
+					"#1a0403",
+					"#43130e",
+					"#71251e",
+					"#a2392f",
+					"#c95c50",
+					"#e18a7e",
+					"#f7b7ae",
+					"#ffe9e5"
+				]
+			},
+			"light.ribbon": {
+				"role": "neutral",
+				"displayName": "Ribbon",
+				"canonical": "oklch(95.8% 0.003 264)",
+				"tonalRamp": [
+					"#0b0b0b",
+					"#252526",
+					"#414243",
+					"#606163",
+					"#818284",
+					"#a4a5a6",
+					"#c9c9ca",
+					"#eeeeef"
+				]
+			},
+			"light.on-ribbon": {
+				"role": "neutral",
+				"displayName": "On Ribbon",
+				"canonical": "oklch(38.7% 0.000 89)",
+				"tonalRamp": [
+					"#0b0b0b",
+					"#252525",
+					"#424242",
+					"#616161",
+					"#828282",
+					"#a5a5a5",
+					"#c9c9c9",
+					"#eeeeee"
+				]
+			},
+			"dark.paper": {
+				"role": "neutral",
+				"displayName": "Paper (dark)",
+				"canonical": "oklch(21.8% 0.000 89)",
+				"tonalRamp": [
+					"#0b0b0b",
+					"#252525",
+					"#424242",
+					"#616161",
+					"#828282",
+					"#a5a5a5",
+					"#c9c9c9",
+					"#eeeeee"
+				]
+			},
+			"dark.paper-alt": {
+				"role": "neutral",
+				"displayName": "Paper Alt (dark)",
+				"canonical": "oklch(24.4% 0.010 268)",
+				"tonalRamp": [
+					"#0b0b0c",
+					"#242527",
+					"#404246",
+					"#5f6166",
+					"#808288",
+					"#a3a5a9",
+					"#c8c9cc",
+					"#eeeef0"
+				]
+			},
+			"dark.ink": {
+				"role": "neutral",
+				"displayName": "Ink (dark)",
+				"canonical": "oklch(91.6% 0.000 89)",
+				"tonalRamp": [
+					"#0b0b0b",
+					"#252525",
+					"#424242",
+					"#616161",
+					"#828282",
+					"#a5a5a5",
+					"#c9c9c9",
+					"#eeeeee"
+				]
+			},
+			"dark.mute": {
+				"role": "neutral",
+				"displayName": "Mute (dark)",
+				"canonical": "oklch(71.5% 0.000 89)",
+				"tonalRamp": [
+					"#0b0b0b",
+					"#252525",
+					"#424242",
+					"#616161",
+					"#828282",
+					"#a5a5a5",
+					"#c9c9c9",
+					"#eeeeee"
+				]
+			},
+			"dark.faint": {
+				"role": "neutral",
+				"displayName": "Faint (dark)",
+				"canonical": "oklch(65.0% 0.000 89)",
+				"tonalRamp": [
+					"#0b0b0b",
+					"#252525",
+					"#424242",
+					"#616161",
+					"#828282",
+					"#a5a5a5",
+					"#c9c9c9",
+					"#eeeeee"
+				]
+			},
+			"dark.rule": {
+				"role": "primary",
+				"displayName": "Manuscript Rule Blue (dark)",
+				"canonical": "oklch(82.8% 0.087 248)",
+				"tonalRamp": [
+					"#040c15",
+					"#142738",
+					"#274460",
+					"#3c658b",
+					"#5c86af",
+					"#88a9c9",
+					"#b5cce4",
+					"#e3f0fe"
+				]
+			},
+			"dark.rule-soft": {
+				"role": "primary",
+				"displayName": "Manuscript Rule Blue, soft (dark)",
+				"canonical": "oklch(77.2% 0.044 247)",
+				"tonalRamp": [
+					"#070c10",
+					"#1d262f",
+					"#354452",
+					"#4f6477",
+					"#708599",
+					"#96a7b8",
+					"#bfcbd7",
+					"#e8eff6"
+				]
+			},
+			"dark.pale": {
+				"role": "neutral",
+				"displayName": "Pale (dark)",
+				"canonical": "oklch(32.5% 0.015 269)",
+				"tonalRamp": [
+					"#0a0b0d",
+					"#242529",
+					"#404248",
+					"#5e6169",
+					"#7f828b",
+					"#a2a5ac",
+					"#c7c9ce",
+					"#edeef1"
+				]
+			},
+			"dark.tint": {
+				"role": "neutral",
+				"displayName": "Tint (dark)",
+				"canonical": "oklch(26.9% 0.014 267)",
+				"tonalRamp": [
+					"#0a0b0d",
+					"#242528",
+					"#404247",
+					"#5e6168",
+					"#7f828a",
+					"#a2a5ab",
+					"#c7c9ce",
+					"#edeef1"
+				]
+			},
+			"dark.proof": {
+				"role": "secondary",
+				"displayName": "Proofreader's Red (dark)",
+				"canonical": "oklch(70.3% 0.124 30)",
+				"tonalRamp": [
+					"#170604",
+					"#3d1812",
+					"#682e25",
+					"#964538",
+					"#bc6758",
+					"#d59184",
+					"#eebbb2",
+					"#ffe9e4"
+				]
+			},
+			"dark.ribbon": {
+				"role": "neutral",
+				"displayName": "Ribbon (dark)",
+				"canonical": "oklch(24.4% 0.010 268)",
+				"tonalRamp": [
+					"#0b0b0c",
+					"#242527",
+					"#404246",
+					"#5f6166",
+					"#808288",
+					"#a3a5a9",
+					"#c8c9cc",
+					"#eeeef0"
+				]
+			},
+			"dark.on-ribbon": {
+				"role": "neutral",
+				"displayName": "On Ribbon (dark)",
+				"canonical": "oklch(78.3% 0.000 89)",
+				"tonalRamp": [
+					"#0b0b0b",
+					"#252525",
+					"#424242",
+					"#616161",
+					"#828282",
+					"#a5a5a5",
+					"#c9c9c9",
+					"#eeeeee"
+				]
+			},
+			"primary": {
+				"role": "primary",
+				"displayName": "Manuscript Rule Blue",
+				"canonical": "oklch(47.2% 0.156 255)",
+				"tonalRamp": [
+					"#010b1d",
+					"#072548",
+					"#134179",
+					"#1f60ae",
+					"#4383d4",
+					"#77a8e7",
+					"#a9ccfa",
+					"#e5f0fe"
+				]
+			}
+		},
+		"typographyMeta": {
+			"text": {
+				"displayName": "Body",
+				"purpose": "Mixed Korean and Latin prose; Source Serif 4 with MaruBuri for Hangul."
+			},
+			"code": {
+				"displayName": "Mono",
+				"purpose": "Code, inline code, and property values."
+			},
+			"heading": {
+				"displayName": "Heading leading",
+				"purpose": "Line height shared by h1 to h4."
+			},
+			"h1": {
+				"displayName": "Heading 1",
+				"purpose": "Note title level."
+			},
+			"h2": {
+				"displayName": "Heading 2",
+				"purpose": "Section heading opened by a filled 0.5em rule-blue square; reading view adds a trailing fine rule, Live Preview does not. No number."
+			},
+			"h3": {
+				"displayName": "Heading 3",
+				"purpose": "Subsection, plain."
+			},
+			"h4": {
+				"displayName": "Heading 4",
+				"purpose": "Minor heading, plain."
+			}
+		},
+		"shadows": [
+			{
+				"name": "float-light",
+				"value": "0 6px 18px rgba(26, 26, 26, 0.14)",
+				"purpose": "Under menus, popovers, and the command palette in the light scheme."
+			},
+			{
+				"name": "float-dark",
+				"value": "0 8px 24px rgba(0, 0, 0, 0.45)",
+				"purpose": "The same floating surfaces in the dark scheme."
+			},
+			{
+				"name": "raised-mobile",
+				"value": "0 0 0 1px var(--wg-rule), var(--wg-shadow)",
+				"purpose": "Obsidian's raised mobile controls (floating navbar, top buttons): a 1px rule-blue ring over the scheme's float shadow, with no backdrop blur."
+			}
+		],
+		"icons": {
+			"set": "Lucide (Obsidian's own)",
+			"strokeWidth": {
+				"xs": "1.5px",
+				"s": "1.5px",
+				"m": "1.5px",
+				"l": "1.25px"
+			},
+			"purpose": "Set through Obsidian's --icon-{size}-stroke-width variables; the large size is 1.25px."
+		},
+		"motion": [],
+		"breakpoints": [
+			{
+				"name": "phone",
+				"value": "600px"
+			}
+		]
+	},
+	"components": [
+		{
+			"name": "Tag chip",
+			"kind": "chip",
+			"description": "Square cell outlined in Manuscript Rule Blue, transparent fill, mono text.",
+			"html": "<span class=\"ds-tag\">#cloning</span>",
+			"css": ".ds-tag { display: inline-block; padding: 0 6px; border: 1px solid #0359b0; color: #0359b0; background: transparent; border-radius: 0; font-family: \"D2Coding\", ui-monospace, monospace; font-size: 12px; line-height: 20px; } .ds-tag:hover { background: #ecedef; } .ds-tag:focus-visible { outline: 2px solid #0359b0; outline-offset: 2px; }"
+		},
+		{
+			"name": "Active tab",
+			"kind": "nav",
+			"description": "Square tab with a 2px blue top rule that turns down a 45° cut, and a red proof mark before the title.",
+			"html": "<div class=\"ds-tab\"><span class=\"ds-tab-mark\"></span>lab-note-ko</div>",
+			"css": ".ds-tab { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 33px; padding: 0 28px 0 12px; background: linear-gradient(225deg, transparent 8px, #0359b0 8px 9.5px, transparent 9.5px) right top / 12px 12px no-repeat border-box, #fafafa; box-shadow: inset 0 2px #0359b0, inset 1px 0 #0359b0, inset -1px 0 #0359b0; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); font-family: \"Source Serif 4\", \"MaruBuri\", serif; font-weight: 700; color: #1a1a1a; } .ds-tab-mark { width: 9px; height: 6px; background: #b23a30; clip-path: polygon(0 0, 18% 0, 50% 64%, 82% 0, 100% 0, 50% 100%); }"
+		},
+		{
+			"name": "Done task",
+			"kind": "custom",
+			"description": "Square checkbox at Obsidian's size; a done task fills it with a red X and sets its text in mute, struck through with a 1.5px red line.",
+			"html": "<label class=\"ds-task\"><span class=\"ds-box is-done\"></span><s>Check the gel</s></label>",
+			"css": ".ds-task { display: inline-flex; align-items: center; gap: 8px; font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #5c5c5c; } .ds-task s { text-decoration-color: #b23a30; text-decoration-thickness: 1.5px; } .ds-box { width: 16px; height: 16px; border: 1px solid #5c5c5c; position: relative; } .ds-box.is-done::after { content: \"\"; position: absolute; inset: 3px; background: #b23a30; clip-path: polygon(14% 0, 50% 36%, 86% 0, 100% 14%, 64% 50%, 100% 86%, 86% 100%, 50% 64%, 14% 100%, 0 86%, 36% 50%, 0 14%); }"
+		},
+		{
+			"name": "Warning callout",
+			"kind": "card",
+			"description": "Square frame with one 45° cut, a red top rule, and a faint red wash.",
+			"html": "<div class=\"ds-callout\"><strong>Caution</strong><p>Lane 2 looks like primer dimer.</p></div>",
+			"css": ".ds-callout { padding: 12px 20px; border: 1px solid rgba(178, 58, 48, 0.3); background: linear-gradient(225deg, transparent 8px, #b23a30 8px 9.5px, transparent 9.5px) right top / 12px 12px no-repeat border-box, rgba(178, 58, 48, 0.08); box-shadow: inset 0 2px #b23a30; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #1a1a1a; } .ds-callout strong { color: #b23a30; font-size: 13px; }"
+		},
+		{
+			"name": "Code block",
+			"kind": "card",
+			"description": "Tint layer with a blue top rule that turns down the 45° cut.",
+			"html": "<pre class=\"ds-code\">&gt;GFP_F pUC19 insert\nATGGTGAGCAAGGGCGAGGAG</pre>",
+			"css": ".ds-code { margin: 0; padding: 14px; background: linear-gradient(225deg, transparent 8px, #0359b0 8px 9.5px, transparent 9.5px) right top / 12px 12px no-repeat border-box, #ecedef; box-shadow: inset 0 2px #0359b0; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); font-family: \"D2Coding\", ui-monospace, monospace; font-size: 13px; color: #1a1a1a; }"
+		},
+		{
+			"name": "Section heading marker",
+			"kind": "custom",
+			"description": "H2 opens with a filled 0.5em rule-blue square, 0.6em before the text; reading view runs a fine rule to the column edge, Live Preview shows the square alone. No number: Obsidian unloads off-screen sections, so a CSS counter miscounts. Numbered H2 via the companion plugin is open, not shipped.",
+			"html": "<h2 class=\"ds-h2\">Primers</h2>",
+			"css": ".ds-h2 { display: flex; align-items: center; gap: 0.6em; margin: 0; font-family: \"Source Serif 4\", \"MaruBuri\", serif; font-size: 1.35em; font-weight: 700; line-height: 1.3; color: #1a1a1a; } .ds-h2::before { content: \"\"; flex: none; width: 0.5em; height: 0.5em; background: #0359b0; } .ds-h2::after { content: \"\"; flex: 1; height: 1px; background: #d4d7dd; }"
+		},
+		{
+			"name": "Title rule",
+			"kind": "custom",
+			"description": "2px rule-blue rule 0.2em under the note title, turning down the 45° cut at its right end; drawn by the title, so it shows with or without properties.",
+			"html": "<div class=\"ds-title\">lab-note-ko</div>",
+			"css": ".ds-title { position: relative; margin: 0 0 0.6em; font-family: \"Source Serif 4\", \"MaruBuri\", serif; font-size: 2.2em; font-weight: 700; line-height: 1.25; letter-spacing: -0.01em; color: #1a1a1a; } .ds-title::after { content: \"\"; position: absolute; inset: calc(100% + 0.2em) 0 auto; height: 12px; background: linear-gradient(225deg, transparent 8px, #0359b0 8px 9.5px, transparent 9.5px) right top / 12px 12px no-repeat, linear-gradient(#0359b0, #0359b0) left top / calc(100% - 12px) 2px no-repeat; }"
+		},
+		{
+			"name": "Highlight",
+			"kind": "custom",
+			"description": "==text== keeps ink text on rule blue at 12% with a 1px rule-blue underline.",
+			"html": "<p class=\"ds-p\">Band at <mark class=\"ds-mark\">720 bp</mark> as expected.</p>",
+			"css": ".ds-p { font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #1a1a1a; } .ds-mark { color: #1a1a1a; background: rgba(3, 89, 176, 0.12); box-shadow: inset 0 -1px #0359b0; }"
+		},
+		{
+			"name": "File tree",
+			"kind": "nav",
+			"description": "Plain rows on the paper-alt layer under a bold ink header with a fine pale underline. Folders show a 9px rule-blue square in the collapse-icon gutter, outlined when collapsed and filled when open; the active file is bold ink with a red proof caret in the same gutter.",
+			"html": "<div class=\"ds-nav\"><div class=\"ds-nav-header\">Files</div><div class=\"ds-nav-row ds-folder\">protocols</div><div class=\"ds-nav-row ds-folder is-open\">experiments</div><div class=\"ds-nav-row\">elements-ko</div><div class=\"ds-nav-row is-active\">lab-note-ko</div></div>",
+			"css": ".ds-nav { background: #f0f1f3; padding: 0 12px 8px; font-family: \"Source Serif 4\", \"MaruBuri\", serif; font-size: 13px; } .ds-nav-header { padding: 8px 0; box-shadow: inset 0 -1px #d4d7dd; color: #1a1a1a; font-weight: 700; } .ds-nav-row { position: relative; min-height: 28px; display: flex; align-items: center; padding-left: 24px; color: #5c5c5c; } .ds-nav-row:hover { color: #1a1a1a; background: #ecedef; } .ds-folder { color: #1a1a1a; } .ds-folder::before { content: \"\"; position: absolute; left: 7px; top: 50%; width: 9px; height: 9px; margin-top: -5px; border: 1px solid #0359b0; } .ds-folder.is-open::before { background: #0359b0; } .ds-nav-row.is-active { color: #1a1a1a; font-weight: 700; } .ds-nav-row.is-active::before { content: \"\"; position: absolute; left: 7px; top: 50%; width: 10px; height: 7px; margin-top: -4px; background: #b23a30; clip-path: polygon(0 0, 18% 0, 50% 64%, 82% 0, 100% 0, 50% 100%); }"
+		},
+		{
+			"name": "Raised mobile control",
+			"kind": "button",
+			"description": "Floating navbar and top buttons on mobile: square, paper ground, a 1px rule-blue ring and the float shadow, no backdrop blur.",
+			"html": "<div class=\"ds-raised\"><button class=\"ds-raised-btn\" aria-label=\"Search\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg></button><button class=\"ds-raised-btn\" aria-label=\"New note\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg></button></div>",
+			"css": ".ds-raised { display: inline-flex; gap: 4px; padding: 4px; background: #fafafa; border-radius: 0; box-shadow: 0 0 0 1px #0359b0, 0 6px 18px rgba(26, 26, 26, 0.14); } .ds-raised-btn { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 0; background: transparent; color: #1a1a1a; } .ds-raised-btn:hover { background: #ecedef; } .ds-raised-btn:focus-visible { outline: 2px solid #0359b0; outline-offset: 2px; }"
+		}
+	],
+	"narrative": {
+		"northStar": "The Manuscript Grid",
+		"overview": "**Creative North Star: \"The Manuscript Grid\"**\n\nWongoji is Korean manuscript paper: a sheet of square cells with fine printed rules, written on by hand and corrected in red. The system treats every component as something printed on that sheet or marked on it afterwards. Tabs, tags, checkboxes, and callouts read as cells and frames stamped onto the page, never as raised buttons or floating cards. The mood is quiet and exact, with the warmth of a page someone wrote on.\n\nIt serves one person's research notes, where long Korean prose, Latin species and gene names, DNA and protein sequences, math, code, and tables share a page and must each read correctly beside the others. Structure carries the identity: a filled blue square opening each section heading, ruled property rows, square tags, and one corner of each frame cut at 45°. Ornament does not.",
+		"keyCharacteristics": [
+			"Square cells and fine rules instead of fills and rounded containers.",
+			"Two accents with fixed jobs: a printed-rule blue for structure, a proofreader's red for marks.",
+			"Depth from tonal steps of paper, not from shadows.",
+			"Obsidian's own component geometry, restyled in colour, type, and rules only."
+		],
+		"rules": [
+			{
+				"name": "The Proof-Mark Rule",
+				"body": "Proofreader's Red marks; it never decorates. If a reader would not expect a proofreader to have put it there, it is not red. Body text and code tokens never use it.",
+				"section": "colors"
+			},
+			{
+				"name": "The One Blue Rule",
+				"body": "Manuscript Rule Blue is the only accent. A new role gets a tone of paper, ink, or blue, not a new hue.",
+				"section": "colors"
+			},
+			{
+				"name": "The True Italic Rule",
+				"body": "A Latin binomial or gene name is set in real italics from Source Serif 4. Never let it fall through to a synthesized slant.",
+				"section": "typography"
+			},
+			{
+				"name": "The Paper Stack Rule",
+				"body": "If two regions sit at different depths, they differ in tone by at least 0.025 in OKLCH lightness, enough to read without a line. No line marks a change of layer; a line between two regions of the same tone is a rule on the page.",
+				"section": "elevation & depth"
+			},
+			{
+				"name": "The One Cut Rule",
+				"body": "One cut corner per frame, top right, and the line never breaks at the diagonal.",
+				"section": "shapes"
+			},
+			{
+				"name": "The Stock Geometry Rule",
+				"body": "A component keeps Obsidian's own size and position unless this document names the difference. Restyling never moves a box.",
+				"section": "components"
+			}
+		],
+		"dos": [
+			"Do keep Obsidian's component sizes and positions, and prove it against stock Obsidian.",
+			"Do separate layers by tone: `paper`, `paper-alt`, `tint`.",
+			"Do set Latin names in true italics.",
+			"Do keep one 45° cut per frame with an unbroken rule."
+		],
+		"donts": [
+			"Don't round a corner.",
+			"Don't use Proofreader's Red for decoration, body text, or code tokens.",
+			"Don't add a second accent hue.",
+			"Don't fill the active row or tab with colour; mark it.",
+			"Don't number headings with a CSS counter; Obsidian unloads off-screen sections and the count goes wrong."
+		]
+	}
+}

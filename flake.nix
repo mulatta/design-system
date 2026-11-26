@@ -1,5 +1,5 @@
 {
-  description = "Design system: tokens, fonts, and themes built from them";
+  description = "Wongoji: a design system ruled like korean manuscript paper";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
