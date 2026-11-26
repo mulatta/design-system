@@ -202,11 +202,13 @@
 	border-bottom: 0;
 }
 
-body .metadata-property:is(:focus, .has-focus) {
+body .metadata-property:is(:focus, .has-focus):not(:active) {
 	background-color: var(--nav-item-background-selected);
 }
 
-body .metadata-property:is(:focus, .has-focus) > .metadata-property-key {
+body
+	.metadata-property:is(:focus, .has-focus):not(:active)
+	> .metadata-property-key {
 	background-color: transparent;
 }
 
