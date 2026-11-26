@@ -1,0 +1,189 @@
+body {
+	--font-text-theme: var(--wg-text-family);
+	--font-interface-theme: var(--wg-text-family);
+	--font-monospace-theme: var(--wg-code-family);
+	--line-height-normal: var(--wg-text-line-height);
+	--line-height-tight: var(--wg-heading-line-height);
+	--file-line-width: var(--wg-line-width);
+	--h1-size: var(--wg-h1-size);
+	--h2-size: var(--wg-h2-size);
+	--h3-size: var(--wg-h3-size);
+	--h4-size: var(--wg-h4-size);
+	--h1-weight: var(--wg-h1-weight);
+	--h2-weight: var(--wg-h2-weight);
+	--h3-weight: var(--wg-h3-weight);
+	--icon-xs-stroke-width: 1.5px;
+	--icon-s-stroke-width: 1.5px;
+	--icon-m-stroke-width: 1.5px;
+	--icon-l-stroke-width: 1.25px;
+}
+
+/* Obsidian redefines radius variables on these body classes. */
+body,
+.mod-macos,
+.is-ios,
+.is-mobile,
+.is-tablet,
+.is-phone.is-mobile,
+.is-mobile.is-floating-nav {
+	--radius-s: var(--wg-radius-none);
+	--radius-m: var(--wg-radius-none);
+	--radius-l: var(--wg-radius-none);
+	--radius-xl: var(--wg-radius-none);
+	--bases-cards-radius: var(--wg-radius-none);
+	--bases-embed-border-radius: var(--wg-radius-none);
+	--bases-kanban-card-radius: var(--wg-radius-none);
+	--bases-kanban-column-radius: var(--wg-radius-none);
+	--bases-property-menu-item-radius: var(--wg-radius-none);
+	--bases-table-cell-radius-active: var(--wg-radius-none);
+	--bases-table-cell-radius-focus: var(--wg-radius-none);
+	--bases-table-container-border-radius: var(--wg-radius-none);
+	--button-radius: var(--wg-radius-none);
+	--callout-radius: var(--wg-radius-none);
+	--canvas-controls-radius: var(--wg-radius-none);
+	--checkbox-radius: var(--wg-radius-none);
+	--clickable-icon-radius: var(--wg-radius-none);
+	--code-radius: var(--wg-radius-none);
+	--embed-action-radius: var(--wg-radius-none);
+	--embed-actions-radius: var(--wg-radius-none);
+	--footnote-radius: var(--wg-radius-none);
+	--hotkey-radius: var(--wg-radius-none);
+	--image-radius: var(--wg-radius-none);
+	--input-radius: var(--wg-radius-none);
+	--menu-radius: var(--wg-radius-none);
+	--mermaid-radius: var(--wg-radius-none);
+	--message-bar-close-button-border-radius: var(--wg-radius-none);
+	--metadata-border-radius: var(--wg-radius-none);
+	--metadata-property-radius: var(--wg-radius-none);
+	--metadata-property-radius-focus: var(--wg-radius-none);
+	--metadata-property-radius-hover: var(--wg-radius-none);
+	--mobile-sidebar-radius: var(--wg-radius-none);
+	--modal-radius: var(--wg-radius-none);
+	--nav-item-radius: var(--wg-radius-none);
+	--nav-tag-radius: var(--wg-radius-none);
+	--navbar-radius: var(--wg-radius-none);
+	--notice-radius: var(--wg-radius-none);
+	--pele-radius: var(--wg-radius-none);
+	--pill-radius: var(--wg-radius-none);
+	--scrollbar-radius: var(--wg-radius-none);
+	--search-input-radius: var(--wg-radius-none);
+	--setting-items-radius: var(--wg-radius-none);
+	--slider-thumb-radius: var(--wg-radius-none);
+	--status-bar-radius: var(--wg-radius-none);
+	--swatch-radius: var(--wg-radius-none);
+	--tab-curve: var(--wg-radius-none);
+	--tab-radius: var(--wg-radius-none);
+	--tab-radius-active: var(--wg-radius-none);
+	--tab-switcher-preview-radius: var(--wg-radius-none);
+	--table-selection-border-radius: var(--wg-radius-none);
+	--tag-radius: var(--wg-radius-none);
+	--textarea-radius: var(--wg-radius-none);
+	--toggle-radius: var(--wg-radius-none);
+	--toggle-thumb-radius: var(--wg-radius-none);
+	--tooltip-radius: var(--wg-radius-none);
+	--touch-radius-xxs: var(--wg-radius-none);
+	--touch-radius-xs: var(--wg-radius-none);
+	--touch-radius-s: var(--wg-radius-none);
+	--touch-radius-m: var(--wg-radius-none);
+	--touch-radius-l: var(--wg-radius-none);
+	--touch-radius-xl: var(--wg-radius-none);
+	--vault-profile-radius: var(--wg-radius-none);
+	--view-header-action-radius: var(--wg-radius-none);
+}
+
+.theme-light {
+	--wg-shadow: 0 6px 18px rgba(26, 26, 26, 0.14);
+}
+
+.theme-dark {
+	--wg-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.theme-light,
+.theme-dark {
+	--background-primary: var(--wg-paper);
+	--background-primary-alt: var(--wg-tint);
+	--background-secondary: var(--wg-paper-alt);
+	--background-secondary-alt: var(--wg-paper-alt);
+	--background-modifier-border: var(--wg-pale);
+	--background-modifier-border-hover: var(--wg-rule-soft);
+	--background-modifier-border-focus: var(--wg-rule);
+	--background-modifier-hover: var(--wg-tint);
+	--background-modifier-active-hover: var(--wg-tint);
+	--background-modifier-form-field: var(--wg-paper);
+	--text-normal: var(--wg-ink);
+	--text-muted: var(--wg-mute);
+	--text-faint: var(--wg-faint);
+	--text-accent: var(--wg-rule);
+	--text-accent-hover: var(--wg-rule-soft);
+	--text-on-accent: var(--wg-paper);
+	--text-error: var(--wg-proof);
+	--color-accent: var(--wg-rule);
+	--color-red: var(--wg-proof);
+	--interactive-accent: var(--wg-rule);
+	--interactive-accent-hover: var(--wg-rule-soft);
+	--text-selection: color-mix(in srgb, var(--wg-rule) 20%, transparent);
+	--text-highlight-bg: color-mix(in srgb, var(--wg-rule) 12%, transparent);
+	--caret-color: var(--wg-proof);
+	--link-color: var(--wg-rule);
+	--link-color-hover: var(--wg-rule-soft);
+	--link-external-color: var(--wg-rule);
+	--link-unresolved-color: var(--wg-mute);
+	--link-unresolved-opacity: 1;
+	--link-unresolved-decoration-style: dotted;
+	--link-decoration-thickness: 1px;
+	--tag-color: var(--wg-rule);
+	--tag-background: transparent;
+	--tag-border-color: var(--wg-rule);
+	--tag-border-width: 1px;
+	--code-background: var(--wg-tint);
+	--code-normal: var(--wg-ink);
+	--code-comment: var(--wg-mute);
+	--code-keyword: var(--wg-rule);
+	--code-function: var(--wg-ink);
+	--code-string: var(--wg-rule-soft);
+	--code-value: var(--wg-rule);
+	--code-property: var(--wg-ink);
+	--code-operator: var(--wg-mute);
+	--code-punctuation: var(--wg-mute);
+	--code-tag: var(--wg-rule);
+	--code-important: var(--wg-rule);
+	--table-border-color: var(--wg-pale);
+	--table-header-border-color: var(--wg-rule);
+	--hr-color: var(--wg-pale);
+	--blockquote-border-color: var(--wg-pale);
+	--nav-item-color: var(--wg-mute);
+	--nav-item-color-hover: var(--wg-ink);
+	--nav-item-color-active: var(--wg-ink);
+	--nav-item-background-hover: var(--wg-tint);
+	--nav-item-background-active: transparent;
+	--tab-background-active: var(--wg-paper);
+	--tab-text-color-focused-active: var(--wg-ink);
+	--ribbon-background: var(--wg-ribbon);
+	--ribbon-background-collapsed: var(--wg-ribbon);
+	--status-bar-background: var(--wg-paper);
+	--status-bar-border-color: var(--wg-rule);
+	--checkbox-color: var(--wg-paper);
+	--checkbox-border-color: var(--wg-ink);
+	--checkbox-marker-color: var(--wg-proof);
+	--checklist-done-color: var(--wg-mute);
+	--checklist-done-decoration: line-through;
+	--callout-default: var(--wg-rule-rgb);
+	--callout-important: var(--wg-rule-rgb);
+	--callout-info: var(--wg-rule-rgb);
+	--callout-summary: var(--wg-rule-rgb);
+	--callout-todo: var(--wg-rule-rgb);
+	--callout-note: var(--wg-rule-rgb);
+	--callout-tip: var(--wg-rule-rgb);
+	--callout-success: var(--wg-rule-rgb);
+	--callout-question: var(--wg-rule-rgb);
+	--callout-example: var(--wg-rule-rgb);
+	--callout-quote: var(--wg-mute-rgb);
+	--callout-warning: var(--wg-proof-rgb);
+	--callout-fail: var(--wg-proof-rgb);
+	--callout-error: var(--wg-proof-rgb);
+	--callout-bug: var(--wg-proof-rgb);
+	--scrollbar-thumb-bg: var(--wg-pale);
+	--scrollbar-active-thumb-bg: var(--wg-rule-soft);
+	--scrollbar-bg: transparent;
+}

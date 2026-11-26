@@ -1,0 +1,51 @@
+.markdown-source-view.mod-cm6 .cm-content {
+	caret-color: var(--wg-proof);
+}
+
+.markdown-source-view.mod-cm6 .cm-cursor {
+	border-left: 2px solid var(--wg-proof);
+}
+
+.markdown-source-view.mod-cm6 .cm-formatting,
+.markdown-source-view.mod-cm6 .cm-formatting-header {
+	color: var(--wg-faint);
+}
+
+.markdown-source-view.mod-cm6 .HyperMD-codeblock {
+	font-family: var(--wg-code-family);
+	background-color: var(--wg-tint);
+}
+
+.markdown-source-view.mod-cm6 .HyperMD-codeblock-begin {
+	border-top: 2px solid var(--wg-rule);
+}
+
+.markdown-source-view.mod-cm6 .cm-inline-code {
+	font-family: var(--wg-code-family);
+	background: var(--wg-tint);
+	border-top: 1px solid var(--wg-pale);
+	border-bottom: 1px solid var(--wg-pale);
+}
+
+.markdown-source-view.mod-cm6 .cm-hashtag {
+	font-family: var(--wg-code-family);
+	color: var(--wg-rule);
+	background: transparent;
+	border-top: 1px solid var(--wg-rule);
+	border-bottom: 1px solid var(--wg-rule);
+}
+
+.markdown-source-view.mod-cm6 .cm-hashtag-begin {
+	border-left: 1px solid var(--wg-rule);
+	padding-left: 0.3em;
+}
+
+.markdown-source-view.mod-cm6 .cm-hashtag-end {
+	border-right: 1px solid var(--wg-rule);
+	padding-right: 0.3em;
+}
+
+.markdown-source-view.mod-cm6 .cm-active-line,
+.markdown-source-view.mod-cm6 .cm-line.cm-active {
+	background: transparent;
+}

@@ -1,0 +1,108 @@
+.markdown-rendered table {
+	border-collapse: collapse;
+	width: 100%;
+	font-variant-numeric: tabular-nums lining-nums;
+	font-size: 0.95em;
+}
+
+.markdown-rendered th {
+	text-align: left;
+	font-weight: 700;
+	border: 0;
+	border-bottom: 2px solid var(--wg-rule);
+	padding: 0.35em 0.75em;
+}
+
+.markdown-rendered td {
+	border: 0;
+	border-bottom: 1px solid var(--wg-pale);
+	padding: 0.35em 0.75em;
+}
+
+.markdown-rendered thead tr {
+	border-top: 1px solid var(--wg-pale);
+}
+
+.callout {
+	position: relative;
+	padding: 0.9em 1.2em 0.4em;
+	background:
+		linear-gradient(
+			225deg,
+			transparent 8px,
+			rgb(var(--callout-color)) 8px 9.5px,
+			transparent 9.5px
+		)
+		right top / var(--wg-cut) var(--wg-cut) no-repeat border-box,
+		color-mix(in srgb, rgb(var(--callout-color)) 7%, var(--wg-paper));
+	border: 1px solid
+		color-mix(in srgb, rgb(var(--callout-color)) 35%, transparent);
+	border-top: 2px solid rgb(var(--callout-color));
+	border-radius: 0;
+	clip-path: polygon(
+		0 0,
+		calc(100% - var(--wg-cut)) 0,
+		100% var(--wg-cut),
+		100% 100%,
+		0 100%
+	);
+}
+
+.callout-title {
+	align-items: center;
+	font-family: var(--wg-code-family);
+	font-size: 0.8em;
+	font-weight: 400;
+	letter-spacing: 0.02em;
+	color: rgb(var(--callout-color));
+}
+
+.callout-icon svg {
+	width: 14px;
+	height: 14px;
+	stroke: currentColor;
+	fill: none;
+}
+
+.callout-content p {
+	margin: 0.4em 0 0.6em;
+}
+
+input[type="checkbox"].task-list-item-checkbox:checked {
+	border-color: var(--wg-mute);
+}
+
+input[type="checkbox"].task-list-item-checkbox:checked::after {
+	-webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><path d='M1 1 9 9M9 1 1 9' stroke='black' stroke-width='2'/></svg>");
+}
+
+.task-list-item.is-checked {
+	color: var(--checklist-done-color);
+	text-decoration: line-through;
+	text-decoration-color: var(--wg-proof);
+	text-decoration-thickness: 1.5px;
+}
+
+.markdown-rendered blockquote {
+	margin: 1.4em 0;
+	padding: 0.6em 2ch;
+	border: 0;
+	border-top: 1px solid var(--wg-pale);
+	border-bottom: 1px solid var(--wg-pale);
+	color: var(--wg-mute);
+}
+
+.markdown-rendered blockquote p {
+	margin: 0;
+}
+
+.markdown-rendered hr {
+	border: 0;
+	height: var(--wg-cell);
+	margin: 2em 0;
+	background:
+		linear-gradient(90deg, var(--wg-pale) 1px, transparent 1px) 0 0 /
+		var(--wg-cell) 100%,
+		linear-gradient(var(--wg-pale), var(--wg-pale)) top / 100% 1px no-repeat,
+		linear-gradient(var(--wg-pale), var(--wg-pale)) bottom / 100% 1px no-repeat;
+}

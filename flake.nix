@@ -52,12 +52,16 @@
       packages = eachSystem (system: {
         impeccable = pkgsFor.${system}.callPackage ./nix/impeccable.nix { };
         fonts = pkgsFor.${system}.callPackage ./nix/fonts { };
+        obsidian-theme = pkgsFor.${system}.callPackage ./nix/obsidian-theme.nix {
+          inherit (self.packages.${system}) fonts;
+        };
       });
 
       checks = eachSystem (system: {
         devshell-default = devShells.${system}.default;
         impeccable = self.packages.${system}.impeccable;
         fonts = self.packages.${system}.fonts;
+        obsidian-theme = self.packages.${system}.obsidian-theme;
         formatting = treefmtEval.${system}.config.build.check self;
       });
     };

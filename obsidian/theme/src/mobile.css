@@ -1,0 +1,30 @@
+.is-mobile .workspace-drawer {
+	border-radius: 0;
+	background: var(--wg-paper);
+}
+
+body,
+.is-mobile.is-floating-nav.is-ios {
+	--raised-background: var(--wg-paper);
+	--raised-blur: none;
+	--raised-shadow: 0 0 0 1px var(--wg-rule), var(--wg-shadow);
+}
+
+.is-phone .metadata-container {
+	overflow: clip;
+}
+
+.is-phone:not(.is-floating-nav) .mobile-navbar {
+	box-shadow: inset 0 1px var(--wg-rule);
+}
+
+@media (max-width: 600px) {
+	body {
+		--wg-cell: 12px;
+	}
+
+	.inline-title {
+		font-size: 1.8em;
+		margin-top: 0.6em;
+	}
+}

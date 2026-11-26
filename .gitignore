@@ -6,3 +6,6 @@ result-*
 
 # npm
 node_modules/
+
+# Local build outputs
+/build/

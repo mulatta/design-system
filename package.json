@@ -3,7 +3,8 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"lint": "designmd lint DESIGN.md"
+		"lint": "designmd lint DESIGN.md",
+		"theme:build": "node obsidian/theme/build.ts build/theme.css"
 	},
 	"devDependencies": {
 		"@google/design.md": "0.4.0",

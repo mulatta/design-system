@@ -1,0 +1,88 @@
+.markdown-rendered pre {
+	--wg-lh: 1.7em;
+	position: relative;
+	margin: 1.2em 0;
+	padding: var(--wg-lh) 2ch;
+	font-family: var(--wg-code-family);
+	font-size: 0.86em;
+	line-height: var(--wg-lh);
+	color: var(--code-normal);
+	border-top: 2px solid var(--wg-rule);
+	border-radius: 0;
+	background:
+		linear-gradient(
+			225deg,
+			transparent 8px,
+			var(--wg-rule) 8px 9.5px,
+			transparent 9.5px
+		)
+		right top / var(--wg-cut) var(--wg-cut) no-repeat border-box,
+		var(--wg-tint);
+	clip-path: polygon(
+		0 0,
+		calc(100% - var(--wg-cut)) 0,
+		100% var(--wg-cut),
+		100% 100%,
+		0 100%
+	);
+}
+
+.markdown-rendered pre code {
+	font-size: 1em;
+	line-height: inherit;
+	background: none;
+	border: 0;
+	padding: 0;
+}
+
+.markdown-rendered .copy-code-button {
+	border-radius: 0;
+	border: 1px solid var(--wg-pale);
+	background: var(--wg-paper);
+	color: var(--wg-mute);
+	font-family: var(--wg-code-family);
+}
+
+.token.comment,
+.cm-comment {
+	color: var(--code-comment);
+}
+
+.token.keyword,
+.cm-keyword {
+	color: var(--code-keyword);
+	font-weight: 700;
+}
+
+.token.string,
+.token.url,
+.cm-string {
+	color: var(--code-string);
+}
+
+.token.number,
+.token.boolean,
+.cm-number,
+.cm-atom {
+	color: var(--code-value);
+}
+
+.token.function,
+.token.builtin,
+.cm-def,
+.cm-variable-2 {
+	color: var(--code-function);
+	font-weight: 700;
+}
+
+.token.property,
+.cm-property {
+	color: var(--code-property);
+}
+
+.token.operator,
+.token.punctuation,
+.cm-operator,
+.cm-bracket {
+	color: var(--code-punctuation);
+}

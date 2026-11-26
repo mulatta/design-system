@@ -1,0 +1,189 @@
+.markdown-rendered,
+.markdown-source-view.mod-cm6 .cm-scroller {
+	font-family: var(--font-text);
+	line-height: var(--line-height-normal);
+	word-break: keep-all;
+	overflow-wrap: break-word;
+}
+
+.inline-title,
+.markdown-rendered h1,
+.markdown-rendered h2,
+.markdown-rendered h3,
+.markdown-rendered h4 {
+	font-family: var(--wg-text-family);
+	letter-spacing: -0.01em;
+	text-wrap: balance;
+}
+
+.inline-title {
+	font-size: 2.2em;
+	line-height: 1.25;
+	margin: 1.2em 0 0.6em;
+	position: relative;
+}
+
+.inline-title::after {
+	content: "";
+	position: absolute;
+	inset: calc(100% + 0.2em) 0 auto;
+	height: var(--wg-cut);
+	pointer-events: none;
+	background:
+		linear-gradient(
+			225deg,
+			transparent 8px,
+			var(--wg-rule) 8px 9.5px,
+			transparent 9.5px
+		)
+		right top / var(--wg-cut) var(--wg-cut) no-repeat,
+		linear-gradient(var(--wg-rule), var(--wg-rule)) left top /
+		calc(100% - var(--wg-cut)) 2px no-repeat;
+}
+
+.markdown-rendered h2 {
+	display: flex;
+	align-items: center;
+	gap: 0.6em;
+	margin: 2.2em 0 0.7em;
+	font-size: var(--h2-size);
+}
+
+.markdown-rendered h2::before,
+.markdown-source-view.is-live-preview .HyperMD-header-2::before {
+	content: "";
+	flex: none;
+	display: inline-block;
+	width: 0.5em;
+	height: 0.5em;
+	background: var(--wg-rule);
+}
+
+.markdown-source-view.is-live-preview .HyperMD-header-2::before {
+	margin-inline-end: 0.6em;
+	vertical-align: 0.12em;
+}
+
+.markdown-rendered mark,
+.markdown-source-view.mod-cm6 .cm-highlight {
+	color: var(--wg-ink);
+	box-shadow: inset 0 -1px var(--wg-rule);
+}
+
+.markdown-rendered h2::after {
+	content: "";
+	flex: 1;
+	height: 1px;
+	background: var(--wg-pale);
+}
+
+.markdown-rendered h3 {
+	margin: 1.8em 0 0.5em;
+	font-size: var(--h3-size);
+	color: var(--wg-ink);
+}
+
+.markdown-rendered p {
+	margin: 0 0 1em;
+}
+
+.markdown-rendered em,
+.markdown-rendered i {
+	font-style: italic;
+}
+
+.markdown-rendered strong {
+	font-weight: 700;
+}
+
+.markdown-rendered a.internal-link,
+.markdown-rendered a.external-link {
+	color: var(--link-color);
+	text-decoration: underline;
+	text-decoration-color: var(--wg-pale);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.22em;
+}
+
+.markdown-rendered a.internal-link:hover,
+.markdown-rendered a.external-link:hover {
+	text-decoration-color: currentColor;
+}
+
+.markdown-rendered a.internal-link.is-unresolved {
+	color: var(--link-unresolved-color);
+	text-decoration-style: dotted;
+	text-decoration-color: var(--wg-mute);
+}
+
+.markdown-rendered a.tag {
+	display: inline-flex;
+	align-items: center;
+	padding: 0 0.45em;
+	font: 400 0.8em / 1.5 var(--wg-code-family);
+	color: var(--tag-color);
+	background: transparent;
+	border: 1px solid var(--wg-rule);
+	border-radius: 0;
+	text-decoration: none;
+	vertical-align: 1px;
+}
+
+.multi-select-pill,
+.metadata-property-value .multi-select-pill {
+	--pill-color: var(--tag-color);
+	--pill-background: transparent;
+	--pill-border-color: var(--tag-border-color);
+	--pill-border-width: var(--tag-border-width);
+	--pill-padding-x: var(--tag-padding-x);
+	--pill-padding-y: var(--tag-padding-y);
+	--pill-radius: var(--tag-radius);
+	font-family: var(--wg-code-family);
+	font-size: 0.85em;
+	line-height: 1;
+}
+
+.markdown-rendered :not(pre) > code {
+	font-family: var(--wg-code-family);
+	font-size: 0.86em;
+	color: var(--wg-ink);
+	background: var(--wg-tint);
+	border: 1px solid var(--wg-pale);
+	border-radius: 0;
+	padding: 0.05em 0.35em;
+}
+
+.metadata-container {
+	position: relative;
+	margin: 0 0 2.2em;
+	border-bottom: 1px solid var(--wg-pale);
+	font-family: var(--wg-text-family);
+}
+
+.metadata-property {
+	min-height: 34px;
+	border-bottom: 1px solid var(--wg-pale);
+	padding: 0;
+}
+
+.metadata-property:last-child {
+	border-bottom: 0;
+}
+
+.metadata-property-key {
+	align-items: center;
+	color: var(--wg-mute);
+	background: var(--wg-tint);
+	border-right: 1px solid var(--wg-pale);
+}
+
+.metadata-property-value {
+	padding: 0 var(--size-4-3);
+	font-family: var(--wg-code-family);
+	font-variant-numeric: tabular-nums;
+	font-size: 0.93em;
+}
+
+.metadata-property-value a.internal-link {
+	font-family: var(--wg-text-family);
+}
