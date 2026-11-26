@@ -202,6 +202,14 @@
 	border-bottom: 0;
 }
 
+body .metadata-property:is(:focus, .has-focus) {
+	background-color: var(--nav-item-background-selected);
+}
+
+body .metadata-property:is(:focus, .has-focus) > .metadata-property-key {
+	background-color: transparent;
+}
+
 .metadata-property-key {
 	align-items: center;
 	color: var(--wg-mute);

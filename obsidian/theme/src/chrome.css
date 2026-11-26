@@ -7,6 +7,10 @@
 	outline-offset: 2px;
 }
 
+body :is(input, textarea):read-write:focus {
+	box-shadow: none;
+}
+
 .workspace-ribbon,
 .workspace-leaf-resize-handle,
 .workspace-tab-header-container {
