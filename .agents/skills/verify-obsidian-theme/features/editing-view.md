@@ -10,6 +10,9 @@ Editing view is where the note is written: Live Preview renders most markdown in
 - `edit-code-lines` sets fenced code lines in D2Coding on the tint, with a rule above the opening fence and the same token colours as reading view, in Live Preview and source mode.
 - `edit-tags` draws `#tag` as a square cell in D2Coding in the accent.
 - `edit-caret` shows a proof-red caret in the editor, and the line holding it gets no fill.
+- `edit-title-focus` lets the inline title be clicked and edited with no outline around it; the caret shows the focus.
+- `edit-table` draws a Live Preview table across the note column, as wide as in reading view.
+- `edit-code-active` keeps a code line on the code block's tint while the caret is on it.
 
 ## How to get to it (user POV)
 
@@ -26,10 +29,12 @@ Preconditions:
 - **Source mode.** Run `obs shot --run agent --note elements-ko --view source --scheme light` and with `--scroll 900`. The captures show `edit-markers` and `edit-code-lines`.
 - **Dark.** Repeat both with `--scheme dark`.
 - **Caret.** `edit-caret` needs focus in the editor; write a custom drive over CDP (port in `build/verify/agent/run.json`) that clicks into a paragraph and captures. `shot` focuses the editor, but the caret blinks, so a plain `shot` may capture it switched off.
+- **States.** Run `obs editcheck --run agent --scheme light`, then `--scheme dark`. `title-focus` proves `edit-title-focus`, `live-table` proves `edit-table`, and `code-active-line` proves `edit-code-active`.
 - **Proof.** Report each sub-feature with its capture path.
 
 ## Gotchas
 
 - Live Preview H2 has no trailing rule: drawing one inside a CodeMirror line means painting the text spans over it, which hides the editor's selection.
 - Live Preview reveals markers only on the active line; without a focused line, markers mostly stay hidden.
+- On 2026-11-27 `editcheck` fails `title-focus`, `live-table`, and `code-active-line` against the theme at commit 35f61fc: the global `:focus-visible` outline reaches the editable title, Live Preview's table widget keeps its content width (238px of 700), and the rule that leaves the caret's line unfilled also clears a code line's tint. Remove this line once the theme passes.
 - `--scroll` scrolls `.cm-scroller`, whose height differs from reading view; adjust the value per capture.

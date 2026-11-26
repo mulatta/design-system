@@ -29,8 +29,8 @@ Each feature file has an H1, one paragraph, and exactly four H2 sections in this
 ## Features
 
 - [Reading view](./reading-view.md) covers the note column: title, properties, headings, prose with italics, links, tags, code, tables, callouts, tasks, math.
-- [Editing view](./editing-view.md) covers Live Preview and source mode: markdown markers, code lines, inline code, tags, caret.
-- [App chrome](./app-chrome.md) covers the ribbon, file tree, tabs, status bar, command palette, settings, and search.
+- [Editing view](./editing-view.md) covers Live Preview and source mode: markdown markers, code lines and the caret on them, inline code, tags, tables, the caret, and the editable title.
+- [App chrome](./app-chrome.md) covers the ribbon, file tree, tabs, status bar, command palette, settings, search, and keyboard focus.
 - [Mobile](./mobile.md) covers Obsidian's mobile layout at phone width.
 - [Comparison](./comparison.md) covers capturing another stylesheet, such as the vault's current snippet, on the same notes.
 - [Tonal layers](./tonal-layers.md) covers depth by tone: which regions share a tone, the lightness step at each layer boundary, and the absence of lines there.

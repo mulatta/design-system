@@ -10,6 +10,7 @@ App chrome is everything around the note: the left ribbon, the sidebar with the 
 - `chrome-rules` keeps every separator inside its own panel: the fine rule under the file-tree buttons ends at the sidebar's edge, and the vault bar at the bottom shows no line between help and settings. Geometry: `geo-nav-header`, `geo-vault-bar`.
 - `chrome-tabs` shows document tabs as square cells on the strip tone, sharing their borders; the active one is page-toned, has the accent top rule, a red proof mark before its title, and a cut corner whose diagonal meets the top rule and the right edge. Geometry: `geo-doc-tab`.
 - `chrome-view-header` keeps stock's back and forward buttons, breadcrumb, and actions, over a fine rule. Geometry: `geo-view-header`.
+- `chrome-focus` draws a 2px accent outline around a control reached with `Tab`, and none around a text field or the editable title, where the caret shows focus.
 - `chrome-status` shows the status bar with tabular numerals and fine rules.
 - `chrome-palette` shows the command palette as a square, ruled modal with a visible selected row.
 - `chrome-settings` shows the settings window readable in both schemes, with the theme's fonts and accent.
@@ -35,6 +36,7 @@ Preconditions:
 - **Search.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light --open search`. The capture shows `chrome-search` in the left sidebar. The next `shot` brings the file explorer back.
 - **Dark.** Repeat each with `--scheme dark`.
 - **Geometry.** Run `obs compare --base stock --run agent --scheme light --part nav-active --part folder-row --part split-edge --part ribbon --part sidebar-tabs --part nav-header --part vault-bar --part doc-tab --part view-header`, then with `--scheme dark`.
+- **Focus.** Run `obs editcheck --run agent --scheme light`: `control-focus` and `title-focus` together prove `chrome-focus`.
 - **Proof.** Report each sub-feature with its capture path.
 
 ## Gotchas
@@ -43,4 +45,4 @@ Preconditions:
 - Obsidian 1.15 opens settings in its own window (a second CDP page at `about:blank`, title `설정 - vault - …`), not as a modal over the note. `shot` finds that page, clears its search box (Obsidian keeps the last query), sets `--size` on it, and captures it.
 - Obsidian's UI language follows the system locale; command names in the palette may be Korean.
 - The fixture vault has one folder, `protocols/`, collapsed in a fresh run. `shot` with a note inside a folder runs Obsidian's "reveal active file", which expands the folder and draws Obsidian's focus box around the revealed row; the folder stays expanded for later shots in that run.
-- The tree's file tags and counts, menus, popovers, and the keyboard focus ring are not reached by `shot`; prove them with a custom CDP drive when a change touches them.
+- The tree's file tags and counts, menus, and popovers are not reached by `shot`; prove them with a custom CDP drive when a change touches them. The keyboard focus ring is reached only by `editcheck`'s `control-focus`.

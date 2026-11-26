@@ -34,6 +34,7 @@ Preconditions:
 - **English.** Repeat the lab note and element note captures with `lab-note-en` and `elements-en`. Body text is Source Serif 4 throughout, and the headings, table, and callouts keep the rhythm of the Korean notes.
 - **Dark.** Repeat each capture with `--scheme dark`. The same elements keep their roles with the dark palette.
 - **Geometry.** For `read-title-props`, `read-headings`, `read-code`, `read-callouts`, and `read-tasks`, also run their parts with `obs compare` against a stock run: `--part title-rule --part properties --part heading --part code-top --part callout --part tasks`.
+- **Table width.** `obs editcheck --run agent` measures `read-table`'s width against the column as `reading-table`.
 - **Proof.** Look at every capture against the sub-feature list and report each sub-feature as holding or not, with the capture path.
 
 ## Gotchas

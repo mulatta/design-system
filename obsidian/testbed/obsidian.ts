@@ -1195,6 +1195,272 @@ async function layers(args: string[]): Promise<void> {
 	console.log(lines.join("\n"));
 }
 
+type Outcome = {
+	pass: boolean;
+	reason: string;
+	facts: Record<string, unknown>;
+};
+
+type EditCheck = {
+	id: string;
+	view: "reading" | "live";
+	shot: string;
+	run: (page: Page) => Promise<Outcome>;
+};
+
+const outlineOf = (page: Page, selector: string) =>
+	page.evaluate((s) => {
+		const el = document.querySelector(s);
+		if (!el) return null;
+		const cs = getComputedStyle(el);
+		return {
+			focusVisible: el.matches(":focus-visible"),
+			style: cs.outlineStyle,
+			width: Number.parseFloat(cs.outlineWidth),
+		};
+	}, selector);
+
+const drawsOutline = (o: { style: string; width: number }) =>
+	o.style !== "none" && o.width > 0;
+
+const clickCentre = async (page: Page, selector: string) => {
+	const box = await page.evaluate((s) => {
+		const el = document.querySelector(s) as HTMLElement | null;
+		if (!el) return null;
+		el.scrollIntoView({ block: "center" });
+		const r = el.getBoundingClientRect();
+		return { x: r.x + Math.min(40, r.width / 2), y: r.y + r.height / 2 };
+	}, selector);
+	if (box) await page.mouse.click(box.x, box.y);
+	return box !== null;
+};
+
+const tableFits = async (page: Page, table: string, column: string) => {
+	const m = await page.evaluate(
+		({ table, column }) => {
+			const t = document.querySelector(table) as HTMLElement | null;
+			const c = document.querySelector(column);
+			if (!t || !c) return null;
+			t.scrollIntoView({ block: "center" });
+			return {
+				table: Math.round(t.getBoundingClientRect().width * 10) / 10,
+				column: Math.round(c.getBoundingClientRect().width * 10) / 10,
+			};
+		},
+		{ table, column },
+	);
+	if (!m) return { pass: false, reason: `no ${table} or ${column}`, facts: {} };
+	const pass = Math.abs(m.table - m.column) <= 1;
+	return {
+		pass,
+		reason: `table ${m.table}px, column ${m.column}px`,
+		facts: m,
+	};
+};
+
+const editChecks: EditCheck[] = [
+	{
+		id: "title-focus",
+		view: "live",
+		shot: ".inline-title",
+		run: async (page) => {
+			if (!(await clickCentre(page, ".inline-title")))
+				return { pass: false, reason: "no .inline-title", facts: {} };
+			const o = await outlineOf(page, ".inline-title");
+			if (!o) return { pass: false, reason: "title left the DOM", facts: {} };
+			return {
+				pass: !drawsOutline(o),
+				reason: drawsOutline(o)
+					? `clicking the title draws a ${o.width}px ${o.style} outline`
+					: "no outline on the clicked title",
+				facts: o,
+			};
+		},
+	},
+	{
+		id: "control-focus",
+		view: "live",
+		shot: ":focus",
+		run: async (page) => {
+			await page.evaluate(() =>
+				(document.activeElement as HTMLElement)?.blur(),
+			);
+			for (let i = 0; i < 60; i++) {
+				await page.keyboard.press("Tab");
+				const hit = await page.evaluate(() => {
+					const el = document.activeElement as HTMLElement | null;
+					if (!el || el === document.body || el.isContentEditable) return null;
+					if (el.matches("input, textarea, select")) return null;
+					const cs = getComputedStyle(el);
+					return {
+						element: `${el.tagName.toLowerCase()}.${[...el.classList].join(".")}`,
+						focusVisible: el.matches(":focus-visible"),
+						style: cs.outlineStyle,
+						width: Number.parseFloat(cs.outlineWidth),
+					};
+				});
+				if (hit)
+					return {
+						pass: drawsOutline(hit),
+						reason: drawsOutline(hit)
+							? `${hit.element} reached by Tab shows a ${hit.width}px outline`
+							: `${hit.element} reached by Tab shows no outline`,
+						facts: { ...hit, tabs: i + 1 },
+					};
+			}
+			return {
+				pass: false,
+				reason: "Tab reached no control in 60 presses",
+				facts: {},
+			};
+		},
+	},
+	{
+		id: "reading-table",
+		view: "reading",
+		shot: ".markdown-reading-view table",
+		run: (page) =>
+			tableFits(
+				page,
+				".markdown-reading-view table",
+				".markdown-reading-view .markdown-preview-sizer > div > p",
+			),
+	},
+	{
+		id: "live-table",
+		view: "live",
+		shot: ".cm-content .cm-table-widget table",
+		run: (page) =>
+			tableFits(
+				page,
+				".cm-content .cm-table-widget table",
+				".cm-content > .cm-line",
+			),
+	},
+	{
+		id: "code-active-line",
+		view: "live",
+		shot: ".cm-line.cm-active",
+		run: async (page) => {
+			const m = await page.evaluate(async () => {
+				const editor = (window as any).app.workspace.activeLeaf.view.editor;
+				const lines: string[] = editor.getValue().split("\n");
+				const fence = lines.findIndex((l) => /^```\S/.test(l));
+				if (fence < 0) return null;
+				editor.setCursor({ line: fence + 1, ch: 0 });
+				editor.focus();
+				await new Promise((r) => setTimeout(r, 400));
+				const active = document.querySelector(
+					".cm-line.cm-active",
+				) as HTMLElement | null;
+				const other = document.querySelector(
+					".cm-line.HyperMD-codeblock-bg:not(.cm-active)",
+				);
+				if (!active || !other) return null;
+				active.scrollIntoView({ block: "center" });
+				return {
+					line: fence + 2,
+					active: getComputedStyle(active).backgroundColor,
+					other: getComputedStyle(other).backgroundColor,
+				};
+			});
+			if (!m)
+				return {
+					pass: false,
+					reason: "no code block line to put the cursor on",
+					facts: {},
+				};
+			return {
+				pass: m.active === m.other,
+				reason:
+					m.active === m.other
+						? `the active code line keeps the block's ${m.other}`
+						: `the active code line is ${m.active}, the block's other lines ${m.other}`,
+				facts: m,
+			};
+		},
+	},
+];
+
+async function editcheck(args: string[]): Promise<void> {
+	const { values } = parseArgs({
+		args,
+		options: {
+			run: { type: "string" },
+			scheme: { type: "string", default: "light" },
+			note: { type: "string", default: "lab-note-ko" },
+		},
+	});
+	if (!values.run) fail("editcheck needs --run <run>");
+	if (values.scheme !== "light" && values.scheme !== "dark")
+		fail(`--scheme must be light or dark, not ${values.scheme}`);
+	const state = readState(values.run);
+	if (!alive(state.pid))
+		fail(`run "${values.run}" is not live; launch it again`);
+	const { browser, page } = await connect(state);
+	const cdp = await page.context().newCDPSession(page);
+	const report: Record<string, Outcome & { shot?: string }> = {};
+	for (const check of editChecks) {
+		const prepared = await prepare(page, {
+			width: 1440,
+			height: 900,
+			mobile: false,
+			note: values.note,
+			view: check.view,
+			scheme: values.scheme,
+			hideRight: true,
+			open: "none",
+		});
+		if ("error" in prepared) fail(prepared.error);
+		await page.waitForTimeout(600);
+		const outcome = await check.run(page);
+		await page.waitForTimeout(200);
+		const box = await page.evaluate((s) => {
+			const el = document.querySelector(s);
+			if (!el) return null;
+			const r = el.getBoundingClientRect();
+			return { x: r.x, y: r.y, width: r.width, height: r.height };
+		}, check.shot);
+		const entry: Outcome & { shot?: string } = outcome;
+		if (box && box.width > 0) {
+			const pad = 24;
+			const shot = join(
+				state.runDir,
+				"shots",
+				`editcheck-${values.scheme}-${check.id}.png`,
+			);
+			const { data } = await cdp.send("Page.captureScreenshot", {
+				format: "png",
+				clip: {
+					x: Math.max(0, box.x - pad),
+					y: Math.max(0, box.y - pad),
+					width: box.width + 2 * pad,
+					height: box.height + 2 * pad,
+					scale: 2,
+				},
+			});
+			mkdirSync(dirname(shot), { recursive: true });
+			writeFileSync(shot, Buffer.from(data, "base64"));
+			entry.shot = shot;
+		}
+		report[check.id] = entry;
+		await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+	}
+	await page.keyboard.press("Escape");
+	if (state.hidden) await conceal(page);
+	await browser.close();
+	const path = join(state.runDir, `editcheck-${values.scheme}.json`);
+	writeFileSync(path, JSON.stringify(report, null, 2));
+	const failed = Object.entries(report).filter(([, o]) => !o.pass);
+	for (const [id, o] of Object.entries(report))
+		console.log(`${o.pass ? "ok  " : "FAIL"} ${id}: ${o.reason}`);
+	console.log(`REPORT ${path}`);
+	console.log(
+		failed.length === 0 ? "EDITCHECK ok" : `EDITCHECK fail ${failed.length}`,
+	);
+	if (failed.length > 0) process.exit(1);
+}
+
 function stop(args: string[]): void {
 	const { values } = parseArgs({
 		args,
@@ -1244,6 +1510,9 @@ switch (command) {
 	case "layers":
 		await layers(rest);
 		break;
+	case "editcheck":
+		await editcheck(rest);
+		break;
 	case "compare":
 		await compare(rest);
 		break;
@@ -1255,6 +1524,6 @@ switch (command) {
 		break;
 	default:
 		fail(
-			"usage: obsidian.ts <launch|doctor|shot|compare|layers|sync|stop> [options]",
+			"usage: obsidian.ts <launch|doctor|shot|compare|layers|editcheck|sync|stop> [options]",
 		);
 }

@@ -10,7 +10,7 @@ The surface is Obsidian's desktop app, an Electron window. The thing under test 
 Every command runs from the repository root inside the devshell, so `obsidian`, `node`, and `playwright-core` are the flake's own:
 
 ```sh
-nix develop -c node obsidian/testbed/obsidian.ts <launch|doctor|shot|compare|layers|sync|stop> [options]
+nix develop -c node obsidian/testbed/obsidian.ts <launch|doctor|shot|compare|layers|editcheck|sync|stop> [options]
 ```
 
 Below, `obs` stands for that whole command. The same harness backs the owner's npm scripts (`npm run obsidian`, `obsidian:doctor`, `obsidian:shot`, `obsidian:compare`, `obsidian:layers`, `obsidian:sync`, `obsidian:stop`), so a run the owner started by hand is the same kind of run. `npm run obsidian` is `launch --foreground`: it stays in the terminal, streams Obsidian's log there and into `obsidian.log`, and tears the run down on Ctrl+C, hangup, or when Obsidian quits. Agents use plain `launch`, which detaches and returns after `READY`, and keep the owner's run for the owner: launch your own run name (for example `--run agent`) instead of driving `main` while the owner looks at it.
@@ -37,7 +37,7 @@ obs launch --run agent
 - The disposable Obsidian config sets `updateDisabled`, so the app makes no update request.
 - Runs are isolated by name. `--run a` and `--run b` can be live side by side. `launch` refuses a name whose recorded process is still alive.
 - Teardown is `obs stop --run <run>`.
-- Always pass `--run`. `doctor`, `shot`, and `sync` default to `main` and `compare` and `layers` to `agent`; `stop` refuses to run without `--run`, so it can never stop the owner's run by omission.
+- Always pass `--run`. `doctor`, `shot`, and `sync` default to `main` and `compare` and `layers` to `agent`; `stop` refuses to run without `--run`, so it can never stop the owner's run by omission. `editcheck` refuses too, since it clicks into the window and moves its focus.
 - The owner may have run `main` live from `npm run obsidian`, on screen. Leave it alone: do not drive or stop it. Run `obs doctor --run agent` first; if it reports ok, reuse that invisible run instead of launching again, and leave it live for the next proof unless the task is over. Stop only runs you launched.
 
 ## Doctor
@@ -100,6 +100,21 @@ obs layers --run agent --scheme light|dark [--note lab-note-ko] [--threshold 0.0
 ```
 
 `layers` always measures at 1440x900 on desktop, in reading view with the right sidebar hidden. It reads each named region's painted background, its OKLCH lightness, and its visible borders and shadow, then prints the lightness difference at each boundary and flags those below the threshold. The regions and boundaries are the `regions` and `boundaries` tables in `obsidian/testbed/obsidian.ts`; what each must show is in `features/tonal-layers.md`. Output JSON goes to `build/verify/layers/`.
+
+### Check editing states
+
+```sh
+obs editcheck --run agent [--scheme light|dark] [--note lab-note-ko]
+```
+
+`editcheck` puts the window in states a plain `shot` never reaches, because `shot` clears focus and never places the cursor, and measures one invariant in each. It runs at 1440x900 on desktop with the right sidebar hidden. The checks are the `editChecks` table in `obsidian/testbed/obsidian.ts`; add a row there when a bug shows up in a state no check reaches.
+
+- `title-focus`: clicking the inline title to edit it draws no outline; the caret already shows where focus is.
+- `control-focus`: the first control that `Tab` reaches outside a text field shows an outline, so keyboard focus stays visible.
+- `reading-table`, `live-table`: the note's first table spans the note column, within 1px, in reading view and in Live Preview's table widget.
+- `code-active-line`: with the cursor on the first line inside the note's first fenced code block, that line keeps the background of the block's other lines.
+
+It prints one `ok` or `FAIL` line per check with its measurement, `REPORT <path>`, and last `EDITCHECK ok` or `EDITCHECK fail <count>`; it exits 1 on any failure. The report goes to `build/verify/<run>/editcheck-<scheme>.json`, and a 2x capture of each check's element to `build/verify/<run>/shots/editcheck-<scheme>-<check>.png`.
 
 ## Evidence
 
