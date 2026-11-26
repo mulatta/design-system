@@ -14,7 +14,7 @@ import { createServer } from "node:net";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { type Browser, chromium, type Page } from "playwright-core";
+import { type Browser, chromium, errors, type Page } from "playwright-core";
 import { buildTheme } from "../theme/build.ts";
 
 const testbed = dirname(fileURLToPath(import.meta.url));
@@ -1204,21 +1204,10 @@ type Outcome = {
 type EditCheck = {
 	id: string;
 	view: "reading" | "live";
+	open?: Panel;
 	shot: string;
 	run: (page: Page) => Promise<Outcome>;
 };
-
-const outlineOf = (page: Page, selector: string) =>
-	page.evaluate((s) => {
-		const el = document.querySelector(s);
-		if (!el) return null;
-		const cs = getComputedStyle(el);
-		return {
-			focusVisible: el.matches(":focus-visible"),
-			style: cs.outlineStyle,
-			width: Number.parseFloat(cs.outlineWidth),
-		};
-	}, selector);
 
 const drawsOutline = (o: { style: string; width: number }) =>
 	o.style !== "none" && o.width > 0;
@@ -1233,6 +1222,126 @@ const clickCentre = async (page: Page, selector: string) => {
 	}, selector);
 	if (box) await page.mouse.click(box.x, box.y);
 	return box !== null;
+};
+
+const ringsOnClick = async (page: Page, selector: string): Promise<Outcome> => {
+	const clicked: Record<string, unknown>[] = [];
+	let left = 0;
+	page.setDefaultTimeout(2000);
+	const count = await page.evaluate((selector) => {
+		const targets = [...document.querySelectorAll(selector)].filter(
+			(el) => el.checkVisibility() && !el.parentElement?.matches(":read-write"),
+		);
+		for (const [i, el] of targets.entries())
+			el.setAttribute("data-ring-target", String(i));
+		return targets.length;
+	}, selector);
+	for (let i = 0; i < count; i++) {
+		const target = page.locator(`[data-ring-target="${i}"]`);
+		if ((await target.count()) === 0) {
+			left++;
+			continue;
+		}
+		try {
+			await page.evaluate(() => {
+				(document.activeElement as HTMLElement)?.blur();
+				const w = window as any;
+				w.__ring = (el: Element) => {
+					const cs = getComputedStyle(el);
+					const outline =
+						cs.outlineStyle !== "none" && Number.parseFloat(cs.outlineWidth) > 0
+							? `outline ${cs.outlineWidth} ${cs.outlineColor}`
+							: "";
+					const shadow = /(^|[\s(,])(0?\.\d*[1-9]|[1-9][\d.]*)px/.test(
+						cs.boxShadow,
+					)
+						? `box-shadow ${cs.boxShadow}`
+						: "";
+					return [outline, shadow].filter(Boolean).join(", ");
+				};
+			});
+			await target.evaluate((el) => {
+				const w = window as any;
+				w.__before = new WeakMap();
+				for (let e: Element | null = el; e; e = e.parentElement)
+					w.__before.set(e, w.__ring(e));
+			});
+			await target.evaluate((el) =>
+				el.scrollIntoView({
+					block:
+						el.getBoundingClientRect().height > innerHeight / 2
+							? "start"
+							: "center",
+				}),
+			);
+			const point = await target.evaluate((el) => {
+				const r = el.getBoundingClientRect();
+				const y = r.y + Math.min(12, r.height / 2);
+				for (const x of [r.x + 4, r.right - 4, r.x + r.width / 2]) {
+					const hit = document.elementFromPoint(x, y);
+					let plain = hit !== null && el.contains(hit);
+					for (let e = hit; plain && e && e !== el; e = e.parentElement)
+						if (
+							e.matches(
+								"a, button, input, .cm-underline, [contenteditable=false]",
+							)
+						)
+							plain = false;
+					if (plain) return { x, y };
+				}
+				return null;
+			});
+			if (!point) continue;
+			await page.mouse.click(point.x, point.y);
+			await page.mouse.move(-10, -10);
+			await page.waitForTimeout(250);
+			clicked.push(
+				await page.evaluate(() => {
+					const w = window as any;
+					const active = document.activeElement as HTMLElement | null;
+					const label = (e: Element) =>
+						`${e.tagName.toLowerCase()}.${[...e.classList].slice(0, 2).join(".")}`;
+					const rings: string[] = [];
+					for (
+						let e: Element | null = active;
+						e && e !== document.body;
+						e = e.parentElement
+					) {
+						const ring = w.__ring(e);
+						if (ring && ring !== (w.__before.get(e) ?? ""))
+							rings.push(`${label(e)}: ${ring}`);
+					}
+					return {
+						focused: active ? label(active) : "none",
+						editable: active?.matches(":read-write") ?? false,
+						rings,
+					};
+				}),
+			);
+		} catch (error) {
+			if (!(error instanceof errors.TimeoutError)) throw error;
+			left++;
+		}
+	}
+	page.setDefaultTimeout(30000);
+	await page.evaluate(() => {
+		for (const el of document.querySelectorAll("[data-ring-target]"))
+			el.removeAttribute("data-ring-target");
+	});
+	const problems = clicked.flatMap((c) => [
+		...(c.editable ? [] : [`clicking reached ${c.focused}, not editable text`]),
+		...(c.rings as string[]).map((r) => `clicking ${c.focused} rings ${r}`),
+	]);
+	if (clicked.length === 0)
+		return { pass: false, reason: `no visible ${selector}`, facts: {} };
+	return {
+		pass: problems.length === 0,
+		reason:
+			problems.length === 0
+				? `no ring around ${clicked.map((c) => c.focused).join(", ")}${left ? `; ${left} left the DOM before their click` : ""}`
+				: problems.join(" | "),
+		facts: { clicked, left },
+	};
 };
 
 const tableFits = async (page: Page, table: string, column: string) => {
@@ -1260,22 +1369,11 @@ const tableFits = async (page: Page, table: string, column: string) => {
 
 const editChecks: EditCheck[] = [
 	{
-		id: "title-focus",
+		id: "text-focus",
 		view: "live",
-		shot: ".inline-title",
-		run: async (page) => {
-			if (!(await clickCentre(page, ".inline-title")))
-				return { pass: false, reason: "no .inline-title", facts: {} };
-			const o = await outlineOf(page, ".inline-title");
-			if (!o) return { pass: false, reason: "title left the DOM", facts: {} };
-			return {
-				pass: !drawsOutline(o),
-				reason: drawsOutline(o)
-					? `clicking the title draws a ${o.width}px ${o.style} outline`
-					: "no outline on the clicked title",
-				facts: o,
-			};
-		},
+		open: "search",
+		shot: ":focus",
+		run: (page) => ringsOnClick(page, ":read-write"),
 	},
 	{
 		id: "control-focus",
@@ -1409,7 +1507,7 @@ async function editcheck(args: string[]): Promise<void> {
 			view: check.view,
 			scheme: values.scheme,
 			hideRight: true,
-			open: "none",
+			open: check.open ?? "none",
 		});
 		if ("error" in prepared) fail(prepared.error);
 		await page.waitForTimeout(600);

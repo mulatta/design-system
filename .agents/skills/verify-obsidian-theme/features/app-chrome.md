@@ -36,7 +36,7 @@ Preconditions:
 - **Search.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light --open search`. The capture shows `chrome-search` in the left sidebar. The next `shot` brings the file explorer back.
 - **Dark.** Repeat each with `--scheme dark`.
 - **Geometry.** Run `obs compare --base stock --run agent --scheme light --part nav-active --part folder-row --part split-edge --part ribbon --part sidebar-tabs --part nav-header --part vault-bar --part doc-tab --part view-header`, then with `--scheme dark`.
-- **Focus.** Run `obs editcheck --run agent --scheme light`: `control-focus` and `title-focus` together prove `chrome-focus`.
+- **Focus.** Run `obs editcheck --run agent --scheme light`: `control-focus` and `text-focus` together prove `chrome-focus`.
 - **Proof.** Report each sub-feature with its capture path.
 
 ## Gotchas

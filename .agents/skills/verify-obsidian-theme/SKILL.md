@@ -107,9 +107,9 @@ obs layers --run agent --scheme light|dark [--note lab-note-ko] [--threshold 0.0
 obs editcheck --run agent [--scheme light|dark] [--note lab-note-ko]
 ```
 
-`editcheck` puts the window in states a plain `shot` never reaches, because `shot` clears focus and never places the cursor, and measures one invariant in each. It runs at 1440x900 on desktop with the right sidebar hidden. The checks are the `editChecks` table in `obsidian/testbed/obsidian.ts`; add a row there when a bug shows up in a state no check reaches.
+`editcheck` puts the window in states a plain `shot` never reaches, because `shot` clears focus and never places the cursor, and measures one invariant in each. It runs at 1440x900 on desktop with the right sidebar hidden. The checks are the `editChecks` table in `obsidian/testbed/obsidian.ts`; add a row there when a bug shows up in a state no check reaches. A row finds its targets in the DOM by kind, as `text-focus` takes every editing root, never from a list of selectors for the instances already seen: a hand list proved only the instance a user had reported, and the next instance of the same kind was found by the user again.
 
-- `title-focus`: clicking the inline title to edit it draws no outline; the caret already shows where focus is.
+- `text-focus`: with the search panel open, it clicks every visible editing root in the window, a read-write element whose parent is not read-write, (the search field, the tab title, the inline title, each property's name and value, and each editor) at a point on plain text, not on a link or widget. Each click must put focus on read-write text and give neither it nor any ancestor an outline or box-shadow it lacked before the click; the caret already shows where focus is. The pointer moves off the window before the measurement, so a hover style does not count. A target that a re-render removes before its click is skipped and counted in the result.
 - `control-focus`: the first control that `Tab` reaches outside a text field shows an outline, so keyboard focus stays visible.
 - `reading-table`, `live-table`: the note's first table spans the note column, within 1px, in reading view and in Live Preview's table widget.
 - `code-active-line`: with the cursor on the first line inside the note's first fenced code block, that line keeps the background of the block's other lines.
