@@ -44,6 +44,7 @@ Consumers, in priority order:
 ## Capabilities and Constraints
 
 - Obsidian themes style the app through Obsidian's CSS variables (`--background-primary`, `--text-normal`, `--interactive-accent`, and the rest).
+- A theme cannot run JavaScript, so a companion Obsidian plugin renders sequence code blocks (`fasta`, `dna`, `protein`). It ships from the same flake as the theme. It formats sequences in the GenBank convention: 10-residue groups, up to six per line as the note column allows, a start position on each line, and styled `>` headers. Input may be one long line, fixed 60, 70, or 80 character lines, multi-FASTA, or protein. Copying returns the original sequence.
 - Web output uses shadcn CSS variable names (`--background`, `--foreground`, `--primary`, `--muted`, `--border`, `--ring`, `--radius`, `--chart-1` to `--chart-5`, and the rest of the set) so shadcn components take the theme directly.
 - Fonts must cover Korean and Latin.
 - The system includes a monospace family for code.

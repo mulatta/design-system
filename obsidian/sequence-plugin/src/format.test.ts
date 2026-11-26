@@ -1,0 +1,351 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import { formatSequences, type LineLength, lineLengthFor } from "./format.ts";
+
+const alphabet = "ACGT";
+
+function residues(count: number, offset = 0): string {
+	let out = "";
+	for (let i = 0; i < count; i++) {
+		out += alphabet[(i + offset) % alphabet.length];
+	}
+	return out;
+}
+
+function wrap(sequence: string, width: number): string {
+	const rows: string[] = [];
+	for (let i = 0; i < sequence.length; i += width) {
+		rows.push(sequence.slice(i, i + width));
+	}
+	return rows.join("\n");
+}
+
+describe("formatSequences input shapes", () => {
+	it("returns no records for empty or blank input", () => {
+		assert.deepEqual(formatSequences("", 60), []);
+		assert.deepEqual(formatSequences("\n  \n\t\n", 60), []);
+	});
+
+	it("formats a bare sequence with no header", () => {
+		const [record, ...rest] = formatSequences("ACGTACGTAC", 60);
+		assert.equal(rest.length, 0);
+		assert.deepEqual(record, {
+			header: null,
+			sequence: "ACGTACGTAC",
+			length: 10,
+			lines: [{ start: 1, groups: ["ACGTACGTAC"] }],
+		});
+	});
+
+	it("formats one long sequence line", () => {
+		const sequence = residues(150);
+		const [record] = formatSequences(`>long\n${sequence}`, 60);
+		assert.equal(record?.sequence, sequence);
+		assert.deepEqual(
+			record?.lines.map((line) => line.start),
+			[1, 61, 121],
+		);
+		assert.deepEqual(record?.lines[2]?.groups, [
+			sequence.slice(120, 130),
+			sequence.slice(130, 140),
+			sequence.slice(140, 150),
+		]);
+	});
+
+	for (const width of [60, 70, 80]) {
+		it(`rewraps input with fixed ${width}-character lines`, () => {
+			const sequence = residues(205, width);
+			const [record] = formatSequences(
+				`>wrapped\n${wrap(sequence, width)}\n`,
+				60,
+			);
+			assert.equal(record?.sequence, sequence);
+			assert.deepEqual(
+				record?.lines.map((line) => line.start),
+				[1, 61, 121, 181],
+			);
+			assert.equal(
+				record?.lines.flatMap((line) => line.groups).join(""),
+				sequence,
+			);
+			assert.deepEqual(
+				record?.lines.map((line) => line.groups.join("").length),
+				[60, 60, 60, 25],
+			);
+		});
+	}
+
+	it("splits multi-FASTA into records in source order", () => {
+		const source = [
+			">first sequence",
+			"AAAAACCCCC",
+			"GGGGG",
+			">second",
+			"TTTTT",
+			">third one",
+			"acgt",
+		].join("\n");
+		const records = formatSequences(source, 60);
+		assert.deepEqual(
+			records.map((record) => [record.header, record.sequence]),
+			[
+				["first sequence", "AAAAACCCCCGGGGG"],
+				["second", "TTTTT"],
+				["third one", "acgt"],
+			],
+		);
+		assert.deepEqual(records[0]?.lines, [
+			{ start: 1, groups: ["AAAAACCCCC", "GGGGG"] },
+		]);
+	});
+
+	it("formats protein sequences", () => {
+		const protein =
+			"MKTAYIAKQRQISFVKSHFSRQLEERLGLIEVQAPILSRVGDGTQDNLSGAEKAVQVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGLYTHMKALRPDEDRLSPLHSVYVDQWDWERVMGDGERQFSTLKSTVEAIWAGIKATEAAVSEEFGLAPFLPDQIHFVHSQELLSRYPDLDAKGRERAIAKDLGAVFLVGIGGKLSDGHRHDVRAPDYDDWUAQ";
+		const [record] = formatSequences(
+			`>sp|P69905|TEST Example protein\n${wrap(protein, 60)}`,
+			60,
+		);
+		assert.equal(record?.header, "sp|P69905|TEST Example protein");
+		assert.equal(record?.sequence, protein);
+		assert.equal(record?.lines.length, Math.ceil(protein.length / 60));
+		assert.equal(
+			record?.lines.at(-1)?.start,
+			1 + 60 * (record!.lines.length - 1),
+		);
+	});
+
+	it("ignores blank lines and strips whitespace inside sequence lines", () => {
+		const source = "\n>spaced\n\nACGTA CGTAC\n\tGG TT\t\n\n   \nAA  \r\nCC\r\n";
+		const [record] = formatSequences(source, 60);
+		assert.equal(record?.sequence, "ACGTACGTACGGTTAACC");
+		assert.deepEqual(record?.lines, [
+			{ start: 1, groups: ["ACGTACGTAC", "GGTTAACC"] },
+		]);
+	});
+
+	it("keeps header text after > verbatim", () => {
+		const [record] = formatSequences(
+			">  NM_000518.5 Homo sapiens  HBB, mRNA  \nACGT",
+			60,
+		);
+		assert.equal(record?.header, "  NM_000518.5 Homo sapiens  HBB, mRNA  ");
+	});
+
+	it("keeps an empty header and a header with no sequence", () => {
+		const records = formatSequences(">\nACGT\n>empty\n>last\nTT", 60);
+		assert.deepEqual(
+			records.map((record) => [
+				record.header,
+				record.sequence,
+				record.lines.length,
+			]),
+			[
+				["", "ACGT", 1],
+				["empty", "", 0],
+				["last", "TT", 1],
+			],
+		);
+	});
+
+	it("starts a headerless record for residues before the first header", () => {
+		const records = formatSequences("ACGT\n>named\nGGCC", 60);
+		assert.deepEqual(
+			records.map((record) => [record.header, record.sequence]),
+			[
+				[null, "ACGT"],
+				["named", "GGCC"],
+			],
+		);
+	});
+
+	it("counts residues per record as length", () => {
+		const records = formatSequences(
+			">a\nAC GT\nac\n>b\n>c\n" + residues(61),
+			60,
+		);
+		assert.deepEqual(
+			records.map((record) => record.length),
+			[6, 0, 61],
+		);
+	});
+
+	it("preserves lowercase and mixed case residues", () => {
+		const [record] = formatSequences("acgtNNNNacgtACGTnnnn", 60);
+		assert.equal(record?.sequence, "acgtNNNNacgtACGTnnnn");
+		assert.deepEqual(record?.lines[0]?.groups, ["acgtNNNNac", "gtACGTnnnn"]);
+	});
+});
+
+describe("formatSequences boundaries", () => {
+	it("keeps exactly 10 residues in one group", () => {
+		const [record] = formatSequences(residues(10), 60);
+		assert.deepEqual(record?.lines, [{ start: 1, groups: [residues(10)] }]);
+	});
+
+	it("opens a second group at 11 residues", () => {
+		const sequence = residues(11);
+		const [record] = formatSequences(sequence, 60);
+		assert.deepEqual(record?.lines, [
+			{ start: 1, groups: [sequence.slice(0, 10), sequence.slice(10)] },
+		]);
+	});
+
+	it("keeps exactly 60 residues on one line of six groups", () => {
+		const sequence = residues(60);
+		const [record] = formatSequences(sequence, 60);
+		assert.equal(record?.lines.length, 1);
+		assert.deepEqual(record?.lines[0]?.groups, [
+			sequence.slice(0, 10),
+			sequence.slice(10, 20),
+			sequence.slice(20, 30),
+			sequence.slice(30, 40),
+			sequence.slice(40, 50),
+			sequence.slice(50, 60),
+		]);
+	});
+
+	it("opens a second line at 61 residues starting at position 61", () => {
+		const sequence = residues(61);
+		const [record] = formatSequences(sequence, 60);
+		assert.equal(record?.lines.length, 2);
+		assert.equal(record?.lines[0]?.groups.length, 6);
+		assert.deepEqual(record?.lines[1], {
+			start: 61,
+			groups: [sequence.slice(60)],
+		});
+	});
+
+	it("numbers line starts 1, 61, 121 and onward", () => {
+		const [record] = formatSequences(residues(600), 60);
+		assert.deepEqual(
+			record?.lines.map((line) => line.start),
+			[1, 61, 121, 181, 241, 301, 361, 421, 481, 541],
+		);
+		assert.ok(
+			record?.lines.every((line) =>
+				line.groups.every((group) => group.length === 10),
+			),
+		);
+	});
+});
+
+describe("formatSequences line length", () => {
+	const lengths: LineLength[] = [10, 20, 30, 40, 50, 60];
+	for (const lineLength of lengths) {
+		it(`lays out ${lineLength} residues per line in groups of 10`, () => {
+			const sequence = residues(205);
+			const [record] = formatSequences(
+				`>reflow\n${wrap(sequence, 70)}`,
+				lineLength,
+			);
+			const lineCount = Math.ceil(205 / lineLength);
+			assert.deepEqual(
+				record?.lines.map((line) => line.start),
+				Array.from({ length: lineCount }, (_, i) => 1 + i * lineLength),
+			);
+			assert.deepEqual(
+				record?.lines.map((line) => line.groups.join("")),
+				Array.from({ length: lineCount }, (_, i) =>
+					sequence.slice(i * lineLength, (i + 1) * lineLength),
+				),
+			);
+			assert.ok(
+				record?.lines.every((line) =>
+					line.groups.every((group) => group.length <= 10),
+				),
+			);
+			assert.equal(record?.length, 205);
+		});
+	}
+
+	it("opens a new line at residue 31 with 30 per line", () => {
+		const sequence = residues(61);
+		const [record] = formatSequences(sequence, 30);
+		assert.deepEqual(record?.lines, [
+			{
+				start: 1,
+				groups: [
+					sequence.slice(0, 10),
+					sequence.slice(10, 20),
+					sequence.slice(20, 30),
+				],
+			},
+			{
+				start: 31,
+				groups: [
+					sequence.slice(30, 40),
+					sequence.slice(40, 50),
+					sequence.slice(50, 60),
+				],
+			},
+			{ start: 61, groups: [sequence.slice(60)] },
+		]);
+	});
+});
+
+describe("lineLengthFor", () => {
+	const measure = {
+		group: 100,
+		gap: 10,
+		digit: 8,
+		digits: 3,
+		positionGap: 10,
+	};
+	const need = (groups: number, digits = 3) =>
+		Math.max(3, digits) * 8 + 10 + groups * 100 + (groups - 1) * 10;
+
+	it("picks 60 when six groups fit exactly", () => {
+		assert.equal(lineLengthFor({ ...measure, available: need(6) }), 60);
+	});
+
+	it("drops to 50 one pixel short of six groups", () => {
+		assert.equal(lineLengthFor({ ...measure, available: need(6) - 1 }), 50);
+	});
+
+	it("picks the largest count of groups that fits", () => {
+		for (const groups of [1, 2, 3, 4, 5] as const) {
+			assert.equal(
+				lineLengthFor({ ...measure, available: need(groups) }),
+				groups * 10,
+			);
+			assert.equal(
+				lineLengthFor({ ...measure, available: need(groups + 1) - 1 }),
+				groups * 10,
+			);
+		}
+	});
+
+	it("never goes above 60", () => {
+		assert.equal(lineLengthFor({ ...measure, available: 10_000 }), 60);
+	});
+
+	it("keeps 10 when not even one group fits", () => {
+		assert.equal(lineLengthFor({ ...measure, available: 50 }), 10);
+		assert.equal(lineLengthFor({ ...measure, available: 0 }), 10);
+	});
+
+	it("sizes the position column at no less than three digits", () => {
+		for (const digits of [1, 2, 3]) {
+			assert.equal(
+				lineLengthFor({ ...measure, digits, available: need(6) }),
+				60,
+			);
+			assert.equal(
+				lineLengthFor({ ...measure, digits, available: need(6) - 1 }),
+				50,
+			);
+		}
+	});
+
+	it("widens the position column for four or more digits", () => {
+		assert.equal(
+			lineLengthFor({ ...measure, digits: 4, available: need(6) }),
+			50,
+		);
+		assert.equal(
+			lineLengthFor({ ...measure, digits: 4, available: need(6, 4) }),
+			60,
+		);
+	});
+});

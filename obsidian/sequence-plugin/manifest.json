@@ -1,0 +1,9 @@
+{
+	"id": "sequence-blocks",
+	"name": "Sequence Blocks",
+	"version": "0.1.0",
+	"minAppVersion": "1.5.0",
+	"description": "Render fasta, dna, and protein code blocks as numbered sequences in GenBank layout.",
+	"author": "seungwon",
+	"isDesktopOnly": false
+}

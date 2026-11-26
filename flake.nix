@@ -51,6 +51,7 @@
 
       packages = eachSystem (system: {
         impeccable = pkgsFor.${system}.callPackage ./nix/impeccable.nix { };
+        obsidian-sequence-plugin = pkgsFor.${system}.callPackage ./nix/obsidian-sequence-plugin.nix { };
         fonts = pkgsFor.${system}.callPackage ./nix/fonts { };
         obsidian-theme = pkgsFor.${system}.callPackage ./nix/obsidian-theme.nix {
           inherit (self.packages.${system}) fonts;
@@ -60,6 +61,7 @@
       checks = eachSystem (system: {
         devshell-default = devShells.${system}.default;
         impeccable = self.packages.${system}.impeccable;
+        obsidian-sequence-plugin = self.packages.${system}.obsidian-sequence-plugin;
         fonts = self.packages.${system}.fonts;
         obsidian-theme = self.packages.${system}.obsidian-theme;
         formatting = treefmtEval.${system}.config.build.check self;

@@ -5,6 +5,9 @@
 	"scripts": {
 		"lint": "designmd lint DESIGN.md",
 		"theme:build": "node obsidian/theme/build.ts build/theme.css",
+		"plugin:test": "node --test \"obsidian/sequence-plugin/src/**/*.test.ts\"",
+		"plugin:check": "tsc -p obsidian/sequence-plugin",
+		"plugin:build": "esbuild obsidian/sequence-plugin/src/main.ts --bundle --format=cjs --target=es2022 --external:obsidian --outfile=obsidian/sequence-plugin/main.js",
 		"obsidian": "node obsidian/testbed/obsidian.ts launch --foreground",
 		"obsidian:doctor": "node obsidian/testbed/obsidian.ts doctor",
 		"obsidian:shot": "node obsidian/testbed/obsidian.ts shot",
@@ -17,6 +20,8 @@
 	"devDependencies": {
 		"@google/design.md": "0.4.0",
 		"@types/node": "24.19.4",
+		"esbuild": "0.28.2",
+		"obsidian": "1.14.4",
 		"playwright-core": "1.64.1",
 		"typescript": "7.0.2"
 	}
