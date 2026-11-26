@@ -51,11 +51,13 @@
 
       packages = eachSystem (system: {
         impeccable = pkgsFor.${system}.callPackage ./nix/impeccable.nix { };
+        fonts = pkgsFor.${system}.callPackage ./nix/fonts { };
       });
 
       checks = eachSystem (system: {
         devshell-default = devShells.${system}.default;
         impeccable = self.packages.${system}.impeccable;
+        fonts = self.packages.${system}.fonts;
         formatting = treefmtEval.${system}.config.build.check self;
       });
     };
