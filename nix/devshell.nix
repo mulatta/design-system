@@ -1,4 +1,11 @@
-{ pkgs, formatter }:
+{
+  pkgs,
+  formatter,
+  impeccable,
+}:
 pkgs.mkShellNoCC {
-  packages = [ formatter ];
+  packages = [
+    formatter
+    impeccable
+  ];
 }

@@ -36,14 +36,20 @@
         default = import ./nix/devshell.nix {
           pkgs = pkgsFor.${system};
           formatter = formatter.${system};
+          impeccable = self.packages.${system}.impeccable;
         };
       });
     in
     {
       inherit devShells formatter;
 
+      packages = eachSystem (system: {
+        impeccable = pkgsFor.${system}.callPackage ./nix/impeccable.nix { };
+      });
+
       checks = eachSystem (system: {
         devshell-default = devShells.${system}.default;
+        impeccable = self.packages.${system}.impeccable;
         formatting = treefmtEval.${system}.config.build.check self;
       });
     };
