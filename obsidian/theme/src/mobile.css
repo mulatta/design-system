@@ -14,6 +14,16 @@ body,
 	overflow: clip;
 }
 
+.is-mobile .prompt {
+	background-color: var(--wg-paper);
+	box-shadow: var(--wg-shadow);
+}
+
+.is-phone .prompt-input-container,
+.is-phone .prompt-input[type="text"] {
+	border-radius: 0;
+}
+
 .is-phone.is-floating-nav .view-header {
 	border-bottom-color: transparent;
 }

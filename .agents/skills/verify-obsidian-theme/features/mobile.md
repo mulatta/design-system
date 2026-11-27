@@ -8,7 +8,7 @@ Obsidian's mobile app uses its own layout: no ribbon or side panes on screen, a 
 - `mobile-shrink` sets the inline title at 1.8em and the cell module at 12px below 600px, and moves the H2 marker from the margin into the heading line.
 - `mobile-fonts` renders MaruBuri, Source Serif 4, and D2Coding from the embedded fonts, not system fallbacks.
 - `mobile-blocks` keeps code blocks, tables, and callouts inside the width or scrollable inside their own box.
-- `mobile-raised` draws the floating navbar and the top sidebar, edit, and more buttons square, framed by a 1px accent ring on paper with the theme's shadow and no blur. The floating view header behind the top buttons draws no underline, as in stock.
+- `mobile-raised` draws the floating navbar and the top sidebar, edit, and more buttons square, framed by a 1px accent ring on paper with the theme's shadow and no blur. The floating view header behind the top buttons draws no underline, as in stock. The command palette opens on paper with the theme's rule and shadow, as on desktop, and its input is square.
 - `mobile-settings` opens settings as a square modal over the note.
 - `mobile-editing` keeps Live Preview at phone width like desktop Live Preview: the title rule, properties, the H2 marker, the code top rule, callouts, task boxes, and a table sized to its content within the column.
 
