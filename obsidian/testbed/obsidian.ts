@@ -15,7 +15,13 @@ import { createServer } from "node:net";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
-import { type Browser, chromium, errors, type Page } from "playwright-core";
+import {
+	type Browser,
+	type CDPSession,
+	chromium,
+	errors,
+	type Page,
+} from "playwright-core";
 import { buildTheme } from "../theme/build.ts";
 
 const testbed = dirname(fileURLToPath(import.meta.url));
@@ -3314,6 +3320,78 @@ function unitChars(fence: Fence): number {
 
 type Check = { pass: boolean; reason: string };
 
+type Control = { name: string; box: Box; objectId: string };
+
+async function elementsOf(
+	cdp: CDPSession,
+	expression: string,
+): Promise<string[]> {
+	const { result } = await cdp.send("Runtime.evaluate", { expression });
+	if (!result.objectId) return [];
+	const { result: props } = await cdp.send("Runtime.getProperties", {
+		objectId: result.objectId,
+		ownProperties: true,
+	});
+	return props.flatMap((p) =>
+		/^\d+$/.test(p.name) && p.value?.objectId ? [p.value.objectId] : [],
+	);
+}
+
+const pressEvents = ["click", "mousedown", "pointerdown", "touchstart"];
+
+async function controlsNear(
+	cdp: CDPSession,
+	area: Box,
+	anchor: string,
+): Promise<Control[]> {
+	const near = await elementsOf(
+		cdp,
+		`(() => {
+			const a = ${JSON.stringify(area)};
+			const anchor = ${anchor};
+			return [...document.querySelectorAll("body *")].filter((el) => {
+				if (!anchor || anchor.contains(el) || el.contains(anchor)) return false;
+				const c = el.getBoundingClientRect();
+				return c.width > 0 && c.height > 0 &&
+					c.right > a.x - 24 && c.x < a.x + a.w + 24 &&
+					c.bottom > a.y - 24 && c.y < a.y + a.h + 24;
+			});
+		})()`,
+	);
+	const controls: Control[] = [];
+	for (const objectId of near) {
+		const { listeners } = await cdp.send("DOMDebugger.getEventListeners", {
+			objectId,
+			depth: 0,
+		});
+		const { result } = await cdp.send("Runtime.callFunctionOn", {
+			objectId,
+			returnByValue: true,
+			functionDeclaration: `function () {
+				const r = this.getBoundingClientRect();
+				const pointer = (el) => el !== null && getComputedStyle(el).cursor === "pointer";
+				return {
+					name: this.tagName.toLowerCase() + [...this.classList].map((k) => "." + k).join(""),
+					box: { x: r.x, y: r.y, w: r.width, h: r.height },
+					native: this.matches("button, a[href], input, select, textarea, summary"),
+					pointer: pointer(this) && !pointer(this.parentElement),
+				};
+			}`,
+		});
+		const el = result.value as Omit<Control, "objectId"> & {
+			native: boolean;
+			pointer: boolean;
+		};
+		if (
+			el.native ||
+			el.pointer ||
+			listeners.some((l) => pressEvents.includes(l.type))
+		)
+			controls.push({ name: el.name, box: el.box, objectId });
+	}
+	return controls;
+}
+
 async function seqcheck(args: string[]): Promise<void> {
 	const { values } = parseArgs({
 		args,
@@ -3442,16 +3520,27 @@ async function seqcheck(args: string[]): Promise<void> {
 			continue;
 		}
 		await cdp.send("DOM.getDocument", { depth: 0 });
-		const { result: blockRef } = await cdp.send("Runtime.evaluate", {
-			expression: `__seqFind(${JSON.stringify(values.view)}, ${fence.line})`,
-		});
-		const { nodeId: blockNode } = await cdp.send("DOM.requestNode", {
-			objectId: blockRef.objectId as string,
-		});
-		await cdp.send("CSS.forcePseudoState", {
-			nodeId: blockNode,
-			forcedPseudoClasses: ["hover"],
-		});
+		// CDP forces :hover on one node only; a real pointer hovers each ancestor too.
+		const hoverChain = await elementsOf(
+			cdp,
+			`(() => {
+				const chain = [];
+				for (let e = __seqFind(${JSON.stringify(values.view)}, ${fence.line}); e; e = e.parentElement) {
+					chain.push(e);
+					if (e.matches(".cm-scroller, .markdown-preview-view")) break;
+				}
+				return chain;
+			})()`,
+		);
+		const hovered: number[] = [];
+		for (const objectId of hoverChain) {
+			const { nodeId } = await cdp.send("DOM.requestNode", { objectId });
+			await cdp.send("CSS.forcePseudoState", {
+				nodeId,
+				forcedPseudoClasses: ["hover"],
+			});
+			hovered.push(nodeId);
+		}
 		const m = await page.evaluate(
 			({ view, line }) => {
 				type Box = { x: number; y: number; w: number; h: number };
@@ -3503,6 +3592,28 @@ async function seqcheck(args: string[]): Promise<void> {
 							parseFloat(columnStyle.paddingRight),
 					),
 				};
+				const frameLines: string[] = [];
+				for (
+					let e = block.parentElement;
+					e && e !== columnEl;
+					e = e.parentElement
+				) {
+					const cs = getComputedStyle(e);
+					const drawn = [
+						cs.boxShadow !== "none" ? `box-shadow ${cs.boxShadow}` : "",
+						cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0
+							? `outline ${cs.outlineWidth}`
+							: "",
+						...["top", "right", "bottom", "left"].map((side) =>
+							cs.getPropertyValue(`border-${side}-style`) !== "none" &&
+							parseFloat(cs.getPropertyValue(`border-${side}-width`)) > 0
+								? `border-${side}`
+								: "",
+						),
+					].filter(Boolean);
+					if (drawn.length > 0)
+						frameLines.push(`${name(e)}: ${drawn.join(", ")}`);
+				}
 				const badges = [...block.querySelectorAll(".seq-record")].map((r) => {
 					const badge = r.querySelector(":scope > .seq-head > .seq-badge");
 					return badge ? box(badge.getBoundingClientRect()) : null;
@@ -3563,6 +3674,8 @@ async function seqcheck(args: string[]): Promise<void> {
 					units,
 					scroller: inner(scrollerEl),
 					clippedBy,
+					frameLines,
+					cut: parseFloat(getComputedStyle(block).getPropertyValue("--wg-cut")),
 					scrollWidth: block.scrollWidth,
 					clientWidth: block.clientWidth,
 					headers,
@@ -3605,10 +3718,11 @@ async function seqcheck(args: string[]): Promise<void> {
 				height: Math.min(height, m.rect.y + m.rect.h + 8) - cy,
 			},
 		});
-		await cdp.send("CSS.forcePseudoState", {
-			nodeId: blockNode,
-			forcedPseudoClasses: [],
-		});
+		for (const nodeId of hovered)
+			await cdp.send("CSS.forcePseudoState", {
+				nodeId,
+				forcedPseudoClasses: [],
+			});
 		const span = (b: Box) => `${b.x}..${Math.round((b.x + b.w) * 10) / 10}`;
 		const cut = m.clippedBy.map(
 			(c) => `${c.el} (block x ${span(m.rect)}, clip x ${span(c.clip)})`,
@@ -3623,6 +3737,64 @@ async function seqcheck(args: string[]): Promise<void> {
 				cut.length === 0
 					? "both edges inside every clipping ancestor"
 					: `cut by ${cut.join(", ")}`,
+		};
+		const corner: Box = {
+			x: m.rect.x + m.rect.w - m.cut,
+			y: m.rect.y,
+			w: m.cut,
+			h: m.cut,
+		};
+		const overCut: string[] = [];
+		for (const c of await controlsNear(
+			cdp,
+			corner,
+			`__seqFind(${JSON.stringify(values.view)}, ${fence.line})`,
+		)) {
+			const { nodeId } = await cdp.send("DOM.requestNode", {
+				objectId: c.objectId,
+			});
+			await cdp.send("CSS.forcePseudoState", {
+				nodeId,
+				forcedPseudoClasses: ["hover"],
+			});
+			const { result } = await cdp.send("Runtime.callFunctionOn", {
+				objectId: c.objectId,
+				returnByValue: true,
+				functionDeclaration: `function () {
+					const r = this.getBoundingClientRect();
+					const bg = getComputedStyle(this).backgroundColor;
+					const alpha = bg.startsWith("rgba") ? parseFloat(bg.split(",")[3]) : 1;
+					return { x: r.x, y: r.y, right: r.right, bottom: r.bottom, alpha, bg };
+				}`,
+			});
+			await cdp.send("CSS.forcePseudoState", {
+				nodeId,
+				forcedPseudoClasses: [],
+			});
+			const b = result.value as {
+				x: number;
+				y: number;
+				right: number;
+				bottom: number;
+				alpha: number;
+				bg: string;
+			};
+			const into = Math.min(b.right, corner.x + corner.w) - corner.x;
+			const below = Math.max(b.y, corner.y) - corner.y;
+			if (
+				b.alpha > 0 &&
+				b.x < corner.x + corner.w &&
+				b.bottom > corner.y &&
+				into - below > 0.5
+			)
+				overCut.push(`hovered ${c.name} paints ${b.bg} over the cut`);
+		}
+		checks["one-cut"] = {
+			pass: m.frameLines.length === 0 && overCut.length === 0,
+			reason:
+				m.frameLines.length + overCut.length === 0
+					? "no ancestor draws a line around the frame; no control paints over the cut"
+					: [...m.frameLines, ...overCut].join("; "),
 		};
 		const fits = m.scrollWidth <= m.clientWidth + 1;
 		checks.fits = {

@@ -9,6 +9,14 @@ body .block-language-protein {
 	margin: 1.4em 0;
 }
 
+body
+	.markdown-source-view.mod-cm6
+	.cm-embed-block:is(.cm-lang-fasta, .cm-lang-dna, .cm-lang-protein)
+	.edit-block-button:hover {
+	color: var(--wg-rule);
+	background: none;
+}
+
 body .seq-block {
 	--wg-s: clamp(12px, calc((100cqi - 32px) / 70), 14px);
 	--wg-row: calc(var(--wg-s) * 1.7);

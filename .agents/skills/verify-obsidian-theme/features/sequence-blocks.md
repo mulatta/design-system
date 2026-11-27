@@ -15,7 +15,7 @@ The sequence plugin (`obsidian/sequence-plugin/`, flake attribute `obsidian-sequ
 - `seq-reflow` gives the same layout to every input shape: one long line, lines wrapped at 60, 70, or 80, multi-FASTA records of 42, 60, and 132 nt, a 214 aa protein, and a GenBank `ORIGIN` paste, whose position numbers and `ORIGIN` and `//` lines the plugin drops.
 - `seq-copy` returns the original text: the copy button copies the block's source exactly, and a selection copied from the block carries no position numbers or group spaces. The button is an icon of two overlapping cells with no fill or border, as tall as the badge. Its label and tooltip say `Copy sequence`, or `Copy 3 records` for a multi-FASTA block, since the button sits on record 1's head row but copies the whole block. After a click it shows a check and its label names what it copied (`Copied 174 nt`, or `Copied 3 records`) for 1.5 seconds. The button stays shown for that time after the pointer leaves the block, a polite live region in the block says the same label, and a tooltip open on the button says it too. When the clipboard refuses the text, an Obsidian notice says `Could not copy the sequence` and the button stays as it was. On a phone the icon stays one cell tall, and a tap anywhere in a three-cell square at the block's top right reaches it. The square ends at the block's right edge, or in Live Preview at Obsidian's edit button, and the first header wraps short of it. The badge row starts below the square, so a tap on a badge copies nothing.
 - `seq-inline` leaves an inline primer in backticks as ordinary inline code, ungrouped and unnumbered.
-- `seq-live` renders the blocks in Live Preview as in reading view.
+- `seq-live` renders the blocks in Live Preview as in reading view. Hovering a block draws no box around it, and hovering Obsidian's edit button turns its icon blue without a tile, so the cut corner stays whole.
 - `seq-dark` keeps every sub-feature above in the dark palette.
 - `seq-phone` keeps the block inside the phone width without scrolling sideways; lines drop to 20 residues.
 
@@ -43,6 +43,7 @@ Preconditions:
   - `in-column` proves `seq-column`, and `seq-phone` with `--mobile`.
   - `badge-clear`, `badge-column`, `badge-height`, `badge-width`, and `badge-unit` prove `seq-length`, and `head-shape` its phone layout with `--mobile`.
   - `copy-clear` proves that the copy button of `seq-copy` hides no header, residue, or badge.
+  - `one-cut` proves the hover half of `seq-live`.
   - `copy-reach` proves that the button's tap area covers no header, residue, or other control, and that it is three cells square with `--mobile`.
   - `copy-button` and `copy-failure` prove the button half of `seq-copy`, on success and when the clipboard refuses. `copy-label` proves its rest label, and `copy-held` that the copied state stays shown and is announced for its 1.5 seconds.
   - `copy-selection` proves the selection half of `seq-copy`, and that the header keeps its `>`.
@@ -53,5 +54,5 @@ Preconditions:
 - A run launched without `--plugin` shows plain code blocks. `doctor` then lists no `sequence-blocks` in `enabledPlugins`.
 - `sync` disables and re-enables the plugin, so an open note re-renders its blocks with the new code. Fixture notes still need a relaunch.
 - `seqcheck` replaces `navigator.clipboard.writeText` for its clicks and never writes the system clipboard. A hand-written drive must do the same: clicking the copy button for real puts the sequence on the owner's clipboard.
-- The copy button is invisible until hover, so `shot` captures never show it. Look at the hovered captures `seqcheck` writes to `shots/seqcheck-*.png` instead.
+- The copy button is invisible until hover, so `shot` captures never show it. Look at the hovered captures `seqcheck` writes to `shots/seqcheck-*.png` instead. In Live Preview those captures also show Obsidian's edit button, since `seqcheck` hovers the block's ancestors.
 - `--scroll` values depend on the window height and on the note; check that each capture shows the intended block before reporting.
