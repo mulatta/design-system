@@ -1321,54 +1321,115 @@ const selectRows = async (page: Page): Promise<Outcome> => {
 					}),
 				pseudo,
 			);
-		const hovers: Record<string, Awaited<ReturnType<typeof state>>> = {};
-		for (const [part, x, y] of [
-			["name", rest.labelX, rest.labelY],
-			["value", rest.x, rest.y],
-		] as const) {
-			await page.mouse.move(x, y);
-			if (!(await reaches(":hover"))) {
-				await page.mouse.move(x + 1, y);
-				if (!(await reaches(":hover"))) {
-					problems.push(
-						`the window never marked ${rest.key}'s ${part} as hovered, so nothing was measured`,
+		const points = [
+			[-10, -10],
+			[rest.labelX, rest.labelY],
+			[rest.x, rest.y],
+			[rest.labelX + 1, rest.labelY],
+			[rest.x + 1, rest.y],
+		];
+		let measured: { fact: Record<string, unknown>; found: string[] } | null =
+			null;
+		for (let attempt = 0; attempt < 5 && !measured; attempt++) {
+			await page.evaluate(() =>
+				(document.activeElement as HTMLElement)?.blur(),
+			);
+			await page.mouse.move(-10, -10);
+			await page.waitForTimeout(150);
+			await page.evaluate((points) => {
+				const w = window as any;
+				w.__wgUnwatch?.();
+				w.__wgForeign = 0;
+				const own = (e: MouseEvent) =>
+					points.some(
+						([x, y]) =>
+							Math.abs(e.clientX - x) < 3 && Math.abs(e.clientY - y) < 3,
 					);
-					continue;
+				const count = (e: Event) => {
+					if (!own(e as MouseEvent)) w.__wgForeign += 1;
+				};
+				const types = ["mousemove", "mouseover", "mouseout"];
+				for (const t of types) document.addEventListener(t, count, true);
+				w.__wgUnwatch = () => {
+					for (const t of types) document.removeEventListener(t, count, true);
+				};
+			}, points);
+			await page.evaluate(async () => {
+				const w = window as any;
+				const start = performance.now();
+				do {
+					w.__wgForeign = 0;
+					await new Promise((r) => setTimeout(r, 600));
+				} while (w.__wgForeign > 0 && performance.now() - start < 10000);
+				w.__wgForeign = 0;
+			});
+			const found: string[] = [];
+			const hovers: Record<string, Awaited<ReturnType<typeof state>>> = {};
+			for (const [part, x, y] of [
+				["name", rest.labelX, rest.labelY],
+				["value", rest.x, rest.y],
+			] as const) {
+				await page.mouse.move(x, y);
+				if (!(await reaches(":hover"))) {
+					await page.mouse.move(x + 1, y);
+					if (!(await reaches(":hover"))) {
+						found.push(
+							`the window never marked ${rest.key}'s ${part} as hovered, so nothing was measured`,
+						);
+						continue;
+					}
 				}
+				await page.waitForTimeout(250);
+				hovers[part] = await state();
+				if (!unchanged(hovers[part]))
+					found.push(
+						`hovering ${rest.key}'s ${part} changes the row: ${JSON.stringify(hovers[part])}`,
+					);
 			}
-			await page.waitForTimeout(250);
-			hovers[part] = await state();
-			if (!unchanged(hovers[part]))
-				problems.push(
-					`hovering ${rest.key}'s ${part} changes the row: ${JSON.stringify(hovers[part])}`,
+			await page.mouse.down();
+			if (!(await reaches(":active")))
+				found.push(
+					`the window never marked ${rest.key}'s row as pressed, so the press was not measured`,
 				);
+			await page.waitForTimeout(150);
+			const pressed = await state();
+			await page.mouse.up();
+			await page.mouse.move(-10, -10);
+			await page.waitForTimeout(250);
+			const chosen = await state();
+			if (pressed.background !== rest.background)
+				found.push(
+					`pressing beside ${rest.key}'s value tints the row before release: ${pressed.background}`,
+				);
+			if (!chosen.selected)
+				found.push(
+					`clicking beside ${rest.key}'s value did not select the row`,
+				);
+			else if (chosen.ring !== rest.ring)
+				found.push(`selecting ${rest.key} rings it: ${chosen.ring}`);
+			else if (chosen.background === rest.background)
+				found.push(
+					`selecting ${rest.key} leaves its background ${rest.background}`,
+				);
+			const foreign = await page.evaluate(() => {
+				const w = window as any;
+				w.__wgUnwatch?.();
+				return w.__wgForeign as number;
+			});
+			if (foreign === 0)
+				measured = {
+					fact: { ...rest, hovers, pressed, chosen, attempts: attempt + 1 },
+					found,
+				};
 		}
-		await page.mouse.down();
-		if (!(await reaches(":active")))
+		if (!measured) {
 			problems.push(
-				`the window never marked ${rest.key}'s row as pressed, so the press was not measured`,
+				`the real pointer moved over the window in each of 5 tries on ${rest.key}, so it was not measured`,
 			);
-		await page.waitForTimeout(150);
-		const pressed = await state();
-		await page.mouse.up();
-		await page.mouse.move(-10, -10);
-		await page.waitForTimeout(250);
-		const chosen = await state();
-		facts.push({ ...rest, hovers, pressed, chosen });
-		if (pressed.background !== rest.background)
-			problems.push(
-				`pressing beside ${rest.key}'s value tints the row before release: ${pressed.background}`,
-			);
-		if (!chosen.selected)
-			problems.push(
-				`clicking beside ${rest.key}'s value did not select the row`,
-			);
-		else if (chosen.ring !== rest.ring)
-			problems.push(`selecting ${rest.key} rings it: ${chosen.ring}`);
-		else if (chosen.background === rest.background)
-			problems.push(
-				`selecting ${rest.key} leaves its background ${rest.background}`,
-			);
+			continue;
+		}
+		facts.push(measured.fact);
+		problems.push(...measured.found);
 	}
 	await page.evaluate(() => {
 		for (const el of document.querySelectorAll("[data-ring-target]"))
