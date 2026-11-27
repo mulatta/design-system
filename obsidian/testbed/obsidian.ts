@@ -471,8 +471,11 @@ async function prepare(
 			await leaf.openFile(file, {
 				state: { mode, source: o.view === "source" },
 			});
-			if (file.path.includes("/") && !app.isMobile)
+			if (file.path.includes("/") && !app.isMobile && explorer) {
 				app.commands.executeCommandById("file-explorer:reveal-active-file");
+				for (let i = 0; i < 40 && app.workspace.activeLeaf !== explorer; i++)
+					await new Promise((r) => setTimeout(r, 25));
+			}
 			app.workspace.setActiveLeaf(leaf, { focus: true });
 			const id = o.scheme === "dark" ? "obsidian" : "moonstone";
 			if (typeof app.changeTheme === "function") app.changeTheme(id);
