@@ -65,9 +65,9 @@ rounded:
 
 **Creative North Star: "The Manuscript Grid"**
 
-Wongoji is Korean manuscript paper: a sheet of square cells with fine printed rules, written on by hand and corrected in red. The system treats every component as something printed on that sheet or marked on it afterwards. Tabs, tags, checkboxes, and callouts read as cells and frames stamped onto the page, never as raised buttons or floating cards. The mood is quiet and exact, with the warmth of a page someone wrote on.
+Wongoji is Korean manuscript paper: a sheet of square cells with fine printed rules, written on by hand and corrected in red. The system treats every component as something printed on that sheet or marked on it afterwards. Tabs, tags, and checkboxes read as cells and frames stamped onto the page, and a callout as a passage ruled off above and below, never as raised buttons, floating cards, or shaded boxes. The mood is quiet and exact, with the warmth of a page someone wrote on.
 
-It serves one person's research notes, where long Korean prose, Latin species and gene names, DNA and protein sequences, math, code, and tables share a page and must each read correctly beside the others. Structure carries the identity: a filled blue square opening each section heading, ruled property rows, square tags, and one corner of each frame cut at 45°. Ornament does not.
+It serves one person's research notes, where long Korean prose, Latin species and gene names, DNA and protein sequences, math, code, and tables share a page and must each read correctly beside the others. Structure carries the identity: a filled blue square opening each section heading, ruled property rows, square tags, and a corner cut at 45° at the head of the open note. Ornament does not.
 
 **Key Characteristics:**
 - Square cells and fine rules instead of fills and rounded containers.
@@ -80,18 +80,18 @@ It serves one person's research notes, where long Korean prose, Latin species an
 A cool neutral paper with one printed blue and one correcting red; each scheme, `light` and `dark`, carries the full set.
 
 ### Primary
-- **Manuscript Rule Blue** (`rule`, `rule-soft`): the colour of the printed grid. Links, tags, the H2 marker, the title rule, the top rule of callouts, the active tab's rule, folder markers in the file tree, the ring on raised mobile controls, and focus rings. A highlight is this blue at 12% over the page with a 1px underline in full blue. `rule-soft` is its hover and secondary-string tone.
+- **Manuscript Rule Blue** (`rule`, `rule-soft`): the colour of the printed grid. Links, tags, the H2 marker, the title rule, the active tab's rule, the sequence block's top rule, folder markers in the file tree, the ring on raised mobile controls, and focus rings. A highlight is this blue at 12% over the page with a 1px underline in full blue. `rule-soft` is its hover and secondary-string tone.
 
 ### Secondary
-- **Proofreader's Red** (`proof`): only for marks a proofreader would make on the sheet. The text caret, the active-file caret, the active tab's mark, the X and strike line of a done task, the strike and delete loop of deleted text, the marks around an editing note, and warning and danger callouts.
+- **Proofreader's Red** (`proof`): only for marks a proofreader would make on the sheet. The text caret, the active-file caret, the active tab's mark, the X and strike line of a done task, the strike and delete loop of deleted text, the marks around an editing note, and the rules and label of a warning callout.
 
 ### Neutral
 - **Paper** (`paper`): the note page.
 - **Paper Alt** (`paper-alt`): side panels, the ribbon, and both tab strips, one tonal step from the page.
-- **Tint** (`tint`): blocks set into the page, such as code, inline code, and property keys. Table headers stay on the page and are marked by a rule, not a tone.
+- **Tint** (`tint`): blocks set into the page, such as code, inline code, and property keys. Table headers stay on the page and are marked by a 1px ink rule, not a tone.
 - **Ink, Mute, Faint** (`ink`, `mute`, `faint`): body text, secondary text, and the faintest labels.
-- **Pale** (`pale`): dividers and inactive frames.
-- **Cell Line** (`cell-line`): the faint lines of sequence cells.
+- **Pale** (`pale`): dividers, row rules, and the rules of a callout.
+- **Cell Line** (`cell-line`): the faint lines of sequence cells, and the tab divider in the dark scheme.
 - **Ribbon, On Ribbon** (`ribbon`, `on-ribbon`): the app's narrow left ribbon and its icons.
 
 `primary` at the top level points at the light scheme's rule blue for tools that expect a single brand colour.
@@ -128,9 +128,9 @@ Depth comes from tonal layers of paper. The note page and the active tab are the
 
 ## Shapes
 
-Every corner is square (`rounded.none`). The theme sets every Obsidian radius variable to it, again on the body classes where Obsidian redefines them (macOS, iOS, mobile, tablet, phone, floating navbar). A framed block (the active tab, the title rule, callouts) cuts exactly one corner at 45°, `cut` (12px) on a side, and its rule runs along the diagonal without a break.
+Every corner is square (`rounded.none`). The theme sets every Obsidian radius variable to it, again on the body classes where Obsidian redefines them (macOS, iOS, mobile, tablet, phone, floating navbar). Three frames cut one corner at 45°, `cut` (12px) on a side, under a 2px Manuscript Rule Blue rule that runs along the diagonal without a break: the title rule, the active tab, and the sequence block.
 
-**The One Cut Rule.** One cut corner per frame, top right, and the line never breaks at the diagonal.
+**The One Cut Rule.** The cut and the 2px blue rule mark the head of the open note (the title rule and the active tab) and the sequence block, nothing else. A cut frame has one cut corner, top right, and its line never breaks at the diagonal.
 
 ## Components
 
@@ -150,8 +150,9 @@ A device looks the same in reading view and in Live Preview while the caret is o
 - The two highlighters name code tokens differently, and a token takes the same colour in both views only where the names line up. The editor sets brackets, separators, and a literal such as `true` in ink and a name that a statement defines in bold, and reading view sets a called member in bold. Where the editor has no mode for a language, as for nix, it leaves the code plain.
 
 ### Tabs
-- **Shape:** square cells sharing borders along the tab strip.
-- **Active:** a 2px Manuscript Rule Blue top rule that turns down the 45° cut, with a small red proof mark before the title.
+- **Inactive:** no box and no ring. A `mute` title sits on the strip's tone, at Obsidian's own tab position.
+- **Divider:** a 1px line one em tall between two inactive neighbours. No divider stands beside the active tab or after the last tab. It is `pale` in the light scheme and `cell-line` in the dark scheme, where `pale` reaches only 1.31:1 against the strip.
+- **Active:** the only frame on the strip. It is `paper` under a 2px Manuscript Rule Blue top rule that turns down the 45° cut, with 1px blue sides, a bold ink title, and a small red proof mark before the title.
 
 ### Chips (tags and property pills)
 - **Style:** square cells outlined in Manuscript Rule Blue, transparent fill, mono text. Pills in `tags` and `aliases` share one height.
@@ -177,9 +178,12 @@ A device looks the same in reading view and in Live Preview while the caret is o
 - **Style:** `---` is a strip of empty cells in 1px `pale` lines, one `cell` high, in whole cells stretched to span the column, closed at its right end. Only a divider takes the strip: the line above the footnotes is a plain 1px `pale` line.
 
 ### Callouts and code blocks
-- **Callout:** square, with the one 45° cut, on its callout colour at low strength under a top rule in that colour: Manuscript Rule Blue, or Proofreader's Red for a warning or danger callout. It takes no side or bottom line.
-- **Code block:** the `tint` layer only, with square corners, no rule, and no cut, the same in reading view and Live Preview. The tint already sets the block apart as its own layer.
-- **Live Preview hover:** a hovered block draws no ring around its frame, and its edit button sits `cut` in from the right edge, clear of the diagonal. A sequence block is the exception: its edit button sits at the top left, over the empty position column, because the length badge, its copy control, ends on the grid edge, and the space left of the cut changes with the window width.
+- **Callout:** no fill, no cut, and no blue. It sits on the page between a 1px `pale` rule above and one below, with its content on the column's left edge and its body text in ink.
+- **Callout label:** the type's icon and the title in `mute`, in the body family at 0.85em and weight 700.
+- **Warning tier:** warning, caution, attention, danger, error, bug, failure, fail, and missing take a 2px Proofreader's Red rule above, a 1px red rule below, and a red label.
+- **Quote callout:** quote and cite take the blockquote's form, a 2px `pale` rule on the left with the text set in 2ch and no rule above or below, under the `mute` label.
+- **Code block:** the `tint` layer only, with square corners, no rule, and no cut. The tint already sets the block apart as its own layer.
+- **Live Preview hover:** a hovered block draws no ring, and its edit button sits `cut` in from the right edge. A sequence block is the exception: its edit button sits at the top left, over the empty position column, because the length badge, its copy control, ends on the grid edge, and the space left of the cut changes with the window width.
 
 ### Navigation (file tree)
 - **Style:** plain rows on the `paper-alt` layer under a bold ink pane header with a fine `pale` underline.
@@ -201,11 +205,12 @@ A signature component. Each H2 carries a filled square, 0.36em on a side, in Man
 - **Do** keep Obsidian's component sizes and positions, and prove it against stock Obsidian.
 - **Do** separate layers by tone: `paper`, `paper-alt`, `tint`.
 - **Do** set Latin names in true italics.
-- **Do** keep one 45° cut per frame with an unbroken rule.
+- **Do** keep the 45° cut and the 2px blue rule for the head of the open note (the title rule and the active tab) and the sequence block, and nothing else.
 
 ### Don't:
 - **Don't** round a corner.
 - **Don't** use Proofreader's Red for decoration, body text, or code tokens.
 - **Don't** add a second accent hue.
 - **Don't** fill the active row or tab with colour; mark it.
+- **Don't** set a callout or a summary in a tinted, shaded, or gradient box.
 - **Don't** number headings with a CSS counter; Obsidian unloads off-screen sections and the count goes wrong.
