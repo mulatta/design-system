@@ -192,6 +192,11 @@
 	font-family: var(--wg-text-family);
 }
 
+.markdown-preview-view .metadata-container,
+.markdown-source-view .metadata-container {
+	transform: none;
+}
+
 .metadata-property {
 	min-height: 34px;
 	border-bottom: 1px solid var(--wg-pale);
