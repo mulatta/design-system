@@ -10,7 +10,7 @@ Obsidian's mobile app uses its own layout: no ribbon or side panes on screen, a 
 - `mobile-blocks` keeps code blocks, tables, and callouts inside the width or scrollable inside their own box.
 - `mobile-raised` draws the floating navbar and the top sidebar, edit, and more buttons square, framed by a 1px accent ring on paper with the theme's shadow and no blur. The floating view header behind the top buttons draws no underline, as in stock. The command palette opens on paper with the theme's rule and shadow, as on desktop, and its input is square.
 - `mobile-settings` opens settings as a square modal over the note.
-- `mobile-editing` keeps Live Preview at phone width like desktop Live Preview: the title rule, properties, the H2 marker, the code top rule, callouts, task boxes, and a table sized to its content within the column.
+- `mobile-editing` keeps Live Preview at phone width like desktop Live Preview: the title rule, properties, the H2 marker, code lines on the tint, callouts, task boxes, and a table sized to its content within the column.
 
 ## How to get to it (user POV)
 

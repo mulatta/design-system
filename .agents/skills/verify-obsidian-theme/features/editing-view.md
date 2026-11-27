@@ -1,6 +1,6 @@
 # Editing view
 
-Editing view is where the note is written: Live Preview renders most markdown inline and reveals markers on the active line, and source mode shows raw markdown. The theme keeps the reading fonts, shows markers faint, sets code lines on the tint with a top rule on the first line, draws tags as square cells, and uses a proof-red caret.
+Editing view is where the note is written: Live Preview renders most markdown inline and reveals markers on the active line, and source mode shows raw markdown. The theme keeps the reading fonts, shows markers faint, sets code lines on the tint, draws tags as square cells, and uses a proof-red caret.
 
 ## Sub-features
 
@@ -10,7 +10,7 @@ Editing view is where the note is written: Live Preview renders most markdown in
 - `edit-inline` sets inline code in D2Coding on the tint inside a fine box, at reading view's size, with its backticks inside the same box on the line holding the caret, `==highlight==` as a pale blue wash with no underline, and `~~strikethrough~~` in mute under a red strike that ends in the delete loop, as in reading view, once per strikethrough even when bold, code, or a link inside it splits it. The line holding the caret shows the raw `~~` and no loop. The editing note shows its `%%` marks in bold red and its text in mute; a comment inside a code block keeps the code comment colour.
 - `edit-quote` draws a blockquote as reading view does: a 2px pale left rule, the text 2ch in from it, a nested quote behind a second rule, and a wrapped line starting under the first line's text. The line holding the caret shows its `>` marks.
 - `edit-hr` draws `---` as the strip of cells reading view draws, the same width and height. The line holding the caret shows the raw `---`.
-- `edit-code-lines` sets fenced code lines in D2Coding on the tint, with a rule above the opening fence and the same token colours as reading view, in Live Preview and source mode.
+- `edit-code-lines` sets fenced code lines in D2Coding on the tint alone, with no rule above the opening fence, at reading view's type size, line height, and inset, in Live Preview and source mode. Live Preview names the block's language at its top right in mute D2Coding, which reading view does not.
 - `edit-tags` draws `#tag` as the square cell reading view draws, in D2Coding in the accent at the same type size, padding, and height.
 - `edit-caret` shows a proof-red caret in the editor, and the line holding it gets no fill.
 - `edit-title-focus` lets the inline title be clicked and edited with no outline around it; the caret shows the focus.
@@ -47,7 +47,6 @@ Preconditions:
 
 - Live Preview H2 has no trailing rule: drawing one inside a CodeMirror line means painting the text spans over it, which hides the editor's selection.
 - Live Preview's table widget pads itself by the drag-handle size and pulls itself out by the same amount, so a table starts on the column edge. Obsidian makes the handles 24px on the phone but pulls only 16px; the theme pulls by the handle size, or a column-wide table comes up 16px short.
-- The rule above the opening fence is a plain 2px border with no 45° cut, unlike reading view's code block; the `code-top` part shows it.
 - CodeMirror renders only the lines near the viewport, so a block far down the note is not in the DOM until the editor scrolls to it. `compare` and `layers` scroll from the top until a part or region appears.
 - Live Preview hides a marker such as `~~` or `**` as an empty `contenteditable="false"` span between `img.cm-widgetBuffer`s, and splits a strikethrough into one `.cm-strikethrough` span per run between markers. The loop goes on a piece followed by a hidden marker unless another `.cm-strikethrough` follows that marker, so only a strikethrough's last piece carries it. A revealed marker is a `.cm-formatting` span, not a hidden one, so the caret's line gets no loop.
 - Live Preview reveals markers only on the active line; without a focused line, markers mostly stay hidden.

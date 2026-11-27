@@ -13,11 +13,19 @@
 
 .markdown-source-view.mod-cm6 .HyperMD-codeblock {
 	font-family: var(--wg-code-family);
+	font-size: 0.86em;
+	line-height: 1.7;
 	background-color: var(--wg-tint);
 }
 
-.markdown-source-view.mod-cm6 .HyperMD-codeblock-begin {
-	border-top: 2px solid var(--wg-rule);
+.markdown-source-view.mod-cm6
+	.cm-line.HyperMD-codeblock:not(.HyperMD-list-line) {
+	padding-inline: 2ch;
+}
+
+.markdown-source-view.mod-cm6 .code-block-flair {
+	font-family: var(--wg-code-family);
+	color: var(--wg-mute);
 }
 
 .markdown-source-view.mod-cm6 .cm-inline-code {
