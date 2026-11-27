@@ -1,4 +1,4 @@
-import { MarkdownRenderChild, Plugin, setIcon } from "obsidian";
+import { MarkdownRenderChild, Plugin } from "obsidian";
 import {
 	formatSequences,
 	GROUP_LENGTH,
@@ -16,6 +16,40 @@ const languages: [string, UnitRule][] = [
 	["dna", "nt"],
 	["protein", "aa"],
 ];
+
+const icons = {
+	copy: {
+		paths: ["M5.5 10.5H0.5V0.5H10.5V5.5", "M5.5 5.5H15.5V15.5H5.5Z"],
+		rendering: "crispEdges",
+	},
+	check: {
+		paths: ["M3.5 8.5L6.5 11.5L12.5 4.5"],
+		rendering: "geometricPrecision",
+	},
+};
+
+function drawIcon(button: HTMLElement, icon: keyof typeof icons): void {
+	const { paths, rendering } = icons[icon];
+	button.empty();
+	const svg = button.createSvg("svg", {
+		attr: {
+			viewBox: "0 0 16 16",
+			width: 16,
+			height: 16,
+			fill: "none",
+			stroke: "currentColor",
+			"stroke-width": 1,
+			"stroke-linecap": "square",
+			"shape-rendering": rendering,
+			"aria-hidden": "true",
+		},
+	});
+	for (const d of paths) {
+		svg.createSvg("path", {
+			attr: { d, "vector-effect": "non-scaling-stroke" },
+		});
+	}
+}
 
 function recordText(root: ParentNode): string {
 	const header = root.querySelector(".seq-header");
@@ -202,11 +236,11 @@ class SequenceBlock extends MarkdownRenderChild {
 			cls: "seq-copy",
 			attr: { "aria-label": "Copy sequence", type: "button" },
 		});
-		setIcon(button, "copy");
+		drawIcon(button, "copy");
 		button.addEventListener("click", () => {
 			void navigator.clipboard.writeText(this.source).then(() => {
-				setIcon(button, "check");
-				block.win.setTimeout(() => setIcon(button, "copy"), 1500);
+				drawIcon(button, "check");
+				block.win.setTimeout(() => drawIcon(button, "copy"), 1500);
 			});
 		});
 	}

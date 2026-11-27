@@ -172,7 +172,7 @@ Every component looks printed on the sheet or marked on it afterwards. Obsidian 
 - **Style:** the floating navbar and the top buttons are square on `paper`, with a 1px Manuscript Rule Blue ring, the floating shadow, and no backdrop blur. A phone without the floating navbar gives its navbar a 1px blue top rule instead.
 
 ### Icons
-- **Style:** Obsidian's Lucide set at a 1.5px stroke, and 1.25px at the large size.
+- **Style:** Obsidian's Lucide set at a 1.5px stroke, and 1.25px at the large size. The sequence block's copy button is the one exception: the companion plugin draws two overlapping cells in a 1px line, the weight of the cell lines and the length badge beside it.
 
 ### Section heading marker
 A signature component. Each H2 carries a filled square, 0.36em on a side, in Manuscript Rule Blue, in reading view and Live Preview. It hangs in the left margin 0.6em before the heading text, so the text starts at the column edge with the body; on a phone, where the margin is too narrow, it sits inside the line instead. Reading view runs a fine `pale` rule from the text to the column edge; Live Preview shows the square alone. The marker carries no number: Obsidian unloads sections outside the viewport, so a CSS counter numbers long notes wrong. Numbered H2 through the companion plugin is an open item and has not shipped.

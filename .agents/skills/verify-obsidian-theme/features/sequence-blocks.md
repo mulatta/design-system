@@ -13,7 +13,7 @@ The sequence plugin (`obsidian/sequence-plugin/`, flake attribute `obsidian-sequ
 - `seq-cells` draws each residue in a square cell, and cells sit only behind residues: the gaps between groups, the position column, and the empty end of a short last line have none.
 - `seq-column` keeps the block inside the 700px note column: its left and right edges meet the column's, and it never scrolls sideways.
 - `seq-reflow` gives the same layout to every input shape: one long line, lines wrapped at 60, 70, or 80, multi-FASTA records of 42, 60, and 132 nt, a 214 aa protein, and a GenBank `ORIGIN` paste, whose position numbers and `ORIGIN` and `//` lines the plugin drops.
-- `seq-copy` returns the original text: the copy button copies the block's source exactly, and a selection copied from the block carries no position numbers or group spaces.
+- `seq-copy` returns the original text: the copy button copies the block's source exactly, and a selection copied from the block carries no position numbers or group spaces. The button is an icon of two overlapping cells with no fill or border, as tall as the badge.
 - `seq-inline` leaves an inline primer in backticks as ordinary inline code, ungrouped and unnumbered.
 - `seq-live` renders the blocks in Live Preview as in reading view.
 - `seq-dark` keeps every sub-feature above in the dark palette.

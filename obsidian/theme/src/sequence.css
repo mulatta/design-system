@@ -12,7 +12,7 @@ body .block-language-protein {
 body .seq-block {
 	--wg-s: clamp(12px, calc((100cqi - 32px) / 70), 14px);
 	--wg-row: calc(var(--wg-s) * 1.7);
-	--seq-copy: calc(var(--wg-s) + 6px);
+	--seq-copy: calc(var(--wg-s) + 2px);
 	position: relative;
 	box-sizing: border-box;
 	padding: var(--wg-s);
@@ -164,19 +164,32 @@ body .seq-copy {
 	display: grid;
 	place-items: center;
 	color: var(--wg-mute);
-	background: var(--wg-paper);
-	border: 1px solid var(--wg-pale);
+	background: none;
+	border: 0;
 	border-radius: 0;
+	box-shadow: none;
 	opacity: 0;
-	transition: opacity 160ms cubic-bezier(0.16, 1, 0.3, 1);
+	transition:
+		opacity 160ms cubic-bezier(0.16, 1, 0.3, 1),
+		color 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body .seq-copy svg {
-	width: var(--wg-s);
-	height: var(--wg-s);
+	width: var(--seq-copy);
+	height: var(--seq-copy);
 }
 
 body .seq-block:hover .seq-copy,
 body .seq-copy:focus-visible {
 	opacity: 1;
+}
+
+body .seq-copy:hover,
+body .seq-copy:focus-visible {
+	color: var(--wg-rule);
+}
+
+body .seq-copy:focus-visible {
+	outline: 1px solid var(--wg-rule);
+	outline-offset: 1px;
 }
