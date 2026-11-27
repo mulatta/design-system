@@ -1962,6 +1962,59 @@ const insideColumn = async (page: Page, view: View): Promise<Outcome> => {
 	};
 };
 
+const floatingHeaderLines = async (page: Page): Promise<Outcome> => {
+	const headers = await page.evaluate(() =>
+		[...document.querySelectorAll(".view-header")]
+			.filter(
+				(el) =>
+					el.checkVisibility() && getComputedStyle(el).position === "fixed",
+			)
+			.map((el) => {
+				const lines = [null, "::before", "::after"].flatMap((pseudo) => {
+					const cs = getComputedStyle(el, pseudo);
+					if (pseudo && cs.content === "none") return [];
+					const at = pseudo ?? "";
+					const sides = (["top", "right", "bottom", "left"] as const).flatMap(
+						(s) => {
+							const width = Number.parseFloat(
+								cs.getPropertyValue(`border-${s}-width`),
+							);
+							const style = cs.getPropertyValue(`border-${s}-style`);
+							const color = cs.getPropertyValue(`border-${s}-color`);
+							return width > 0 &&
+								style !== "none" &&
+								style !== "hidden" &&
+								color !== "transparent" &&
+								!/, 0\)$/.test(color)
+								? [`${at} border-${s} ${width}px ${color}`]
+								: [];
+						},
+					);
+					return cs.boxShadow === "none"
+						? sides
+						: [...sides, `${at} box-shadow ${cs.boxShadow}`];
+				});
+				return {
+					header: el.closest(".workspace-leaf.mod-active")
+						? "active view header"
+						: "view header",
+					lines: lines.map((l) => l.trim()),
+				};
+			}),
+	);
+	if (headers.length === 0)
+		return { pass: false, reason: "no floating view header", facts: {} };
+	const drawn = headers.filter((h) => h.lines.length > 0);
+	return {
+		pass: drawn.length === 0,
+		reason:
+			drawn.length === 0
+				? `${headers.length} floating view header(s) draw no border or shadow`
+				: drawn.map((h) => `${h.header}: ${h.lines.join(", ")}`).join(" | "),
+		facts: { headers },
+	};
+};
+
 const editChecks: EditCheck[] = [
 	{
 		id: "text-focus",
@@ -2060,6 +2113,13 @@ const editChecks: EditCheck[] = [
 		on: everywhere,
 		shot: "[data-column-shot]",
 		run: (page) => insideColumn(page, "live"),
+	},
+	{
+		id: "floating-header",
+		view: "reading",
+		on: mobileOnly,
+		shot: ".workspace-leaf.mod-active .view-header",
+		run: floatingHeaderLines,
 	},
 	{
 		id: "code-active-line",
