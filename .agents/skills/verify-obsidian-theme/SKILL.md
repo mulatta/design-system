@@ -68,12 +68,12 @@ Defaults: `--view reading`, `--scheme light` (this overrides the scheme `launch`
 Each `shot` call does the following, in order:
 1. Connects over CDP and sets the viewport.
 2. Toggles mobile emulation if `--mobile` differs from the current state. This reloads the window, and the helper waits for the reload.
-3. Presses Escape, and on desktop brings the file explorer back to the front of the left sidebar, so a panel an earlier shot opened does not carry over.
+3. Presses Escape, and on desktop brings the file explorer back to the front of the left sidebar, or on mobile closes both drawers, so a panel an earlier shot opened does not carry over.
 4. Opens the note in the active leaf. `reading` is preview, `live` is Live Preview, `source` is source mode.
 5. Switches the color scheme through Obsidian's own `app.changeTheme`.
 6. Hides the right sidebar with `--hide-right`, and shows it again without.
 7. Scrolls the view's own scroller (`.markdown-preview-view` for reading, `.cm-scroller` for live and source) to `--scroll`, 0 included, retrying until the position holds for three polls. A note reopened in the same leaf keeps its old position otherwise. If the note is too short it prints a warning and captures anyway.
-8. Opens the palette, settings, or search through Obsidian commands, after the scroll so the scroll targets the note.
+8. Opens the palette, settings, or search through Obsidian commands, after the scroll so the scroll targets the note. For the palette and search it waits until the panel has stayed on screen for half a second, runs the command again up to three times if it has not, and fails if it never does.
 9. Waits for fonts to finish loading, then captures the window and presses Escape. With `--open settings` it captures Obsidian's separate settings window instead, after clearing its search box and setting `--size` on it, then closes that window.
 
 `--note` is the note's basename without `.md`, or its vault path (`protocols/pcr-protocol`). Without `--note` it opens the first note by path.
@@ -88,36 +88,37 @@ Fixture notes, in `obsidian/testbed/notes/`. The lab and element notes come in a
 
 ```sh
 obs launch --run stock --theme none
-obs compare --base stock --run agent --scheme light|dark [--part <id>]... [--size 1440x900]
+obs compare --base stock --run agent --scheme light|dark [--view reading|live] [--mobile] [--part <id>]... [--size 1440x900]
 ```
 
-`compare` puts both runs in the same state, captures named parts of the window at 2x, and prints each part's box differences in CSS px against the base run. Each run of `compare` empties `build/verify/compare/<scheme>/` and writes `<part>.<run>.png`, `metrics.json`, and `index.html` there, plus `compare.png`, one sheet with every pair, when `IMPECCABLE_BROWSER` is set (the devshell sets it). Copy the directory away before a second `compare` on the same scheme if you need both. The parts and what each must show are in `features/stock-geometry.md`; the part list lives in the `parts` table in `obsidian/testbed/obsidian.ts`. Add a part there when a new component needs a geometry check.
+`compare` puts both runs in the same state, captures named parts of the window at 2x, and prints each part's box differences in CSS px against the base run. `--view` opens each part's note in reading view (the default) or Live Preview; `--mobile` switches on phone emulation, where `--size` defaults to 390x844 instead of 1440x900. Each run of `compare` empties `build/verify/compare/<view>[-mobile]/<scheme>/` and writes `<part>.<run>.png`, `metrics.json`, and `index.html` there, plus `compare.png`, one sheet with every pair, when `IMPECCABLE_BROWSER` is set (the devshell sets it). Copy the directory away before a second `compare` in the same place and scheme if you need both. The parts and what each must show are in `features/stock-geometry.md`; the part list lives in the `parts` table in `obsidian/testbed/obsidian.ts`. A row's `root` is one selector for app chrome, measured in any view, or a selector per view (`inNote` builds the same selector for both); `on` lists the layouts it runs on, desktop when absent. A view or layout a row does not name skips that row. Add a row there when a new component needs a geometry check.
 
 ### Measure tonal layers
 
 ```sh
-obs layers --run agent --scheme light|dark [--note lab-note-ko] [--threshold 0.025]
+obs layers --run agent --scheme light|dark [--view reading|live] [--mobile] [--note lab-note-ko] [--threshold 0.025]
 ```
 
-`layers` always measures at 1440x900 on desktop, in reading view with the right sidebar hidden. It reads each named region's painted background, its OKLCH lightness, and its visible borders and shadow, then prints the lightness difference at each boundary and flags those below the threshold. The regions and boundaries are the `regions` and `boundaries` tables in `obsidian/testbed/obsidian.ts`; what each must show is in `features/tonal-layers.md`. Output JSON goes to `build/verify/layers/`.
+`layers` measures at 1440x900 on desktop, or at 390x844 under phone emulation with `--mobile`, in reading view or, with `--view live`, Live Preview, with the right sidebar hidden. It reads each named region's painted background, its OKLCH lightness, and its visible borders and shadow, then prints the lightness difference at each boundary and flags those below the threshold. The regions and boundaries are the `regions` and `boundaries` tables in `obsidian/testbed/obsidian.ts`; a region names its selector and layouts the way a `compare` part does, and a boundary prints only where both of its regions apply. What each must show is in `features/tonal-layers.md`. Output JSON goes to `build/verify/layers/<run>-<view>[-mobile]-<scheme>.json`.
 
 ### Check editing states
 
 ```sh
-obs editcheck --run agent [--scheme light|dark] [--note lab-note-ko]
+obs editcheck --run agent [--scheme light|dark] [--mobile] [--note lab-note-ko]
 ```
 
-`editcheck` puts the window in states a plain `shot` never reaches, because `shot` clears focus and never places the cursor, and measures one invariant in each. It runs at 1440x900 on desktop with the right sidebar hidden. The checks are the `editChecks` table in `obsidian/testbed/obsidian.ts`; add a row there when a bug shows up in a state no check reaches. A row finds its targets in the DOM by kind, as `text-focus` takes every editing root, never from a list of selectors for the instances already seen: a hand list proved only the instance a user had reported, and the next instance of the same kind was found by the user again.
+`editcheck` puts the window in states a plain `shot` never reaches, because `shot` clears focus and never places the cursor, and measures one invariant in each. It runs at 1440x900 on desktop with the right sidebar hidden, or at 390x844 under phone emulation with `--mobile`. The checks are the `editChecks` table in `obsidian/testbed/obsidian.ts`; a row's `on` lists the layouts it runs on, desktop when absent. Add a row there when a bug shows up in a state no check reaches. A row finds its targets in the DOM by kind, as `text-focus` takes every editing root, never from a list of selectors for the instances already seen: a hand list proved only the instance a user had reported, and the next instance of the same kind was found by the user again.
 
 `editcheck` records the vault's files before its checks and puts them back after, deleting any file a check created, because clicking in a note can toggle a task or create the note behind an unresolved link, and Obsidian has no setting that stops either. It prints a `VAULT removed <file>` or `VAULT restored <file>` line for each, so a check that edits the vault shows at first look.
 
-- `text-focus`: with the search panel open, it clicks every visible editing root in the window, a read-write element whose parent is not read-write, (the search field, the tab title, the inline title, each property's name and value, and each editor) at a point on plain text, not on a link or widget. Each click must put focus on read-write text and change neither its nor any ancestor's outline, box-shadow, or background from before the click; the caret already shows where focus is. The pointer moves off the window before the measurement, so a hover style does not count. A target that a re-render removes before its click is skipped and counted in the result.
+- `text-focus`: with the search panel open, it clicks every visible editing root in the window, a read-write element whose parent is not read-write, (the search field, the tab title, the inline title, each property's name and value, and each editor) at a point on plain text, not on a link or widget. Each click must put focus on read-write text and change neither its nor any ancestor's outline, box-shadow, or background from before the click; the caret already shows where focus is. The pointer moves off the window before the measurement, so a hover style does not count. A target that a re-render removes before its click, or that another element covers at every point tried, is skipped and counted in the result. On the phone the search drawer covers the note, so this check reaches only the search field there.
+- `note-text-focus` (phone only): the same check with no panel open, so it reaches the inline title, each property's name and value, and the editor under phone emulation.
 - `property-select`: for every property row, it hovers the name and the empty part of the value cell, then presses and releases there, which selects the row itself. Before each measurement it waits until the window marks the row hovered or pressed. The invisible window sits on top of the screen, so the owner's real pointer moving over it sends the page its own mouse events and clears the row's hover and press; the check waits for the pointer to rest, measures again when a mouse event it did not send arrives, and after five disturbed tries fails the row as unmeasured, never as a tint.
 - `control-focus`: the first control that `Tab` reaches outside a text field shows an outline, so keyboard focus stays visible.
 - `reading-table`, `live-table`: the note's first table spans the note column, within 1px, in reading view and in Live Preview's table widget.
 - `code-active-line`: with the cursor on the first line inside the note's first fenced code block, that line keeps the background of the block's other lines.
 
-It prints one `ok` or `FAIL` line per check with its measurement, `REPORT <path>`, and last `EDITCHECK ok` or `EDITCHECK fail <count>`; it exits 1 on any failure. The report goes to `build/verify/<run>/editcheck-<scheme>.json`, and a 2x capture of each check's element to `build/verify/<run>/shots/editcheck-<scheme>-<check>.png`.
+It prints one `ok` or `FAIL` line per check with its measurement, `REPORT <path>`, and last `EDITCHECK ok` or `EDITCHECK fail <count>`; it exits 1 on any failure. The report goes to `build/verify/<run>/editcheck-<scheme>[-mobile].json`, and a 2x capture of each check's element to `build/verify/<run>/shots/editcheck-<scheme>[-mobile]-<check>.png`.
 
 ## Evidence
 

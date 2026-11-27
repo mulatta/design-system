@@ -31,11 +31,16 @@ Preconditions:
 - **Source mode.** Run `obs shot --run agent --note elements-ko --view source --scheme light` and with `--scroll 900`. The captures show `edit-markers` and `edit-code-lines`.
 - **Dark.** Repeat both with `--scheme dark`.
 - **Caret.** `edit-caret` needs focus in the editor; write a custom drive over CDP (port in `build/verify/agent/run.json`) that clicks into a paragraph and captures. `shot` focuses the editor, but the caret blinks, so a plain `shot` may capture it switched off.
+- **Geometry.** Run `obs compare --base stock --run agent --view live --scheme light`, then `--scheme dark`, against a stock run. The `title-rule`, `properties`, `heading`, `code-top`, `callout`, `table`, and `task-line` parts measure the Live Preview counterparts of the reading parts (see [Geometry against stock Obsidian](./stock-geometry.md)).
+- **Tones.** Run `obs layers --run agent --view live --scheme light`, then `--scheme dark`. `note | code`, `note | inline-code`, and `note | property-key` prove the tint of `edit-code-lines` and `edit-inline`.
 - **States.** Run `obs editcheck --run agent --scheme light`, then `--scheme dark`. `text-focus` proves `edit-title-focus` and `edit-property-focus`, `property-select` proves `edit-property-select`, `live-table` proves `edit-table`, and `code-active-line` proves `edit-code-active`.
+- **Phone.** Add `--mobile` to `compare --view live`, `layers --view live`, and `editcheck` to repeat them under phone emulation (see [Mobile](./mobile.md)).
 - **Proof.** Report each sub-feature with its capture path.
 
 ## Gotchas
 
 - Live Preview H2 has no trailing rule: drawing one inside a CodeMirror line means painting the text spans over it, which hides the editor's selection.
+- The rule above the opening fence is a plain 2px border with no 45° cut, unlike reading view's code block; the `code-top` part shows it.
+- CodeMirror renders only the lines near the viewport, so a block far down the note is not in the DOM until the editor scrolls to it. `compare` and `layers` scroll from the top until a part or region appears.
 - Live Preview reveals markers only on the active line; without a focused line, markers mostly stay hidden.
 - `--scroll` scrolls `.cm-scroller`, whose height differs from reading view; adjust the value per capture.

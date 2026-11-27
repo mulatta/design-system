@@ -10,6 +10,7 @@ Obsidian's mobile app uses its own layout: no ribbon or side panes on screen, a 
 - `mobile-blocks` keeps code blocks, tables, and callouts inside the width or scrollable inside their own box.
 - `mobile-raised` draws the floating navbar and the top sidebar, edit, and more buttons square, framed by a 1px accent ring on paper with the theme's shadow and no blur.
 - `mobile-settings` opens settings as a square modal over the note.
+- `mobile-editing` keeps Live Preview at phone width like desktop Live Preview: the title rule, properties, the H2 marker, the code top rule, callouts, task boxes, and a table across the column.
 
 ## How to get to it (user POV)
 
@@ -25,7 +26,10 @@ Preconditions:
 - **Blocks.** Run `obs shot --run agent --note elements-ko --view reading --scheme light --mobile --size 390x844 --scroll 600`, and again with `--scroll 1200`. The captures show `mobile-blocks`.
 - **Settings.** Run `obs shot --run agent --note lab-note-ko --mobile --size 390x844 --open settings`. Under emulation settings is a modal in the main window, and `shot` captures that window. The capture shows `mobile-settings`.
 - **Dark.** Repeat with `--scheme dark`.
-- **Stock reference.** The same `shot` options against a stock run (`--run stock`) give the stock mobile layout; `compare` always runs on desktop.
+- **Stock reference.** The same `shot` options against a stock run (`--run stock`) give the stock mobile layout.
+- **Geometry.** Run `obs compare --base stock --run agent --mobile --scheme light` and `--view live --mobile`, then both with `--scheme dark`. The note parts prove `mobile-column`, `mobile-blocks`, and `mobile-editing`; `navbar` and `top-buttons` prove `mobile-raised` (see [Geometry against stock Obsidian](./stock-geometry.md)).
+- **Tones.** Run `obs layers --run agent --mobile --scheme light` and `--view live --mobile`, then dark.
+- **States.** Run `obs editcheck --run agent --mobile --scheme light`, then dark. It runs the rows marked for the phone at 390x844.
 - **Back to desktop.** The next `shot` without `--mobile` switches emulation off again.
 - **Proof.** Report each sub-feature with its capture path, and state that it was proven under emulation.
 
@@ -34,5 +38,8 @@ Preconditions:
 - Toggling emulation reloads the Obsidian window; `shot` waits for it, but a shot taken during the reload would show a blank window.
 - At 390px wide Obsidian reports `is-phone`; a wider emulated window reports `is-tablet` and lays out differently. Use `--size 390x844` for phone proofs.
 - On a scrolled phone capture the header is transparent, so text scrolls under the top buttons. That is stock behaviour.
-- `shot` cannot open the mobile drawers (`.workspace-drawer`); prove a drawer change with a custom CDP drive.
+- `shot` cannot open the mobile drawers (`.workspace-drawer`) apart from search; prove a drawer change with a custom CDP drive. Each step of the harness closes both drawers first, so a drawer from an earlier step does not cover the note.
+- Obsidian hides the navbar and the top buttons while the editor has focus, so `compare` and `layers` measure them only in reading view.
+- The search drawer covers the note, so `editcheck --mobile` reaches only the search field in `text-focus` and the note's editing roots in `note-text-focus`.
+- On 2026-11-27 (Obsidian 1.15.1) three phone defects were measured and not fixed: the reading-view task checkbox sits 3.6px left of the column edge (desktop: on it); Live Preview's table is 311px in a 327px column (`editcheck --mobile` fails `live-table`); the view header's 1px underline runs across the floating header, where stock draws none (`build/verify/compare/reading-mobile/<scheme>/top-buttons.*.png`).
 - Emulation is a stand-in. It does not prove behaviour on a real iOS or Android WebView: safe-area insets, real font loading from a synced vault, and touch states stay unverified until checked on a device.
