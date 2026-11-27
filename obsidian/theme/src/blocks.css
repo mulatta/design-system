@@ -69,6 +69,11 @@
 	margin: 0.4em 0 0.6em;
 }
 
+.markdown-rendered ul > li,
+.markdown-rendered ol > li {
+	margin-inline-start: max(3ch, calc(var(--checkbox-size) * 1.5));
+}
+
 input[type="checkbox"].task-list-item-checkbox:checked {
 	border-color: var(--wg-mute);
 }
