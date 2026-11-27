@@ -3708,53 +3708,109 @@ async function seqcheck(args: string[]): Promise<void> {
 			checks["copy-button"] = { pass: false, reason: "no .seq-copy button" };
 			continue;
 		}
-		await page.evaluate(() => {
-			const w = window as any;
-			w.__seqWrites = [];
-			w.__seqOwn = Object.getOwnPropertyDescriptor(
-				navigator.clipboard,
-				"writeText",
-			);
-			Object.defineProperty(navigator.clipboard, "writeText", {
-				configurable: true,
-				writable: true,
-				value: (text: string) => {
-					w.__seqWrites.push(text);
-					return Promise.resolve();
+		const clickCopy = async (fail: boolean) => {
+			await page.evaluate(
+				({ view, line, fail }) => {
+					const w = window as any;
+					w.__seqWrites = [];
+					w.__seqLook = (b: Element | null) =>
+						b
+							? [
+									b.getAttribute("aria-label"),
+									b.classList.contains("is-copied"),
+									b.innerHTML,
+								].join("|")
+							: null;
+					w.__seqBefore = w.__seqLook(
+						(w.__seqFind(view, line) as HTMLElement).querySelector(".seq-copy"),
+					);
+					w.__seqOwn = Object.getOwnPropertyDescriptor(
+						navigator.clipboard,
+						"writeText",
+					);
+					Object.defineProperty(navigator.clipboard, "writeText", {
+						configurable: true,
+						writable: true,
+						value: (text: string) => {
+							w.__seqWrites.push(text);
+							return fail
+								? Promise.reject(
+										new DOMException(
+											"Write permission denied.",
+											"NotAllowedError",
+										),
+									)
+								: Promise.resolve();
+						},
+					});
 				},
-			});
-		});
-		let writes: string[] = [];
-		let target = "";
-		let label: string | null = null;
-		try {
-			const b = m.copy.box;
-			const at = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
-			target = await page.evaluate(({ x, y }) => {
-				const el = document.elementFromPoint(x, y);
-				return el
-					? `${el.tagName.toLowerCase()}.${[...el.classList].join(".")}`
-					: "none";
-			}, at);
-			await page.mouse.click(at.x, at.y);
-			await page.waitForTimeout(250);
-			label = await page.evaluate(
-				({ view, line }) =>
-					(window as any)
-						.__seqFind(view, line)
-						.querySelector(".seq-copy")
-						.getAttribute("aria-label") as string | null,
-				{ view: values.view, line: fence.line },
+				{ view: values.view, line: fence.line, fail },
 			);
-		} finally {
-			writes = await page.evaluate(() => {
-				const w = window as any;
-				if (w.__seqOwn)
-					Object.defineProperty(navigator.clipboard, "writeText", w.__seqOwn);
-				else delete (navigator.clipboard as any).writeText;
-				return w.__seqWrites as string[];
-			});
-		}
+			let target = "";
+			let after: {
+				writes: string[];
+				label: string | null;
+				unchanged: boolean;
+				notices: string[];
+			};
+			try {
+				const b = (m.copy as { box: Box }).box;
+				const at = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
+				target = await page.evaluate(({ x, y }) => {
+					const el = document.elementFromPoint(x, y);
+					return el
+						? `${el.tagName.toLowerCase()}.${[...el.classList].join(".")}`
+						: "none";
+				}, at);
+				await page.mouse.click(at.x, at.y);
+				await page.waitForTimeout(250);
+			} finally {
+				after = await page.evaluate(
+					({ view, line }) => {
+						const w = window as any;
+						if (w.__seqOwn)
+							Object.defineProperty(
+								navigator.clipboard,
+								"writeText",
+								w.__seqOwn,
+							);
+						else delete (navigator.clipboard as any).writeText;
+						const button = (
+							w.__seqFind(view, line) as HTMLElement
+						).querySelector(".seq-copy");
+						const notices = [...document.querySelectorAll(".notice")];
+						for (const n of notices) n.remove();
+						return {
+							writes: w.__seqWrites as string[],
+							label: button?.getAttribute("aria-label") ?? null,
+							unchanged: w.__seqLook(button) === w.__seqBefore,
+							notices: notices.map((n) => n.textContent ?? ""),
+						};
+					},
+					{ view: values.view, line: fence.line },
+				);
+			}
+			return { target, ...after };
+		};
+		const failed = await clickCopy(true);
+		const noticed =
+			failed.notices.length === 1 &&
+			failed.notices[0].startsWith("Could not copy");
+		checks["copy-failure"] = {
+			pass: failed.writes.length === 1 && noticed && failed.unchanged,
+			reason:
+				failed.writes.length === 0
+					? `writeText not called; click hit ${failed.target}`
+					: [
+							noticed
+								? `notice ${JSON.stringify(failed.notices[0])}`
+								: `notices ${JSON.stringify(failed.notices)}`,
+							failed.unchanged
+								? "button unchanged"
+								: `button changed, label ${JSON.stringify(failed.label)}`,
+						].join("; "),
+		};
+		const { writes, target, label } = await clickCopy(false);
 		(entry.facts as Record<string, unknown>).copyTarget = target;
 		const exact = writes.length === 1 && writes[0] === fence.source;
 		const told = label?.startsWith("Copied ") ?? false;

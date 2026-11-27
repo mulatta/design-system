@@ -1,4 +1,4 @@
-import { MarkdownRenderChild, Plugin, setTooltip } from "obsidian";
+import { MarkdownRenderChild, Notice, Plugin, setTooltip } from "obsidian";
 import {
 	copiedLabel,
 	copyLabel,
@@ -253,13 +253,19 @@ class SequenceBlock extends MarkdownRenderChild {
 		};
 		show(false);
 		let revert: number | undefined;
-		button.addEventListener("click", () => {
-			void navigator.clipboard.writeText(this.source).then(() => {
-				show(true);
-				block.win.clearTimeout(revert);
-				revert = block.win.setTimeout(() => show(false), 1500);
-			});
-		});
+		const copy = async () => {
+			block.win.clearTimeout(revert);
+			try {
+				await navigator.clipboard.writeText(this.source);
+			} catch {
+				show(false);
+				new Notice("Could not copy the sequence");
+				return;
+			}
+			show(true);
+			revert = block.win.setTimeout(() => show(false), 1500);
+		};
+		button.addEventListener("click", () => void copy());
 	}
 }
 
