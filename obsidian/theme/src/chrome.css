@@ -108,11 +108,19 @@ body :is(input, textarea):read-write:focus {
 	clip-path: polygon(0 0, 18% 0, 50% 64%, 82% 0, 100% 0, 50% 100%);
 }
 
+.theme-dark .mod-root .workspace-tab-header-container {
+	--tab-divider-color: var(--wg-cell-line);
+}
+
 .mod-root .workspace-tab-header-container .workspace-tab-header {
-	margin-inline-end: -1px;
-	background: var(--wg-paper-alt);
-	box-shadow: inset 0 0 0 1px var(--wg-pale);
 	color: var(--wg-mute);
+}
+
+.mod-root
+	.workspace-tab-header-container
+	.workspace-tab-header:is(:has(+ .is-active), :last-child)
+	.workspace-tab-header-inner::after {
+	opacity: 0;
 }
 
 .mod-root .workspace-tab-header-container .workspace-tab-header.is-active {
