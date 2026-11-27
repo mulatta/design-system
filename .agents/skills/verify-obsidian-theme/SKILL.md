@@ -80,7 +80,7 @@ Each `shot` call does the following, in order:
 
 Fixture notes, in `obsidian/testbed/notes/`. The lab and element notes come in a Korean (`-ko`) and an English (`-en`) version with the same structure, so a change to Latin text or to Hangul can be checked on its own:
 - `lab-note-ko`, `lab-note-en`: a mixed lab note with prose, gene names in italics, an inline primer, math, a `fasta` block, a table, a warning callout, a python block, tasks, and a quote.
-- `elements-ko`, `elements-en`: headings 1 to 4, inline marks, an editing note (`%%`), resolved and unresolved links, a tag, a footnote, nested lists, tasks including a two-line one, note/tip/danger/quote callouts, a blockquote, a horizontal rule, block math, nix/typescript/bash/yaml code, and a right-aligned table.
+- `elements-ko`, `elements-en`: headings 1 to 4, inline marks, an editing note (`%%`), resolved and unresolved links, a tag, a footnote, nested lists, tasks including a two-line one, note, tip, danger, quote, summary, todo, and important callouts, a blockquote, a horizontal rule, block math, nix/typescript/bash/yaml code, and a right-aligned table.
 - `long-note`: 30 H2 sections of plain paragraphs, for anything that must still hold after Obsidian unloads off-screen sections.
 - `protocols/pcr-protocol`: a note inside a folder, so the file tree shows a folder row and a nested file.
 
