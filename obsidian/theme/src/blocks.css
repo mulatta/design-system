@@ -95,13 +95,27 @@ ul > li.task-list-item:is([data-task="x"], [data-task="X"]),
 	margin: 0;
 }
 
-.markdown-rendered hr {
+.markdown-rendered hr,
+.markdown-source-view.mod-cm6 .hr hr {
+	flex: none;
 	border: 0;
+	width: 100%;
 	height: var(--wg-cell);
-	margin: 2em 0;
 	background:
 		linear-gradient(90deg, var(--wg-pale) 1px, transparent 1px) 0 0 /
-		var(--wg-cell) 100%,
+		var(--wg-cell) 100% round no-repeat,
+		linear-gradient(var(--wg-pale), var(--wg-pale)) right / 1px 100% no-repeat,
 		linear-gradient(var(--wg-pale), var(--wg-pale)) top / 100% 1px no-repeat,
 		linear-gradient(var(--wg-pale), var(--wg-pale)) bottom / 100% 1px no-repeat;
+}
+
+.markdown-rendered hr {
+	margin: 2em 0;
+}
+
+.markdown-rendered .footnotes > hr {
+	width: auto;
+	height: 0;
+	border-top: 1px solid var(--wg-pale);
+	background: none;
 }
