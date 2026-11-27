@@ -2,6 +2,10 @@
 .markdown-source-view.mod-cm6 .cm-scroller {
 	font-family: var(--font-text);
 	line-height: var(--line-height-normal);
+}
+
+.markdown-rendered,
+.markdown-source-view.mod-cm6 .cm-content {
 	word-break: keep-all;
 	overflow-wrap: break-word;
 }
