@@ -2309,38 +2309,98 @@ const ringsOnClick = async (page: Page, selector: string): Promise<Outcome> => {
 };
 
 const tableFits = async (page: Page, table: string, column: string) => {
-	await installFind(page);
 	const m = await page.evaluate(
 		async ({ table, column }) => {
-			const t = (await (window as any).__wgFind(table)) as HTMLElement | null;
-			const c = document.querySelector(column);
-			if (!t || !c) return null;
-			t.scrollIntoView({ block: "center" });
+			const scroller = [
+				...document.querySelectorAll<HTMLElement>(
+					".workspace-leaf.mod-active .markdown-preview-view, .workspace-leaf.mod-active .cm-scroller",
+				),
+			].find((e) => e.checkVisibility());
+			if (!scroller) return null;
 			const round = (n: number) => Math.round(n * 10) / 10;
-			const sized = (width: string) => {
-				const copy = t.cloneNode(true) as HTMLElement;
-				copy.style.cssText = `position:absolute;visibility:hidden;max-width:none;width:${width}`;
-				t.parentElement?.append(copy);
-				const w = copy.getBoundingClientRect().width;
-				copy.remove();
-				return round(w);
+			const seen = new Map<string, Record<string, number | string>>();
+			let col = 0;
+			const measure = () => {
+				const c = document.querySelector(column);
+				if (c) col = round(c.getBoundingClientRect().width);
+				if (!col) return;
+				for (const t of document.querySelectorAll<HTMLElement>(table)) {
+					if (!t.checkVisibility()) continue;
+					const id = (t.querySelector("th")?.textContent ?? "").trim();
+					if (seen.has(id)) continue;
+					const sized = (width: string) => {
+						const copy = t.cloneNode(true) as HTMLElement;
+						copy.style.cssText = `position:absolute;visibility:hidden;max-width:none;width:${width}`;
+						t.parentElement?.append(copy);
+						const w = copy.getBoundingClientRect().width;
+						copy.remove();
+						return round(w);
+					};
+					let box: HTMLElement | null = t.parentElement;
+					while (
+						box &&
+						!["auto", "scroll"].includes(getComputedStyle(box).overflowX)
+					)
+						box = box.parentElement;
+					const pad = box
+						? Number.parseFloat(getComputedStyle(box).paddingLeft) +
+							Number.parseFloat(getComputedStyle(box).paddingRight)
+						: 0;
+					seen.set(id, {
+						table: id,
+						width: round(t.getBoundingClientRect().width),
+						content: sized("max-content"),
+						least: sized("min-content"),
+						column: col,
+						box: box ? round(box.clientWidth - pad) : -1,
+					});
+				}
 			};
-			return {
-				table: round(t.getBoundingClientRect().width),
-				column: round(c.getBoundingClientRect().width),
-				content: sized("max-content"),
-				least: sized("min-content"),
-			};
+			for (let y = 0; ; y += scroller.clientHeight * 0.7) {
+				scroller.scrollTop = y;
+				await new Promise((r) => setTimeout(r, 200));
+				measure();
+				if (y >= scroller.scrollHeight - scroller.clientHeight) break;
+			}
+			await new Promise((r) => setTimeout(r, 600));
+			measure();
+			const first = document.querySelector<HTMLElement>(table);
+			if (first)
+				scroller.scrollTop +=
+					first.getBoundingClientRect().top -
+					scroller.getBoundingClientRect().top -
+					scroller.clientHeight / 3;
+			return [...seen.values()];
 		},
 		{ table, column },
 	);
-	if (!m) return { pass: false, reason: `no ${table} or ${column}`, facts: {} };
-	const expected = Math.max(Math.min(m.content, m.column), m.least);
-	const pass = Math.abs(m.table - expected) <= 1;
+	if (!m || m.length === 0)
+		return { pass: false, reason: `no ${table} in the note`, facts: {} };
+	const problems: string[] = [];
+	const lines = m.map((t) => {
+		const width = Number(t.width);
+		const content = Number(t.content);
+		const least = Number(t.least);
+		const column = Number(t.column);
+		const box = Number(t.box);
+		const expected = Math.max(Math.min(content, column), least);
+		if (Math.abs(width - expected) > 1)
+			problems.push(
+				`"${t.table}" table ${width}px, content ${content}px, column ${column}px, expected ${expected}px`,
+			);
+		if (width > column + 1 && (box < 0 || box > column + 1))
+			problems.push(
+				`"${t.table}" is ${width}px in a ${column}px column and does not scroll in a box of its own`,
+			);
+		return `"${t.table}" ${width}/${column}px`;
+	});
 	return {
-		pass,
-		reason: `table ${m.table}px, content ${m.content}px, column ${m.column}px, expected ${expected}px`,
-		facts: { ...m, expected },
+		pass: problems.length === 0,
+		reason:
+			problems.length === 0
+				? `${m.length} tables sized to their content within the column: ${lines.join(", ")}`
+				: problems.join(" | "),
+		facts: { tables: m },
 	};
 };
 

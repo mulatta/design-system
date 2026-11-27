@@ -88,4 +88,15 @@ tm: 62.4
 | Concentration | 12.5 | ng/µL |
 | Volume | 50 | µL |
 
+| Step | Description | Note |
+| --- | --- | --- |
+| Transformation | Heat-shock the plasmid into E. coli DH5α, plate it on LB agar with ampicillin, and grow it overnight | 37 °C |
+| Colony screen | Pick eight white colonies and check the insert by colony PCR | Discard blue colonies |
+| Miniprep | Spin the overnight culture down and purify the plasmid with the kit, eluting in 30 µL of water | Store at −20 °C |
+
+| Name | Sequence | Length | Tm | GC | Strand | Template | Note |
+| --- | --- | ---: | ---: | ---: | --- | --- | --- |
+| GFP_F | ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAG | 78 | 72.1 | 58 % | Forward | pUC19-GFP | Clear band |
+| GFP_R | TTACTTGTACAGCTCGTCCATGCCGAGAGTGATCC | 35 | 68.4 | 51 % | Reverse | pUC19-GFP | Retry |
+
 [^1]: Footnote text.
