@@ -1441,6 +1441,406 @@ async function layers(args: string[]): Promise<void> {
 	console.log(lines.join("\n"));
 }
 
+type JoinKind = "cut" | "mark";
+
+type Join = {
+	id: string;
+	notes: string[];
+	root: Where;
+	on?: Layout[];
+	colour: string;
+	kind: JoinKind;
+	box?: "::after";
+};
+
+const joins: Join[] = [
+	{
+		id: "delete-loop",
+		notes: ["elements-ko", "elements-en"],
+		root: { reading: `${reading} del` },
+		on: everywhere,
+		colour: "var(--wg-proof)",
+		kind: "mark",
+	},
+	{
+		id: "title-rule",
+		notes: ["lab-note-ko", "long-note"],
+		root: inNote(".inline-title"),
+		on: everywhere,
+		colour: "var(--wg-rule)",
+		kind: "cut",
+		box: "::after",
+	},
+	{
+		id: "code-top",
+		notes: ["lab-note-ko", "elements-ko"],
+		root: { reading: `${reading} .el-pre:not(.mod-frontmatter) pre` },
+		on: everywhere,
+		colour: "var(--wg-rule)",
+		kind: "cut",
+	},
+	{
+		id: "callout",
+		notes: ["lab-note-ko", "elements-ko"],
+		root: inNote(".callout"),
+		on: everywhere,
+		colour: "rgb(var(--callout-color))",
+		kind: "cut",
+	},
+	{
+		id: "doc-tab",
+		notes: ["lab-note-ko"],
+		root: ".mod-root .workspace-tab-header.is-active",
+		colour: "var(--wg-rule)",
+		kind: "cut",
+	},
+];
+
+type Band = { top: number; bottom: number };
+type JoinSite = {
+	key: string;
+	label: string;
+	colour: string;
+	join: number;
+	before: [number, number];
+	after: [number, number];
+	top: number;
+	bottom: number;
+	slope: number;
+};
+
+const installJoins = (page: Page) =>
+	page.evaluate(() => {
+		const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+		const locate = (
+			el: HTMLElement,
+			kind: JoinKind,
+			box: string | undefined,
+			colour: string,
+		) => {
+			const probe = document.createElement("span");
+			probe.style.color = colour;
+			el.append(probe);
+			const rgb = getComputedStyle(probe).color;
+			probe.remove();
+			const label = (el.textContent ?? "").trim().slice(0, 24);
+			if (kind === "mark") {
+				const lines = [...el.getClientRects()];
+				const line = lines[lines.length - 1];
+				const after = getComputedStyle(el, "::after");
+				const mark = Number.parseFloat(after.width);
+				const text = document.createRange();
+				text.selectNodeContents(el);
+				const ends = [...text.getClientRects()];
+				const end = ends[ends.length - 1].right;
+				const join = end + Number.parseFloat(after.marginLeft);
+				return {
+					label,
+					colour: rgb,
+					join,
+					before: [join - 0.6 * mark, join - 0.05 * mark],
+					after: [Math.max(join, end) + 0.05 * mark, join + 0.3 * mark],
+					top: line.top,
+					bottom: line.bottom,
+					slope: 0,
+				};
+			}
+			let r = el.getBoundingClientRect();
+			if (box) {
+				const ps = getComputedStyle(el, box);
+				r = new DOMRect(
+					r.left + Number.parseFloat(ps.left),
+					r.top + Number.parseFloat(ps.top),
+					Number.parseFloat(ps.width),
+					Number.parseFloat(ps.height),
+				);
+			}
+			const cut = Number.parseFloat(
+				getComputedStyle(el).getPropertyValue("--wg-cut"),
+			);
+			const join = r.right - cut;
+			return {
+				label,
+				colour: rgb,
+				join,
+				before: [join - 5, join - 3],
+				after: [join + 3, join + 5],
+				top: r.top,
+				bottom: r.top + cut,
+				slope: 1,
+			};
+		};
+		(window as any).__wgJoinNext = async (
+			selector: string,
+			kind: JoinKind,
+			box: string | undefined,
+			colour: string,
+			seen: string[],
+		) => {
+			const scroller =
+				[
+					...document.querySelectorAll<HTMLElement>(
+						".workspace-leaf.mod-active .markdown-preview-view, .workspace-leaf.mod-active .cm-scroller",
+					),
+				].find((e) => e.checkVisibility()) ?? null;
+			if (seen.length === 0 && scroller) {
+				scroller.scrollTop = 0;
+				await wait(300);
+			}
+			const keyOf = (el: Element) =>
+				`${Math.round(el.getBoundingClientRect().left)}:${el.textContent}`;
+			for (;;) {
+				const next = [...document.querySelectorAll<HTMLElement>(selector)].find(
+					(e) => e.checkVisibility() && !seen.includes(keyOf(e)),
+				);
+				if (next) {
+					const key = keyOf(next);
+					next.scrollIntoView({ block: "center" });
+					await wait(400);
+					return { key, ...locate(next, kind, box, colour) };
+				}
+				if (!scroller) return null;
+				const before = scroller.scrollTop;
+				scroller.scrollTop += scroller.clientHeight * 0.7;
+				await wait(250);
+				if (scroller.scrollTop === before) return null;
+			}
+		};
+		(window as any).__wgJoinBands = async (
+			data: string,
+			clip: { x: number; y: number; width: number },
+			site: JoinSite,
+		) => {
+			const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+			const bitmap = await createImageBitmap(
+				new Blob([bytes], { type: "image/png" }),
+			);
+			const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+			const ctx = canvas.getContext("2d") as OffscreenCanvasRenderingContext2D;
+			ctx.drawImage(bitmap, 0, 0);
+			const scale = bitmap.width / clip.width;
+			const {
+				data: px,
+				width,
+				height,
+			} = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+			const target = (site.colour.match(/[\d.]+/g) ?? [])
+				.slice(0, 3)
+				.map(Number);
+			const at = (c: number, r: number) =>
+				[0, 1, 2].map((k) => px[(r * width + c) * 4 + k]);
+			const dist = (a: number[], b: number[]) =>
+				Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+			const coverage = (c: number) => {
+				const column = Array.from({ length: height }, (_, r) => at(c, r));
+				const paper = column.reduce((far, p) =>
+					dist(p, target) > dist(far, target) ? p : far,
+				);
+				const span = target.map((t, k) => t - paper[k]);
+				const norm = Math.hypot(...span);
+				return column.map((p) => {
+					const d = p.map((v, k) => v - paper[k]);
+					const a =
+						(d[0] * span[0] + d[1] * span[1] + d[2] * span[2]) / norm ** 2;
+					const off = Math.hypot(...d.map((v, k) => v - a * span[k]));
+					return a > 0 && off <= 0.2 * a * norm ? Math.min(1, a) : 0;
+				});
+			};
+			const r0 = Math.max(0, Math.floor((site.top - clip.y) * scale));
+			const r1 = Math.min(height, Math.ceil((site.bottom - clip.y) * scale));
+			const band = (
+				[x0, x1]: [number, number],
+				slope: number,
+				near: number | null,
+			): Band | null => {
+				const cov = new Array(height).fill(0);
+				const c0 = Math.max(0, Math.ceil((x0 - clip.x) * scale));
+				const c1 = Math.min(width - 1, Math.floor((x1 - clip.x) * scale));
+				for (let c = c0; c <= c1; c++) {
+					const column = coverage(c);
+					const x = clip.x + (c + 0.5) / scale;
+					const shift = Math.round(slope * (x - site.join) * scale);
+					for (let r = r0; r < r1; r++) {
+						const v = column[r + shift] ?? 0;
+						if (v > cov[r]) cov[r] = v;
+					}
+				}
+				const runs: { start: number; end: number; sum: number }[] = [];
+				for (let r = r0; r < r1; r++) {
+					if (cov[r] < 0.2) continue;
+					const last = runs[runs.length - 1];
+					if (last && last.end === r - 1) {
+						last.end = r;
+						last.sum += cov[r];
+					} else runs.push({ start: r, end: r, sum: cov[r] });
+				}
+				if (runs.length === 0) return null;
+				const edges = (run: { start: number; end: number }) => ({
+					top: clip.y + (run.start + 1 - cov[run.start]) / scale - site.top,
+					bottom: clip.y + (run.end + cov[run.end]) / scale - site.top,
+				});
+				const pick =
+					near === null
+						? runs.reduce((a, b) => (b.sum > a.sum ? b : a))
+						: runs.reduce((a, b) =>
+								Math.abs(edges(b).top - near) < Math.abs(edges(a).top - near)
+									? b
+									: a,
+							);
+				return edges(pick);
+			};
+			const before = band(site.before, 0, null);
+			const after = band(site.after, site.slope, before?.top ?? null);
+			return { before, after };
+		};
+	});
+
+const joinEdges: Record<JoinKind, (keyof Band)[]> = {
+	cut: ["top"],
+	mark: ["top", "bottom"],
+};
+
+async function checkJoins(args: string[]): Promise<void> {
+	const { values } = parseArgs({
+		args,
+		options: {
+			run: { type: "string", default: "agent" },
+			scheme: { type: "string", default: "light" },
+			view: { type: "string", default: "reading" },
+			mobile: { type: "boolean", default: false },
+		},
+	});
+	if (values.scheme !== "light" && values.scheme !== "dark")
+		fail(`--scheme must be light or dark, not ${values.scheme}`);
+	const { view, layout, mobile, width, height, tag } = placeFor(
+		values.view,
+		values.mobile,
+	);
+	const here = placed(joins, (j) => j.root, view, layout);
+	const state = readState(values.run);
+	if (!alive(state.pid))
+		fail(`run "${values.run}" is not live; launch it again`);
+	const outDir = join(
+		verifyRoot,
+		"joins",
+		`${values.run}-${tag}-${values.scheme}`,
+	);
+	rmSync(outDir, { recursive: true, force: true });
+	mkdirSync(outDir, { recursive: true });
+	const { browser, page } = await connect(state);
+	const cdp = await page.context().newCDPSession(page);
+	const report: {
+		id: string;
+		note: string;
+		label: string;
+		pass: boolean;
+		before: Band | null;
+		after: Band | null;
+		shot: string;
+	}[] = [];
+	const lines: string[] = [];
+	for (const { row, selector } of here) {
+		for (const note of row.notes) {
+			const prepared = await prepare(page, {
+				width,
+				height,
+				mobile,
+				note,
+				view,
+				scheme: values.scheme,
+				open: "none",
+				hideRight: true,
+			});
+			if ("error" in prepared) fail(prepared.error);
+			await page.waitForTimeout(500);
+			await installJoins(page);
+			const seen: string[] = [];
+			for (;;) {
+				const site = (await page.evaluate(
+					([s, k, b, c, seen]) =>
+						(window as any).__wgJoinNext(s, k, b, c, seen),
+					[selector, row.kind, row.box, row.colour, seen] as const,
+				)) as JoinSite | null;
+				if (!site) break;
+				seen.push(site.key);
+				const x = Math.max(
+					0,
+					Math.floor(Math.min(site.before[0], site.join - 24)),
+				);
+				const y = Math.max(0, Math.floor(site.top - 8));
+				const clip = {
+					x,
+					y,
+					width:
+						Math.min(
+							width,
+							Math.ceil(Math.max(site.after[1], site.join + 24)),
+						) - x,
+					height: Math.min(height, Math.ceil(site.bottom + 8)) - y,
+					scale: 2,
+				};
+				const { data } = (await cdp.send("Page.captureScreenshot", {
+					format: "png",
+					clip,
+				})) as { data: string };
+				const shot = join(
+					outDir,
+					`${row.id}-${note.replace("/", "-")}-${seen.length}.png`,
+				);
+				writeFileSync(shot, Buffer.from(data, "base64"));
+				const { before, after } = (await page.evaluate(
+					([d, c, s]) => (window as any).__wgJoinBands(d, c, s),
+					[data, clip, site] as const,
+				)) as { before: Band | null; after: Band | null };
+				const deltas = joinEdges[row.kind].map((edge) =>
+					before && after ? after[edge] - before[edge] : Number.NaN,
+				);
+				const pass = deltas.every((d) => Math.abs(d) <= 0.5);
+				const fmt = (b: Band | null) =>
+					b ? `${b.top.toFixed(2)}..${b.bottom.toFixed(2)}` : "none";
+				lines.push(
+					`${pass ? "ok  " : "FAIL"} ${row.id} ${note}#${seen.length} "${site.label}": before ${fmt(before)}, after ${fmt(after)}, ${joinEdges[
+						row.kind
+					]
+						.map((edge, i) => `${edge} ${deltas[i].toFixed(2)}`)
+						.join(" ")}`,
+				);
+				report.push({
+					id: row.id,
+					note,
+					label: site.label,
+					pass,
+					before,
+					after,
+					shot,
+				});
+			}
+			if (seen.length === 0) {
+				lines.push(`FAIL ${row.id} ${note}: no ${selector}`);
+				report.push({
+					id: row.id,
+					note,
+					label: "",
+					pass: false,
+					before: null,
+					after: null,
+					shot: "",
+				});
+			}
+		}
+	}
+	await page.keyboard.press("Escape");
+	if (state.hidden) await conceal(page);
+	await browser.close();
+	const path = join(outDir, "joins.json");
+	writeFileSync(path, JSON.stringify(report, null, 2));
+	const failed = report.filter((r) => !r.pass).length;
+	console.log(lines.join("\n"));
+	console.log(`REPORT ${path}`);
+	console.log(failed === 0 ? "JOINS ok" : `JOINS fail ${failed}`);
+	if (failed > 0) process.exit(1);
+}
+
 type Outcome = {
 	pass: boolean;
 	reason: string;
@@ -2338,6 +2738,9 @@ switch (command) {
 	case "layers":
 		await layers(rest);
 		break;
+	case "joins":
+		await checkJoins(rest);
+		break;
 	case "editcheck":
 		await editcheck(rest);
 		break;
@@ -2352,6 +2755,6 @@ switch (command) {
 		break;
 	default:
 		fail(
-			"usage: obsidian.ts <launch|doctor|shot|compare|layers|editcheck|sync|stop> [options]",
+			"usage: obsidian.ts <launch|doctor|shot|compare|layers|joins|editcheck|sync|stop> [options]",
 		);
 }

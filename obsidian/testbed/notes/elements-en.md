@@ -12,6 +12,8 @@ A body paragraph. **Bold**, *italic*, ~~strikethrough~~, ==highlight==, `inline 
 
 An editing note stays in the source %%tighten this sentence in the next draft%% and is hidden in reading view.
 
+~~This whole sentence was deleted. It runs long on purpose, so the strike carries on to the next line unbroken and the delete loop appears once, at its very end.~~
+
 ## Heading 2
 
 ### Heading 3
