@@ -141,6 +141,7 @@ body,
 	--tag-background: transparent;
 	--tag-border-color: var(--wg-rule);
 	--tag-border-width: 1px;
+	--embed-block-shadow-hover: none;
 	--code-background: var(--wg-tint);
 	--code-normal: var(--wg-ink);
 	--code-comment: var(--wg-mute);

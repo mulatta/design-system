@@ -161,6 +161,7 @@ Every component looks printed on the sheet or marked on it afterwards. Obsidian 
 - **Corner Style:** square, with the one 45° cut.
 - **Background:** the `tint` layer, or the callout colour at low strength.
 - **Border:** a Manuscript Rule Blue top rule for code; warning and danger callouts take Proofreader's Red. Neither takes a side or bottom line: the tint already sets the block apart as its own layer.
+- **Live Preview hover:** a hovered block draws no ring around its frame, and its edit button sits `cut` in from the right edge, clear of the diagonal.
 
 ### Navigation (file tree)
 - **Style:** plain rows on the `paper-alt` layer under a bold ink pane header with a fine `pale` underline.

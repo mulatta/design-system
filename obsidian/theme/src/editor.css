@@ -45,6 +45,10 @@
 	padding-right: 0.3em;
 }
 
+.markdown-source-view.mod-cm6 .cm-embed-block .embed-actions {
+	inset-inline-end: var(--wg-cut);
+}
+
 .markdown-source-view.mod-cm6 .cm-table-widget:not(.is-loading) {
 	margin-inline: calc(-1 * var(--table-drag-handle-size)) !important;
 }
