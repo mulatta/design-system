@@ -3507,6 +3507,18 @@ async function seqcheck(args: string[]): Promise<void> {
 					const badge = r.querySelector(":scope > .seq-head > .seq-badge");
 					return badge ? box(badge.getBoundingClientRect()) : null;
 				});
+				const heads = [...block.querySelectorAll(".seq-record")].map((r) => {
+					const head = r.querySelector(":scope > .seq-head");
+					const badge = head?.querySelector(":scope > .seq-badge");
+					if (!head || !badge) return null;
+					const header = head.querySelector(":scope > .seq-header");
+					const top = head.getBoundingClientRect().y;
+					const row = Math.max(
+						top + parseFloat(getComputedStyle(head).minHeight),
+						header?.getBoundingClientRect().bottom ?? top,
+					);
+					return { below: r1(badge.getBoundingClientRect().y - row) };
+				});
 				const units = [...block.querySelectorAll(".seq-record")].map((r) => {
 					const unit = r.querySelector(
 						":scope > .seq-head > .seq-badge > .seq-badge-unit",
@@ -3546,6 +3558,8 @@ async function seqcheck(args: string[]): Promise<void> {
 					rect,
 					column,
 					badges,
+					heads,
+					phone: document.body.classList.contains("is-phone"),
 					units,
 					scroller: inner(scrollerEl),
 					clippedBy,
@@ -3674,6 +3688,21 @@ async function seqcheck(args: string[]): Promise<void> {
 				shown.every((b) => Math.abs(b.h - cell - 2) <= 0.5),
 			reason: `heights ${shown.map((b) => b.h).join(", ")}, cell ${cell}`,
 		};
+		if (m.phone) {
+			const below = m.heads.map((h) => h?.below ?? null);
+			const offsets = below.filter((b): b is number => b !== null);
+			const copyEnd = m.copy ? round(m.copy.box.x + m.copy.box.w) : null;
+			checks["head-shape"] = {
+				pass:
+					offsets.length === shown.length &&
+					offsets.length > 0 &&
+					offsets.every((b) => b >= -0.5) &&
+					spread(offsets) <= 0.5 &&
+					copyEnd !== null &&
+					ends.every((e) => Math.abs(e - copyEnd) <= 0.5),
+				reason: `badge tops ${below.join(", ")}px below the first head row, right edges ${ends.join(", ")}, copy button right edge ${copyEnd}`,
+			};
+		}
 		const units = m.units.filter(
 			(u): u is { part: number; text: number } => u !== null,
 		);
@@ -3707,6 +3736,102 @@ async function seqcheck(args: string[]): Promise<void> {
 		if (!m.copy) {
 			checks["copy-button"] = { pass: false, reason: "no .seq-copy button" };
 			continue;
+		}
+		const reach = await page.evaluate(
+			({ view, line, cell }) => {
+				const block = (window as any).__seqFind(view, line) as HTMLElement;
+				const button = block.querySelector(".seq-copy") as HTMLElement;
+				const r = button.getBoundingClientRect();
+				const step = 0.5;
+				let x0 = Infinity;
+				let y0 = Infinity;
+				let x1 = -Infinity;
+				let y1 = -Infinity;
+				let count = 0;
+				for (let x = r.x - 2 * cell; x <= r.right + 2 * cell; x += step)
+					for (let y = r.y - 2 * cell; y <= r.bottom + 2 * cell; y += step) {
+						if (
+							document.elementFromPoint(x, y)?.closest(".seq-copy") !== button
+						)
+							continue;
+						count += 1;
+						x0 = Math.min(x0, x);
+						y0 = Math.min(y0, y);
+						x1 = Math.max(x1, x);
+						y1 = Math.max(y1, y);
+					}
+				if (x0 === Infinity) return null;
+				const r1 = (n: number) => Math.round(n * 10) / 10;
+				const area = {
+					x: r1(x0),
+					y: r1(y0),
+					w: r1(x1 - x0 + step),
+					h: r1(y1 - y0 + step),
+				};
+				const pointer = (el: Element | null) =>
+					el !== null && getComputedStyle(el).cursor === "pointer";
+				const controls = [...document.querySelectorAll("body *")].flatMap(
+					(el) => {
+						if (
+							el === button ||
+							button.contains(el) ||
+							el.contains(button) ||
+							!pointer(el) ||
+							pointer(el.parentElement)
+						)
+							return [];
+						const c = el.getBoundingClientRect();
+						const meets =
+							Math.min(area.x + area.w, c.right) - Math.max(area.x, c.x) >
+								0.5 &&
+							Math.min(area.y + area.h, c.bottom) - Math.max(area.y, c.y) > 0.5;
+						return meets && c.width > 0 && c.height > 0
+							? [
+									`${el.tagName.toLowerCase()}${[...el.classList].map((k) => `.${k}`).join("")}`,
+								]
+							: [];
+					},
+				);
+				const fill = Math.round(
+					(count * step * step * 100) / (area.w * area.h),
+				);
+				return { ...area, fill, controls };
+			},
+			{ view: values.view, line: fence.line, cell: cell ?? m.copy.box.h },
+		);
+		(entry.facts as Record<string, unknown>).copyReach = reach;
+		if (reach === null) {
+			checks["copy-reach"] = {
+				pass: false,
+				reason: "no point around the button hits it",
+			};
+		} else {
+			const covered = [
+				...hits(reach),
+				...reach.controls.map((c) => `control ${c}`),
+			];
+			const phone = await page.evaluate(() =>
+				document.body.classList.contains("is-phone"),
+			);
+			const want = phone && cell !== undefined ? 3 * cell : 0;
+			const big =
+				reach.w >= want - 1 &&
+				reach.h >= want - 1 &&
+				(!phone || reach.fill >= 90);
+			const onBadge = badges.flatMap((b, i) =>
+				b && meets(reach, b) ? [`badge ${i}`] : [],
+			);
+			checks["copy-reach"] = {
+				pass: covered.length === 0 && big,
+				reason: [
+					`hit area ${reach.w}x${reach.h}, ${reach.fill}% filled, for a ${m.copy.box.w}x${m.copy.box.h} button`,
+					phone ? `phone wants ${want}x${want}` : "",
+					covered.length > 0 ? `covers ${covered.join(", ")}` : "",
+					onBadge.length > 0 ? `meets ${onBadge.join(", ")}` : "",
+				]
+					.filter(Boolean)
+					.join("; "),
+			};
 		}
 		const clickCopy = async (fail: boolean) => {
 			await page.evaluate(
