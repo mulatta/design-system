@@ -26,30 +26,38 @@
 }
 
 .callout {
-	position: relative;
-	padding: 0.9em 1.2em 0.4em;
-	background:
-		linear-gradient(
-			225deg,
-			transparent var(--wg-cut-in),
-			rgb(var(--callout-color)) var(--wg-cut-in) var(--wg-cut-out),
-			transparent var(--wg-cut-out)
-		)
-		right top / var(--wg-cut) var(--wg-cut) no-repeat border-box,
-		color-mix(in srgb, rgb(var(--callout-color)) 15%, var(--wg-paper));
-	border: 0;
-	border-top: 2px solid rgb(var(--callout-color));
-	border-radius: 0;
-	clip-path: var(--wg-cut-clip);
+	--callout-title-weight: 700;
+	padding: 0.55em 0 0.45em;
+	background: none;
+	border: solid var(--wg-pale);
+	border-width: 1px 0;
+}
+
+.callout:is(
+	[data-callout="warning"],
+	[data-callout="caution"],
+	[data-callout="attention"],
+	[data-callout="danger"],
+	[data-callout="error"],
+	[data-callout="bug"],
+	[data-callout="failure"],
+	[data-callout="fail"],
+	[data-callout="missing"]
+) {
+	border-color: var(--wg-proof);
+	border-top-width: 2px;
+}
+
+.callout:is([data-callout="quote"], [data-callout="cite"]) {
+	padding-block: 0;
+	padding-inline-start: 2ch;
+	border-width: 0;
+	border-inline-start: 2px solid var(--wg-pale);
 }
 
 .callout-title {
 	align-items: center;
-	font-family: var(--wg-code-family);
-	font-size: 0.8em;
-	font-weight: 400;
-	letter-spacing: 0.02em;
-	color: rgb(var(--callout-color));
+	font-size: 0.85em;
 }
 
 .callout-icon svg {
@@ -61,6 +69,14 @@
 
 .callout-content p {
 	margin: 0.4em 0 0.6em;
+}
+
+.callout-content > :first-child:not(.callout) {
+	margin-top: 0.3em;
+}
+
+.callout-content > :last-child:not(.callout) {
+	margin-bottom: 0;
 }
 
 .markdown-rendered ul > li,
