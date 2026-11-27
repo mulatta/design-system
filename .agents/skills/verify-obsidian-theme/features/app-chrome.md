@@ -13,7 +13,7 @@ App chrome is everything around the note: the left ribbon, the sidebar with the 
 - `chrome-focus` draws a 2px accent outline around a control reached with `Tab`, and none around a text field or the editable title, where the caret shows focus.
 - `chrome-status` shows the status bar with tabular numerals and fine rules.
 - `chrome-palette` shows the command palette as a square, ruled modal with a visible selected row.
-- `chrome-settings` shows the settings window readable in both schemes, with the theme's fonts and accent.
+- `chrome-settings` shows the settings window readable in both schemes, with the theme's fonts and accent. A toggle reads on or off at a glance: the on track is the accent, the off track a neutral, and the thumb stands out from both.
 - `chrome-search` shows the search pane with its square input; `--open search` opens it with an empty query, so results need a custom drive that types one.
 
 ## How to get to it (user POV)
@@ -36,7 +36,7 @@ Preconditions:
 - **Search.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light --open search`. The capture shows `chrome-search` in the left sidebar. The next `shot` brings the file explorer back.
 - **Dark.** Repeat each with `--scheme dark`.
 - **Geometry.** Run `obs compare --base stock --run agent --scheme light --part nav-active --part folder-row --part split-edge --part ribbon --part sidebar-tabs --part nav-header --part vault-bar --part doc-tab --part view-header`, then with `--scheme dark`.
-- **Focus.** Run `obs editcheck --run agent --scheme light`: `control-focus` and `text-focus` together prove `chrome-focus`.
+- **Focus and toggles.** Run `obs editcheck --run agent --scheme light`, then `--scheme dark`: `control-focus` and `text-focus` together prove `chrome-focus`, and `toggle-states` proves the toggle part of `chrome-settings`.
 - **Proof.** Report each sub-feature with its capture path.
 
 ## Gotchas

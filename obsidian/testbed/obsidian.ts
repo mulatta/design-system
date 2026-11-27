@@ -640,6 +640,25 @@ async function openPanel(page: Page, open: string): Promise<void> {
 	fail(`--open ${open} did not show ${panel.shown}`);
 }
 
+async function settingsPage(
+	browser: Browser,
+	page: Page,
+): Promise<Page | null> {
+	if (
+		await page.evaluate(() => !!document.querySelector(".modal.mod-settings"))
+	)
+		return page;
+	const pages = () => browser.contexts().flatMap((c) => c.pages());
+	const isSettings = (p: Page) => p !== page && !p.url().startsWith("app://");
+	let settings = pages().find(isSettings);
+	for (let i = 0; i < 80 && !settings; i++) {
+		await page.waitForTimeout(125);
+		settings = pages().find(isSettings);
+	}
+	await settings?.waitForLoadState();
+	return settings ?? null;
+}
+
 function checkShotOptions(v: {
 	view: string;
 	scheme: string;
@@ -748,25 +767,14 @@ async function shot(args: string[]): Promise<void> {
 				input.blur();
 			}
 		});
-	const inPageSettings =
-		values.open === "settings" &&
-		(await page.evaluate(
-			() => !!document.querySelector(".modal.mod-settings"),
-		));
-	if (values.open === "settings" && !inPageSettings) {
-		const pages = () => browser.contexts().flatMap((c) => c.pages());
-		const isSettings = (p: Page) => p !== page && !p.url().startsWith("app://");
-		let settings = pages().find(isSettings);
-		for (let i = 0; i < 80 && !settings; i++) {
-			await page.waitForTimeout(125);
-			settings = pages().find(isSettings);
-		}
-		if (!settings) {
-			await browser.close();
-			fail("settings window did not open");
-		}
+	const settings =
+		values.open === "settings" ? await settingsPage(browser, page) : null;
+	if (values.open === "settings" && !settings) {
+		await browser.close();
+		fail("settings window did not open");
+	}
+	if (settings && settings !== page) {
 		if (state.hidden) await conceal(page);
-		await settings.waitForLoadState();
 		await settings.setViewportSize({ width, height });
 		await clearSearch(settings);
 		await settings.waitForTimeout(700);
@@ -774,7 +782,7 @@ async function shot(args: string[]): Promise<void> {
 		await settings.screenshot({ path: name });
 		await settings.close();
 	} else {
-		if (inPageSettings) {
+		if (settings) {
 			await clearSearch(page);
 			await page.waitForTimeout(300);
 		}
@@ -1354,6 +1362,7 @@ const boundaries: [string, string][] = [
 	["note", "inline-code"],
 	["note", "table-head"],
 	["note", "callout"],
+	["callout", "code"],
 	["note", "navbar"],
 	["note", "top-buttons"],
 	["note", "palette"],
@@ -1368,12 +1377,20 @@ type RegionStyle = {
 	shadow: string;
 };
 
+const linear = (c: number) => {
+	const v = c / 255;
+	return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+};
+
+function contrast(a: Rgba, b: Rgba): number {
+	const luminance = ([r, g, b]: Rgba) =>
+		0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+	const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+	return (hi + 0.05) / (lo + 0.05);
+}
+
 function oklchL([r, g, b]: Rgba): number {
-	const lin = (c: number) => {
-		const v = c / 255;
-		return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-	};
-	const [R, G, B] = [lin(r), lin(g), lin(b)];
+	const [R, G, B] = [linear(r), linear(g), linear(b)];
 	const l = Math.cbrt(0.4122214708 * R + 0.5363325363 * G + 0.0514459929 * B);
 	const m = Math.cbrt(0.2119034982 * R + 0.6806995451 * G + 0.1073969566 * B);
 	const s = Math.cbrt(0.0883024619 * R + 0.2817188376 * G + 0.6299787005 * B);
@@ -1383,14 +1400,8 @@ function oklchL([r, g, b]: Rgba): number {
 const hex = ([r, g, b]: Rgba) =>
 	`#${[r, g, b].map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`;
 
-async function readRegion(
-	page: Page,
-	selector: string,
-): Promise<RegionStyle | null> {
-	await installFind(page);
-	return page.evaluate(async (sel) => {
-		const el = (await (window as any).__wgFind(sel)) as HTMLElement | null;
-		if (!el) return null;
+const installPaint = (page: Page) =>
+	page.evaluate(() => {
 		const probe = document
 			.createElement("canvas")
 			.getContext("2d") as CanvasRenderingContext2D;
@@ -1411,13 +1422,32 @@ async function readRegion(
 				.map((i) => top[i] * a + under[i] * (1 - a))
 				.concat(1) as [number, number, number, number];
 		};
-		const chain: HTMLElement[] = [];
-		for (let e: HTMLElement | null = el; e; e = e.parentElement) chain.push(e);
-		let bg: number[] = [255, 255, 255, 1];
-		for (const e of chain.reverse()) {
-			const c = parse(getComputedStyle(e).backgroundColor);
-			if (c[3] > 0) bg = over(c, bg);
-		}
+		const w = window as any;
+		w.__wgParse = parse;
+		w.__wgOver = over;
+		w.__wgGround = (el: Element) => {
+			const chain: Element[] = [];
+			for (let e: Element | null = el; e; e = e.parentElement) chain.push(e);
+			let bg: number[] = [255, 255, 255, 1];
+			for (const e of chain.reverse()) {
+				const c = parse(getComputedStyle(e).backgroundColor);
+				if (c[3] > 0) bg = over(c, bg);
+			}
+			return bg;
+		};
+	});
+
+async function readRegion(
+	page: Page,
+	selector: string,
+): Promise<RegionStyle | null> {
+	await installFind(page);
+	await installPaint(page);
+	return page.evaluate(async (sel) => {
+		const w = window as any;
+		const el = (await w.__wgFind(sel)) as HTMLElement | null;
+		if (!el) return null;
+		const parse = w.__wgParse as (css: string) => Rgba;
 		const cs = getComputedStyle(el);
 		const side = (name: string) => {
 			const width = Number.parseFloat(
@@ -1429,7 +1459,7 @@ async function readRegion(
 			return color[3] === 0 ? null : { width, color };
 		};
 		return {
-			background: bg as [number, number, number, number],
+			background: w.__wgGround(el) as Rgba,
 			own: parse(cs.backgroundColor),
 			sides: {
 				top: side("top"),
@@ -2576,6 +2606,73 @@ const floatingHeaderLines = async (page: Page): Promise<Outcome> => {
 	};
 };
 
+const toggleStep = 0.1;
+const thumbContrast = 3;
+
+const toggleStates = async (page: Page): Promise<Outcome> => {
+	await installPaint(page);
+	const toggles = (await page.evaluate(() => {
+		const w = window as any;
+		return [
+			...document.querySelectorAll(
+				".mod-settings .checkbox-container:not(.is-disabled)",
+			),
+		]
+			.filter((el) => el.checkVisibility())
+			.map((el) => {
+				const state = (on: boolean) => {
+					const copy = el.cloneNode(true) as Element;
+					copy.classList.toggle("is-enabled", on);
+					el.after(copy);
+					const track = w.__wgGround(copy);
+					const thumb = w.__wgOver(
+						w.__wgParse(getComputedStyle(copy, "::after").backgroundColor),
+						track,
+					);
+					copy.remove();
+					return { track, thumb };
+				};
+				return { off: state(false), on: state(true) };
+			});
+	})) as Record<"on" | "off", { track: Rgba; thumb: Rgba }>[];
+	if (toggles.length === 0)
+		return {
+			pass: false,
+			reason: "no toggle in the settings window",
+			facts: {},
+		};
+	const gap = (a: Rgba, b: Rgba) => Math.abs(oklchL(a) - oklchL(b));
+	const measured = toggles.map((t) => ({
+		on: hex(t.on.track),
+		off: hex(t.off.track),
+		thumb: hex(t.on.thumb),
+		track: gap(t.on.track, t.off.track),
+		thumbOn: contrast(t.on.thumb, t.on.track),
+		thumbOff: gap(t.off.thumb, t.off.track),
+	}));
+	const worst = (key: "track" | "thumbOn" | "thumbOff") =>
+		measured.reduce((a, b) => (b[key] < a[key] ? b : a));
+	const track = worst("track");
+	const thumbOn = worst("thumbOn");
+	const thumbOff = worst("thumbOff");
+	const problems = [
+		track.track < toggleStep &&
+			`track on ${track.on} and off ${track.off} differ by ${track.track.toFixed(3)} OKLCH L, below ${toggleStep}`,
+		thumbOn.thumbOn < thumbContrast &&
+			`thumb ${thumbOn.thumb} on the on track ${thumbOn.on} is ${thumbOn.thumbOn.toFixed(2)}:1, below ${thumbContrast}:1`,
+		thumbOff.thumbOff < toggleStep &&
+			`thumb on the off track ${thumbOff.off} differs by ${thumbOff.thumbOff.toFixed(3)} OKLCH L, below ${toggleStep}`,
+	].filter(Boolean);
+	return {
+		pass: problems.length === 0,
+		reason:
+			problems.length === 0
+				? `${measured.length} toggles: track on ${track.on} and off ${track.off} differ by ${track.track.toFixed(3)} OKLCH L, thumb ${thumbOn.thumb} is ${thumbOn.thumbOn.toFixed(2)}:1 on the on track and ${thumbOff.thumbOff.toFixed(3)} from the off track`
+				: problems.join(" | "),
+		facts: { measured },
+	};
+};
+
 const editChecks: EditCheck[] = [
 	{
 		id: "text-focus",
@@ -2763,6 +2860,13 @@ const editChecks: EditCheck[] = [
 		run: floatingHeaderLines,
 	},
 	{
+		id: "toggle-states",
+		view: "reading",
+		open: "settings",
+		shot: ".mod-settings .checkbox-container",
+		run: toggleStates,
+	},
+	{
 		id: "code-active-line",
 		view: "live",
 		on: everywhere,
@@ -2870,10 +2974,17 @@ async function editcheck(args: string[]): Promise<void> {
 				open: check.open ?? "none",
 			});
 			if ("error" in prepared) fail(prepared.error);
-			await page.waitForTimeout(600);
-			const outcome = await check.run(page);
-			await page.waitForTimeout(200);
-			const box = await page.evaluate((s) => {
+			const target =
+				check.open === "settings" ? await settingsPage(browser, page) : page;
+			if (!target) fail("settings window did not open");
+			if (target !== page) {
+				if (state.hidden) await conceal(page);
+				await target.setViewportSize({ width, height });
+			}
+			await target.waitForTimeout(600);
+			const outcome = await check.run(target);
+			await target.waitForTimeout(200);
+			const box = await target.evaluate((s) => {
 				const el = document.querySelector(s);
 				if (!el) return null;
 				const r = el.getBoundingClientRect();
@@ -2887,7 +2998,9 @@ async function editcheck(args: string[]): Promise<void> {
 					"shots",
 					`editcheck-${suffix}-${check.id}.png`,
 				);
-				const { data } = await cdp.send("Page.captureScreenshot", {
+				const session =
+					target === page ? cdp : await target.context().newCDPSession(target);
+				const { data } = await session.send("Page.captureScreenshot", {
 					format: "png",
 					clip: {
 						x: Math.max(0, box.x - pad),
@@ -2902,6 +3015,7 @@ async function editcheck(args: string[]): Promise<void> {
 				entry.shot = shot;
 			}
 			report[check.id] = entry;
+			if (target !== page) await target.close();
 			await page.evaluate(() =>
 				(document.activeElement as HTMLElement)?.blur(),
 			);
