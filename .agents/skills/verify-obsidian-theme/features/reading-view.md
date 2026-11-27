@@ -13,7 +13,7 @@ Reading view shows a rendered note in a calm reading column: the title in MaruBu
 - `read-code` shows code blocks on the tint with a top rule that runs into the cut corner, at most four token colours, no proof red, and a square copy button. Geometry: `geo-code-top`. Joins: `cut`.
 - `read-table` shows a table as wide as its content, up to the note column, with Hangul wrapping between words, never inside one, and a table wider than the column scrolling sideways in its own box; it has a fine rule above the header, a heavy rule under it, fine row rules, and tabular lining numerals; the header row stays on the page tone.
 - `read-callouts` shows every callout type in the accent except warning, fail, danger, error, and bug in proof red and quote in grey, each on its tint under a top rule that turns down a cut corner, with no side or bottom line. `elements-ko` holds note, tip, danger, quote, summary, todo, and important. Geometry: `geo-callout`. Joins: `cut`.
-- `read-quote-hr` shows a plain blockquote between fine rules in the muted colour, and a horizontal rule drawn as a strip of cells.
+- `read-quote-hr` shows a blockquote in ink beside a 2px pale left rule, with its text 2ch in from the rule and a nested quote behind a second rule, and a horizontal rule drawn as a strip of cells.
 - `read-tasks` shows square checkboxes at stock size and position; a done task has a red cross that fills its box and a red strike; the checkbox never touches its label and never starts left of the column edge, and a wrapped second line starts under the first line's text. Geometry: `geo-tasks`.
 
 ## How to get to it (user POV)

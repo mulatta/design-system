@@ -85,11 +85,10 @@ ul > li.task-list-item:is([data-task="x"], [data-task="X"]),
 
 .markdown-rendered blockquote {
 	margin: 1.4em 0;
-	padding: 0.6em 2ch;
+	padding: 0 0 0 2ch;
 	border: 0;
-	border-top: 1px solid var(--wg-pale);
-	border-bottom: 1px solid var(--wg-pale);
-	color: var(--wg-mute);
+	border-left: 2px solid var(--wg-pale);
+	color: var(--wg-ink);
 }
 
 .markdown-rendered blockquote p {
