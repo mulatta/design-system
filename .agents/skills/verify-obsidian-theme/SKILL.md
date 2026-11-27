@@ -81,11 +81,11 @@ Each `shot` call does the following, in order:
 `--note` is the note's basename without `.md`, or its vault path (`protocols/pcr-protocol`). Without `--note` it opens the first note by path.
 
 Fixture notes, in `obsidian/testbed/notes/`. The lab and element notes come in a Korean (`-ko`) and an English (`-en`) version with the same structure, so a change to Latin text or to Hangul can be checked on its own:
-- `lab-note-ko`, `lab-note-en`: a mixed lab note with prose, gene names in italics, an inline primer, math, a `fasta` block, a table, a warning callout, a python block, tasks, and a quote.
+- `lab-note-ko`, `lab-note-en`: a mixed lab note with prose, gene names in italics, an inline primer, math, a `dna` block of two primers, a table, a warning callout, a python block, tasks, and a quote.
 - `elements-ko`, `elements-en`: headings 1 to 4, inline marks, an editing note (`%%`), a strikethrough long enough to wrap, resolved and unresolved links, a tag, a footnote, nested lists, tasks including a two-line one, note, tip, danger, quote, summary, todo, and important callouts, a blockquote, a horizontal rule, block math, nix/typescript/bash/yaml code, and three tables: a short right-aligned one, one of long sentences that fills the column, and one with a primer sequence too wide for any column, which scrolls.
 - `long-note`: 30 H2 sections of plain paragraphs, for anything that must still hold after Obsidian unloads off-screen sections.
 - `protocols/pcr-protocol`: a note inside a folder, so the file tree shows a folder row and a nested file.
-- `sequences`: one sequence block per input shape the sequence plugin accepts: a `fasta` record on one 174 nt line, `fasta` wrapped at 70 and at 80, a multi-FASTA block of 42, 60, and 132 nt records, a `dna` block without a header, a 214 aa `protein` block, and an inline primer in prose. It renders as plain code unless the run has `--plugin obsidian-sequence-plugin`. All sequences are synthetic.
+- `sequences`: one sequence block per input shape the sequence plugin accepts: a `fasta` record on one 174 nt line, `fasta` wrapped at 70 and at 80, a multi-FASTA block of 42, 60, and 132 nt records, a `dna` block without a header, a 214 aa `protein` block, a 96 aa protein and a 24 nt oligo in `fasta` blocks, a GenBank `ORIGIN` paste of 150 nt with its position numbers and `//` line in a `dna` block, and an inline primer in prose. It renders as plain code unless the run has `--plugin obsidian-sequence-plugin`. All sequences are synthetic.
 
 ### Compare with stock Obsidian
 
@@ -159,7 +159,7 @@ obs seqcheck --run agent [--note sequences] [--view reading|live] [--scheme ligh
 - `badge-clear`: each record's length badge (`.seq-badge` on its head row) overlaps no `.seq-group` and no header text. The header text box comes from a Range over the header's text, not the full-width header div.
 - `copy-clear`: the `.seq-copy` button, in its hover state, overlaps no header text, no group, and no badge.
 - `copy-button`: a mouse click at the button's centre passes exactly the fence's text to `navigator.clipboard.writeText`. The check replaces `writeText` with a recorder for the click and restores it afterwards, so the system clipboard is never written.
-- `copy-selection`: with the whole block selected, a `copy` event carrying a fresh `DataTransfer` yields FASTA text. Each record gives its `>` header line, when it has one, then its residues without whitespace, and records are joined by newlines. The expected text is built from the fence's text, not from the plugin's output.
+- `copy-selection`: with the whole block selected, a `copy` event carrying a fresh `DataTransfer` yields FASTA text. Each record gives its `>` header line, when it has one, then its residues without whitespace or digits, and records are joined by newlines. A line that starts with `ORIGIN` or is `//` adds nothing. The expected text is built from the fence's text, not from the plugin's output.
 
 It prints the report as JSON, one `FAIL block <n> <language>: <invariant>: <reason>` line per failure, `REPORT <path>`, and last `SEQCHECK ok` or `SEQCHECK fail <count>`; it exits 1 on any failure. The report goes to `build/verify/<run>/seqcheck-<view>-<scheme>-<size>[-mobile].json`, and a capture of each hovered block to `build/verify/<run>/shots/seqcheck-<view>-<scheme>-<size>[-mobile]-<index>.png`. A fence with no rendered block fails as `rendered`.
 

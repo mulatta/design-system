@@ -54,6 +54,31 @@ LPTEYPHATTHYNQPDTGYTWRHDIRGIWIVAMVLCHVGWWMRKHKHRHGPANATLPRTR
 HFCMKQSYCRPASWSRHDHHSICHCRMMQTILND
 ```
 
+## Protein in a fasta block
+
+```fasta
+>syn-prot2 synthetic protein in a fasta block, 96 aa
+MKDIREVRVLLVRNQRDDENYKHYELENCNWECIDQLQMKCDGQDMARVIFGSTPINHYH
+SMQHTQEGSPCKNTWIDSGTWYRLHYEATFAVSDNV
+```
+
+## Short nucleotide in a fasta block
+
+```fasta
+>syn-oligo1 synthetic oligo, 24 nt
+AACCTCCAGGTTCAGACTTTGAGG
+```
+
+## GenBank ORIGIN paste
+
+```dna
+ORIGIN
+        1 atggcagctc tcccccttac tggcctacgc gattgagtag ttttatcccg ttctcggact
+       61 atacataggg taaccacgta aaaatgttca accacctact tatcgaaaaa taggcctttc
+      121 tatggcaggg taggccacct gactcgttaa
+//
+```
+
 ## Inline primer
 
 Amplify the insert with the forward primer `ATTTGTCAAAGGGATCCAGTAT` at 58 °C.

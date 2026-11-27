@@ -1,10 +1,15 @@
 export type SequenceLine = { start: number; groups: string[] };
 
+export type Unit = "nt" | "aa" | "nt/aa";
+
+export type UnitRule = "nt" | "aa" | "infer";
+
 export type SequenceRecord = {
 	header: string | null;
 	lines: SequenceLine[];
 	sequence: string;
 	length: number;
+	unit: Unit;
 };
 
 export type LineLength = 10 | 20 | 30 | 40 | 50 | 60;
@@ -40,9 +45,17 @@ export function sequenceLines(
 	}));
 }
 
+function unitOf(sequence: string, rule: UnitRule): Unit {
+	if (rule !== "infer") {
+		return rule;
+	}
+	return /[efijlopqz*]/i.test(sequence) ? "aa" : "nt/aa";
+}
+
 export function formatSequences(
 	source: string,
 	lineLength: LineLength,
+	rule: UnitRule,
 ): SequenceRecord[] {
 	const parsed: { header: string | null; parts: string[] }[] = [];
 	for (const raw of source.split(/\r?\n/)) {
@@ -51,7 +64,10 @@ export function formatSequences(
 			parsed.push({ header: line.slice(1), parts: [] });
 			continue;
 		}
-		const residues = line.replace(/\s+/g, "");
+		if (line.startsWith("ORIGIN") || line.trimEnd() === "//") {
+			continue;
+		}
+		const residues = line.replace(/[\s\d]+/g, "");
 		if (residues === "") {
 			continue;
 		}
@@ -68,6 +84,7 @@ export function formatSequences(
 			header,
 			sequence,
 			length: sequence.length,
+			unit: unitOf(sequence, rule),
 			lines: sequenceLines(sequence, lineLength),
 		};
 	});

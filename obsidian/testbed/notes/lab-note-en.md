@@ -10,7 +10,7 @@ Ran yesterday's PCR product on a 1% agarose gel. A single band came up near the 
 
 ## Primers
 
-```fasta
+```dna
 >GFP_F forward, for the pUC19 insert
 ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAAC
 >GFP_R

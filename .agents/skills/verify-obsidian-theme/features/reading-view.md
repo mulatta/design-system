@@ -27,7 +27,7 @@ Preconditions:
 
 - Baseline preconditions hold for run `agent`.
 
-- **Lab note, light.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light`. The capture shows `read-title-props`, `read-headings`, `read-prose`, and the start of the `fasta` block.
+- **Lab note, light.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light`. The capture shows `read-title-props`, `read-headings`, `read-prose`, and the start of the `dna` block.
 - **Lab note, lower half.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light --scroll 620`. The capture shows `read-table`, `read-callouts` (warning), `read-code`, `read-tasks`.
 - **Element note.** Run `obs shot --run agent --note elements-ko --view reading --scheme light` and again with `--scroll 700` and `--scroll 1400`. Together they show `read-links-tags`, `read-inline`, all callout types, `read-quote-hr`, the two-line task, block math, every code language, and the right-aligned table.
 - **No properties.** Run `obs shot --run agent --note long-note --view reading --scheme light`. The capture shows `read-title-bare`.
@@ -42,7 +42,7 @@ Preconditions:
 
 ## Gotchas
 
-- The `fasta` block in the lab notes renders as a plain code block unless the run was launched with `--plugin obsidian-sequence-plugin`. The plugin's rendering is covered in [Sequence blocks](./sequence-blocks.md).
+- The `dna` block in the lab notes renders as a plain code block unless the run was launched with `--plugin obsidian-sequence-plugin`. The plugin's rendering is covered in [Sequence blocks](./sequence-blocks.md).
 - `--scroll` values depend on the window height; check that the capture shows the intended part before reporting.
 - Math is MathJax's own font; the theme does not style it.
 - On desktop Obsidian shifts the properties block 4px left with a `transform`, so its unpainted rows' text lines up with the column. The theme paints the rows, the key cells, and the rule under the block, so it removes the shift; the phone has none.

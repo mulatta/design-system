@@ -3275,9 +3275,12 @@ function fastaOf(source: string): string {
 	for (const line of source.split("\n")) {
 		const text = line.trim();
 		if (text.startsWith(">")) records.push({ header: text, residues: "" });
-		else if (text !== "") {
+		else if (text === "//" || text.startsWith("ORIGIN")) continue;
+		else {
+			const residues = text.replace(/[\s\d]+/g, "");
+			if (residues === "") continue;
 			if (records.length === 0) records.push({ header: null, residues: "" });
-			records[records.length - 1].residues += text.replace(/\s+/g, "");
+			records[records.length - 1].residues += residues;
 		}
 	}
 	return records

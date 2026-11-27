@@ -8,12 +8,11 @@ import {
 	type SequenceLine,
 	type SequenceRecord,
 	sequenceLines,
+	type UnitRule,
 } from "./format.ts";
 
-type Unit = "nt" | "aa";
-
-const languages: [string, Unit][] = [
-	["fasta", "nt"],
+const languages: [string, UnitRule][] = [
+	["fasta", "infer"],
 	["dna", "nt"],
 	["protein", "aa"],
 ];
@@ -60,17 +59,17 @@ class SequenceBlock extends MarkdownRenderChild {
 	private frame: number | null = null;
 	private readonly source: string;
 
-	constructor(containerEl: HTMLElement, source: string, unit: Unit) {
+	constructor(containerEl: HTMLElement, source: string, rule: UnitRule) {
 		super(containerEl);
 		this.source = source;
-		this.records = formatSequences(source, this.lineLength);
+		this.records = formatSequences(source, this.lineLength, rule);
 		this.widestDigits = String(
 			lastStart(
 				this.records.map((record) => sequenceLines(record.sequence, 10)),
 			),
 		).length;
 		this.block = containerEl.createDiv({
-			cls: unit === "aa" ? ["seq-block", "seq-block--protein"] : "seq-block",
+			cls: rule === "aa" ? ["seq-block", "seq-block--protein"] : "seq-block",
 			attr: { "data-records": this.records.length },
 		});
 		for (const record of this.records) {
@@ -81,7 +80,10 @@ class SequenceBlock extends MarkdownRenderChild {
 				headerEl.createSpan({ cls: "seq-header-mark", text: ">" });
 				headerEl.appendText(record.header);
 			}
-			head.createSpan({ cls: "seq-badge", text: `${record.length} ${unit}` });
+			head.createSpan({
+				cls: "seq-badge",
+				text: `${record.length} ${record.unit}`,
+			});
 			this.recordEls.push(recordEl);
 		}
 		this.renderLines(this.records.map((record) => record.lines));
@@ -203,9 +205,9 @@ class SequenceBlock extends MarkdownRenderChild {
 
 export default class SequenceBlocksPlugin extends Plugin {
 	override async onload(): Promise<void> {
-		for (const [language, unit] of languages) {
+		for (const [language, rule] of languages) {
 			this.registerMarkdownCodeBlockProcessor(language, (source, el, ctx) => {
-				ctx.addChild(new SequenceBlock(el, source, unit));
+				ctx.addChild(new SequenceBlock(el, source, rule));
 			});
 		}
 	}

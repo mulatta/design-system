@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { formatSequences, type LineLength, lineLengthFor } from "./format.ts";
+import {
+	formatSequences,
+	type LineLength,
+	lineLengthFor,
+	type UnitRule,
+} from "./format.ts";
 
 const alphabet = "ACGT";
 
@@ -22,24 +27,25 @@ function wrap(sequence: string, width: number): string {
 
 describe("formatSequences input shapes", () => {
 	it("returns no records for empty or blank input", () => {
-		assert.deepEqual(formatSequences("", 60), []);
-		assert.deepEqual(formatSequences("\n  \n\t\n", 60), []);
+		assert.deepEqual(formatSequences("", 60, "infer"), []);
+		assert.deepEqual(formatSequences("\n  \n\t\n", 60, "infer"), []);
 	});
 
 	it("formats a bare sequence with no header", () => {
-		const [record, ...rest] = formatSequences("ACGTACGTAC", 60);
+		const [record, ...rest] = formatSequences("ACGTACGTAC", 60, "infer");
 		assert.equal(rest.length, 0);
 		assert.deepEqual(record, {
 			header: null,
 			sequence: "ACGTACGTAC",
 			length: 10,
+			unit: "nt/aa",
 			lines: [{ start: 1, groups: ["ACGTACGTAC"] }],
 		});
 	});
 
 	it("formats one long sequence line", () => {
 		const sequence = residues(150);
-		const [record] = formatSequences(`>long\n${sequence}`, 60);
+		const [record] = formatSequences(`>long\n${sequence}`, 60, "infer");
 		assert.equal(record?.sequence, sequence);
 		assert.deepEqual(
 			record?.lines.map((line) => line.start),
@@ -58,6 +64,7 @@ describe("formatSequences input shapes", () => {
 			const [record] = formatSequences(
 				`>wrapped\n${wrap(sequence, width)}\n`,
 				60,
+				"infer",
 			);
 			assert.equal(record?.sequence, sequence);
 			assert.deepEqual(
@@ -85,7 +92,7 @@ describe("formatSequences input shapes", () => {
 			">third one",
 			"acgt",
 		].join("\n");
-		const records = formatSequences(source, 60);
+		const records = formatSequences(source, 60, "infer");
 		assert.deepEqual(
 			records.map((record) => [record.header, record.sequence]),
 			[
@@ -105,6 +112,7 @@ describe("formatSequences input shapes", () => {
 		const [record] = formatSequences(
 			`>sp|P69905|TEST Example protein\n${wrap(protein, 60)}`,
 			60,
+			"infer",
 		);
 		assert.equal(record?.header, "sp|P69905|TEST Example protein");
 		assert.equal(record?.sequence, protein);
@@ -117,7 +125,7 @@ describe("formatSequences input shapes", () => {
 
 	it("ignores blank lines and strips whitespace inside sequence lines", () => {
 		const source = "\n>spaced\n\nACGTA CGTAC\n\tGG TT\t\n\n   \nAA  \r\nCC\r\n";
-		const [record] = formatSequences(source, 60);
+		const [record] = formatSequences(source, 60, "infer");
 		assert.equal(record?.sequence, "ACGTACGTACGGTTAACC");
 		assert.deepEqual(record?.lines, [
 			{ start: 1, groups: ["ACGTACGTAC", "GGTTAACC"] },
@@ -128,12 +136,13 @@ describe("formatSequences input shapes", () => {
 		const [record] = formatSequences(
 			">  NM_000518.5 Homo sapiens  HBB, mRNA  \nACGT",
 			60,
+			"infer",
 		);
 		assert.equal(record?.header, "  NM_000518.5 Homo sapiens  HBB, mRNA  ");
 	});
 
 	it("keeps an empty header and a header with no sequence", () => {
-		const records = formatSequences(">\nACGT\n>empty\n>last\nTT", 60);
+		const records = formatSequences(">\nACGT\n>empty\n>last\nTT", 60, "infer");
 		assert.deepEqual(
 			records.map((record) => [
 				record.header,
@@ -149,7 +158,7 @@ describe("formatSequences input shapes", () => {
 	});
 
 	it("starts a headerless record for residues before the first header", () => {
-		const records = formatSequences("ACGT\n>named\nGGCC", 60);
+		const records = formatSequences("ACGT\n>named\nGGCC", 60, "infer");
 		assert.deepEqual(
 			records.map((record) => [record.header, record.sequence]),
 			[
@@ -163,6 +172,7 @@ describe("formatSequences input shapes", () => {
 		const records = formatSequences(
 			">a\nAC GT\nac\n>b\n>c\n" + residues(61),
 			60,
+			"infer",
 		);
 		assert.deepEqual(
 			records.map((record) => record.length),
@@ -171,21 +181,101 @@ describe("formatSequences input shapes", () => {
 	});
 
 	it("preserves lowercase and mixed case residues", () => {
-		const [record] = formatSequences("acgtNNNNacgtACGTnnnn", 60);
+		const [record] = formatSequences("acgtNNNNacgtACGTnnnn", 60, "infer");
 		assert.equal(record?.sequence, "acgtNNNNacgtACGTnnnn");
 		assert.deepEqual(record?.lines[0]?.groups, ["acgtNNNNac", "gtACGTnnnn"]);
 	});
 });
 
+describe("formatSequences units", () => {
+	const unitsOf = (source: string, rule: UnitRule) =>
+		formatSequences(source, 60, rule).map((record) => record.unit);
+
+	it("labels a protein record in a fasta block aa", () => {
+		assert.deepEqual(unitsOf(">p\nMKTAYIAKQRQISFVKSHFSRQ", "infer"), ["aa"]);
+	});
+
+	it("labels a nucleotide record in a fasta block nt/aa", () => {
+		assert.deepEqual(unitsOf(">n\nACGTURYSWKMBDHVN-ACGT", "infer"), ["nt/aa"]);
+	});
+
+	for (const symbol of ["E", "F", "I", "J", "L", "O", "P", "Q", "Z", "*"]) {
+		it(`labels a record aa when ${symbol} is its only amino-acid-only symbol`, () => {
+			assert.deepEqual(unitsOf(`ACGTAC${symbol}GTAC`, "infer"), ["aa"]);
+		});
+	}
+
+	it("does not take X as an amino-acid-only symbol", () => {
+		assert.deepEqual(unitsOf("ACGTXXXXACGT\n>x\nXXXX", "infer"), [
+			"nt/aa",
+			"nt/aa",
+		]);
+	});
+
+	it("reads amino-acid-only symbols in lowercase", () => {
+		assert.deepEqual(unitsOf("mktayiakqr\n>e\nacgte", "infer"), ["aa", "aa"]);
+	});
+
+	it("labels each record of a multi-FASTA block on its own", () => {
+		assert.deepEqual(
+			unitsOf(">prot\nMKTAYIAKQR\n>nuc\nACGTACGTAA\n>empty", "infer"),
+			["aa", "nt/aa", "nt/aa"],
+		);
+	});
+
+	it("keeps nt for a dna block and aa for a protein block", () => {
+		assert.deepEqual(unitsOf(">p\nMKTAYIAKQR\n>n\nACGT", "nt"), ["nt", "nt"]);
+		assert.deepEqual(unitsOf(">p\nMKTAYIAKQR\n>n\nACGT", "aa"), ["aa", "aa"]);
+	});
+});
+
+describe("formatSequences GenBank ORIGIN input", () => {
+	function origin(sequence: string): string {
+		const rows = ["ORIGIN      "];
+		for (let i = 0; i < sequence.length; i += 60) {
+			const groups = wrap(sequence.slice(i, i + 60), 10).split("\n");
+			rows.push(`${String(i + 1).padStart(9)} ${groups.join(" ")}`);
+		}
+		rows.push("//");
+		return rows.join("\n");
+	}
+
+	it("drops position numbers and the ORIGIN and // lines", () => {
+		const sequence = residues(130).toLowerCase();
+		const [record, ...rest] = formatSequences(origin(sequence), 60, "nt");
+		assert.equal(rest.length, 0);
+		assert.equal(record?.header, null);
+		assert.equal(record?.sequence, sequence);
+		assert.equal(record?.length, 130);
+		assert.equal(record?.unit, "nt");
+		assert.deepEqual(
+			record?.lines.map((line) => line.start),
+			[1, 61, 121],
+		);
+		assert.deepEqual(record?.lines[2]?.groups, [sequence.slice(120)]);
+	});
+
+	it("reads an ORIGIN paste under a FASTA header", () => {
+		const sequence = residues(70, 1).toLowerCase();
+		const [record] = formatSequences(
+			`>syn 12 ORIGIN\n  ${origin(sequence)}`,
+			60,
+			"nt",
+		);
+		assert.equal(record?.header, "syn 12 ORIGIN");
+		assert.equal(record?.sequence, sequence);
+	});
+});
+
 describe("formatSequences boundaries", () => {
 	it("keeps exactly 10 residues in one group", () => {
-		const [record] = formatSequences(residues(10), 60);
+		const [record] = formatSequences(residues(10), 60, "infer");
 		assert.deepEqual(record?.lines, [{ start: 1, groups: [residues(10)] }]);
 	});
 
 	it("opens a second group at 11 residues", () => {
 		const sequence = residues(11);
-		const [record] = formatSequences(sequence, 60);
+		const [record] = formatSequences(sequence, 60, "infer");
 		assert.deepEqual(record?.lines, [
 			{ start: 1, groups: [sequence.slice(0, 10), sequence.slice(10)] },
 		]);
@@ -193,7 +283,7 @@ describe("formatSequences boundaries", () => {
 
 	it("keeps exactly 60 residues on one line of six groups", () => {
 		const sequence = residues(60);
-		const [record] = formatSequences(sequence, 60);
+		const [record] = formatSequences(sequence, 60, "infer");
 		assert.equal(record?.lines.length, 1);
 		assert.deepEqual(record?.lines[0]?.groups, [
 			sequence.slice(0, 10),
@@ -207,7 +297,7 @@ describe("formatSequences boundaries", () => {
 
 	it("opens a second line at 61 residues starting at position 61", () => {
 		const sequence = residues(61);
-		const [record] = formatSequences(sequence, 60);
+		const [record] = formatSequences(sequence, 60, "infer");
 		assert.equal(record?.lines.length, 2);
 		assert.equal(record?.lines[0]?.groups.length, 6);
 		assert.deepEqual(record?.lines[1], {
@@ -217,7 +307,7 @@ describe("formatSequences boundaries", () => {
 	});
 
 	it("numbers line starts 1, 61, 121 and onward", () => {
-		const [record] = formatSequences(residues(600), 60);
+		const [record] = formatSequences(residues(600), 60, "infer");
 		assert.deepEqual(
 			record?.lines.map((line) => line.start),
 			[1, 61, 121, 181, 241, 301, 361, 421, 481, 541],
@@ -238,6 +328,7 @@ describe("formatSequences line length", () => {
 			const [record] = formatSequences(
 				`>reflow\n${wrap(sequence, 70)}`,
 				lineLength,
+				"infer",
 			);
 			const lineCount = Math.ceil(205 / lineLength);
 			assert.deepEqual(
@@ -261,7 +352,7 @@ describe("formatSequences line length", () => {
 
 	it("opens a new line at residue 31 with 30 per line", () => {
 		const sequence = residues(61);
-		const [record] = formatSequences(sequence, 30);
+		const [record] = formatSequences(sequence, 30, "infer");
 		assert.deepEqual(record?.lines, [
 			{
 				start: 1,
