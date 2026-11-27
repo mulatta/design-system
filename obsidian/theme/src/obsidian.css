@@ -164,7 +164,7 @@ body,
 	--code-tag: var(--wg-rule);
 	--code-important: var(--wg-rule);
 	--table-border-color: var(--wg-pale);
-	--table-header-border-color: var(--wg-rule);
+	--table-header-border-color: var(--wg-ink);
 	--hr-color: var(--wg-pale);
 	--blockquote-border-color: var(--wg-pale);
 	--nav-item-color: var(--wg-mute);
