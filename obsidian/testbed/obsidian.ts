@@ -1574,15 +1574,10 @@ async function layers(args: string[]): Promise<void> {
 
 type JoinKind = "cut" | "mark";
 
-type Join = {
-	id: string;
-	notes: string[];
-	root: Where;
-	on?: Layout[];
-	colour: string;
-	kind: JoinKind;
-	box?: "::after";
-};
+type Join = { id: string; notes: string[]; root: Where; on?: Layout[] } & (
+	| { kind: "mark"; colour: string }
+	| { kind: "cut" }
+);
 
 const joins: Join[] = [
 	{
@@ -1594,35 +1589,10 @@ const joins: Join[] = [
 		kind: "mark",
 	},
 	{
-		id: "title-rule",
-		notes: ["lab-note-ko", "long-note"],
-		root: inNote(".inline-title"),
+		id: "cut",
+		notes: ["lab-note-ko", "elements-ko", "long-note", "sequences"],
+		root: ".workspace",
 		on: everywhere,
-		colour: "var(--wg-rule)",
-		kind: "cut",
-		box: "::after",
-	},
-	{
-		id: "code-top",
-		notes: ["lab-note-ko", "elements-ko"],
-		root: { reading: `${reading} .el-pre:not(.mod-frontmatter) pre` },
-		on: everywhere,
-		colour: "var(--wg-rule)",
-		kind: "cut",
-	},
-	{
-		id: "callout",
-		notes: ["lab-note-ko", "elements-ko"],
-		root: inNote(".callout"),
-		on: everywhere,
-		colour: "rgb(var(--callout-color))",
-		kind: "cut",
-	},
-	{
-		id: "doc-tab",
-		notes: ["lab-note-ko"],
-		root: ".mod-root .workspace-tab-header.is-active",
-		colour: "var(--wg-rule)",
 		kind: "cut",
 	},
 ];
@@ -1643,12 +1613,55 @@ type JoinSite = {
 const installJoins = (page: Page) =>
 	page.evaluate(() => {
 		const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-		const locate = (
-			el: HTMLElement,
-			kind: JoinKind,
-			box: string | undefined,
-			colour: string,
-		) => {
+		const split = (list: string) => {
+			const parts: string[] = [];
+			let depth = 0;
+			let start = 0;
+			for (let i = 0; i < list.length; i++) {
+				if (list[i] === "(") depth++;
+				else if (list[i] === ")") depth--;
+				else if (list[i] === "," && depth === 0) {
+					parts.push(list.slice(start, i).trim());
+					start = i + 1;
+				}
+			}
+			parts.push(list.slice(start).trim());
+			return parts;
+		};
+		type Frame = {
+			el: HTMLElement;
+			box: string | null;
+			colour: string;
+			cut: number;
+		};
+		const cutOf = (el: HTMLElement, box: string | null): Frame | null => {
+			const style = getComputedStyle(el, box);
+			if (box && style.content === "none") return null;
+			const layers = split(style.backgroundImage);
+			const layer = layers.findIndex((l) =>
+				l.startsWith("linear-gradient(225deg,"),
+			);
+			if (layer < 0) return null;
+			const colour = split(layers[layer].slice("linear-gradient(".length, -1))
+				.slice(1)
+				.map((stop) => stop.replace(/(\s+-?[\d.]+(px|%))+$/, ""))
+				.find((c) => c !== "transparent" && !/[,/]\s*0\)$/.test(c));
+			const sizes = split(style.backgroundSize);
+			const cut = Number.parseFloat(sizes[layer % sizes.length]);
+			return colour && cut > 0 ? { el, box, colour, cut } : null;
+		};
+		const frames = (scope: string): Frame[] =>
+			[...document.querySelectorAll<HTMLElement>(`${scope} *`)].flatMap((el) =>
+				[null, "::before", "::after"].flatMap((box) => {
+					const frame = cutOf(el, box);
+					return frame ? [frame] : [];
+				}),
+			);
+		const marks = (selector: string, colour: string): Frame[] =>
+			[...document.querySelectorAll<HTMLElement>(selector)]
+				.filter((el) => getComputedStyle(el, "::after").content !== "none")
+				.map((el) => ({ el, box: null, colour, cut: 0 }));
+		const locate = (kind: JoinKind, { el, box, colour, cut }: Frame) => {
 			const probe = document.createElement("span");
 			probe.style.color = colour;
 			el.append(probe);
@@ -1686,12 +1699,9 @@ const installJoins = (page: Page) =>
 					Number.parseFloat(ps.height),
 				);
 			}
-			const cut = Number.parseFloat(
-				getComputedStyle(el).getPropertyValue("--wg-cut"),
-			);
 			const join = r.right - cut;
 			return {
-				label,
+				label: `${el.tagName.toLowerCase()}${[...el.classList].map((c) => `.${c}`).join("")}${box ?? ""} ${label}`,
 				colour: rgb,
 				join,
 				before: [join - 5, join - 3],
@@ -1704,7 +1714,6 @@ const installJoins = (page: Page) =>
 		(window as any).__wgJoinNext = async (
 			selector: string,
 			kind: JoinKind,
-			box: string | undefined,
 			colour: string,
 			seen: string[],
 		) => {
@@ -1718,21 +1727,17 @@ const installJoins = (page: Page) =>
 				scroller.scrollTop = 0;
 				await wait(300);
 			}
-			const keyOf = (el: Element) =>
-				`${Math.round(el.getBoundingClientRect().left)}:${el.textContent}`;
+			const keyOf = ({ el, box }: Frame) =>
+				`${Math.round(el.getBoundingClientRect().left)}:${box}:${el.textContent}`;
 			for (;;) {
-				const next = [...document.querySelectorAll<HTMLElement>(selector)].find(
-					(e) =>
-						e.checkVisibility() &&
-						!seen.includes(keyOf(e)) &&
-						(kind !== "mark" ||
-							getComputedStyle(e, "::after").content !== "none"),
-				);
+				const next = (
+					kind === "mark" ? marks(selector, colour) : frames(selector)
+				).find((f) => f.el.checkVisibility() && !seen.includes(keyOf(f)));
 				if (next) {
 					const key = keyOf(next);
-					next.scrollIntoView({ block: "center" });
+					next.el.scrollIntoView({ block: "center" });
 					await wait(400);
-					return { key, ...locate(next, kind, box, colour) };
+					return { key, ...locate(kind, next) };
 				}
 				if (!scroller) return null;
 				const before = scroller.scrollTop;
@@ -1892,9 +1897,13 @@ async function checkJoins(args: string[]): Promise<void> {
 			const seen: string[] = [];
 			for (;;) {
 				const site = (await page.evaluate(
-					([s, k, b, c, seen]) =>
-						(window as any).__wgJoinNext(s, k, b, c, seen),
-					[selector, row.kind, row.box, row.colour, seen] as const,
+					([s, k, c, seen]) => (window as any).__wgJoinNext(s, k, c, seen),
+					[
+						selector,
+						row.kind,
+						row.kind === "mark" ? row.colour : "",
+						seen,
+					] as const,
 				)) as JoinSite | null;
 				if (!site) break;
 				seen.push(site.key);
@@ -1952,7 +1961,7 @@ async function checkJoins(args: string[]): Promise<void> {
 			}
 			if (seen.length === 0) {
 				lines.push(
-					`FAIL ${row.id} ${note}: no ${selector}${row.kind === "mark" ? " with a mark" : ""}`,
+					`FAIL ${row.id} ${note}: no ${row.kind === "mark" ? `${selector} with a mark` : `frame cut at 45° in ${selector}`}`,
 				);
 				report.push({
 					id: row.id,

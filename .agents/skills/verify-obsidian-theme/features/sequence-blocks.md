@@ -47,6 +47,7 @@ Preconditions:
   - `copy-reach` proves that the button's tap area covers no header, residue, or other control, that a 24px circle around a smaller area meets no other control, and that the area is three cells square with `--mobile`.
   - `copy-button` and `copy-failure` prove the button half of `seq-copy`, on success and when the clipboard refuses. `copy-label` proves its rest label, and `copy-held` that the copied state stays shown and is announced for its 1.5 seconds.
   - `copy-selection` proves the selection half of `seq-copy`, and that the header keeps its `>`.
+- **Cut corner.** Run `obs joins --run agent --scheme light`, again with `--view live`, and both with `--mobile`. The `cut` row measures each block's top rule into its 45° cut, in `lab-note-ko` and `sequences`.
 - **Proof.** Look at every capture against the sub-feature list and report each sub-feature as holding or not, with the capture path.
 
 ## Gotchas
