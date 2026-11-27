@@ -5,6 +5,7 @@ Editing view is where the note is written: Live Preview renders most markdown in
 ## Sub-features
 
 - `edit-live` renders headings, emphasis, links, and inline code like reading view; H2 carries the same hung square marker, without reading view's trailing rule.
+- `edit-footnote` sets a footnote reference in blue, raised and smaller, as reading view does. The editor shows it as typed, `[^1]`, where reading view prints `[1]`.
 - `edit-links` underlines a link as reading view does: blue text over a 1px pale line set 0.22em below it, in full blue under the pointer; an unresolved link is mute over a dotted line.
 - `edit-wrap` breaks a line between words as reading view does, never inside a Hangul word; a string too long for the column still breaks.
 - `edit-markers` shows markdown markers (`#`, `*`, `` ` ``) in the faint colour.

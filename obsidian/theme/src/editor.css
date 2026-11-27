@@ -121,3 +121,10 @@
 	text-indent: calc(-1 * var(--wg-quote-inset)) !important;
 	padding-inline-start: var(--wg-quote-inset) !important;
 }
+
+.markdown-source-view.mod-cm6 span.cm-footref.cm-hmd-barelink {
+	position: static;
+	font-size: smaller;
+	color: var(--link-color);
+	vertical-align: super;
+}
