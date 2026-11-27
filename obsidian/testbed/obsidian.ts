@@ -1552,7 +1552,7 @@ const joins: Join[] = [
 	{
 		id: "delete-loop",
 		notes: ["elements-ko", "elements-en"],
-		root: { reading: `${reading} del` },
+		root: { reading: `${reading} del`, live: `${live} .cm-strikethrough` },
 		on: everywhere,
 		colour: "var(--wg-proof)",
 		kind: "mark",
@@ -1686,7 +1686,11 @@ const installJoins = (page: Page) =>
 				`${Math.round(el.getBoundingClientRect().left)}:${el.textContent}`;
 			for (;;) {
 				const next = [...document.querySelectorAll<HTMLElement>(selector)].find(
-					(e) => e.checkVisibility() && !seen.includes(keyOf(e)),
+					(e) =>
+						e.checkVisibility() &&
+						!seen.includes(keyOf(e)) &&
+						(kind !== "mark" ||
+							getComputedStyle(e, "::after").content !== "none"),
 				);
 				if (next) {
 					const key = keyOf(next);
@@ -1911,7 +1915,9 @@ async function checkJoins(args: string[]): Promise<void> {
 				});
 			}
 			if (seen.length === 0) {
-				lines.push(`FAIL ${row.id} ${note}: no ${selector}`);
+				lines.push(
+					`FAIL ${row.id} ${note}: no ${selector}${row.kind === "mark" ? " with a mark" : ""}`,
+				);
 				report.push({
 					id: row.id,
 					note,
