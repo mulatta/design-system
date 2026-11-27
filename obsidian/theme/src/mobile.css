@@ -14,6 +14,10 @@ body,
 	overflow: clip;
 }
 
+.is-phone.is-floating-nav .view-header {
+	border-bottom-color: transparent;
+}
+
 .is-phone:not(.is-floating-nav) .mobile-navbar {
 	box-shadow: inset 0 1px var(--wg-rule);
 }
