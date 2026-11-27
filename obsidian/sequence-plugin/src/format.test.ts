@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+	copiedLabel,
+	copyLabel,
 	formatSequences,
 	type LineLength,
 	lineLengthFor,
@@ -437,6 +439,51 @@ describe("lineLengthFor", () => {
 		assert.equal(
 			lineLengthFor({ ...measure, digits: 4, available: need(6, 4) }),
 			60,
+		);
+	});
+});
+
+describe("copiedLabel", () => {
+	it("names the length and unit of a single record", () => {
+		assert.equal(
+			copiedLabel(formatSequences(`>one\n${residues(174)}`, 60, "nt")),
+			"Copied 174 nt",
+		);
+		assert.equal(
+			copiedLabel(formatSequences("MKTAYIAKQR", 60, "infer")),
+			"Copied 10 aa",
+		);
+	});
+
+	it("counts the records of a multi-FASTA block", () => {
+		const source = [
+			">a",
+			residues(42),
+			">b",
+			residues(60),
+			">c",
+			residues(132),
+		];
+		assert.equal(
+			copiedLabel(formatSequences(source.join("\n"), 60, "infer")),
+			"Copied 3 records",
+		);
+	});
+});
+
+describe("copyLabel", () => {
+	it("says the sequence for a single record", () => {
+		assert.equal(
+			copyLabel(formatSequences(`>one\n${residues(174)}`, 60, "nt")),
+			"Copy sequence",
+		);
+	});
+
+	it("counts the records of a multi-FASTA block", () => {
+		const source = [">a", residues(42), ">b", residues(60)];
+		assert.equal(
+			copyLabel(formatSequences(source.join("\n"), 60, "infer")),
+			"Copy 2 records",
 		);
 	});
 });

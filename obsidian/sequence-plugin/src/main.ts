@@ -1,5 +1,7 @@
-import { MarkdownRenderChild, Plugin } from "obsidian";
+import { MarkdownRenderChild, Plugin, setTooltip } from "obsidian";
 import {
+	copiedLabel,
+	copyLabel,
 	formatSequences,
 	GROUP_LENGTH,
 	type LineLength,
@@ -67,7 +69,7 @@ function recordText(root: ParentNode): string {
 function selectionText(range: Range): string {
 	const fragment = range.cloneContents();
 	for (const element of Array.from(
-		fragment.querySelectorAll(".seq-pos, .seq-copy, .seq-badge"),
+		fragment.querySelectorAll(".seq-pos, .seq-copy, .seq-badge, .seq-status"),
 	)) {
 		element.remove();
 	}
@@ -234,13 +236,28 @@ class SequenceBlock extends MarkdownRenderChild {
 
 		const button = parent.createEl("button", {
 			cls: "seq-copy",
-			attr: { "aria-label": "Copy sequence", type: "button" },
+			attr: { type: "button" },
 		});
-		drawIcon(button, "copy");
+		const status = block.createSpan({
+			cls: "seq-status",
+			attr: { "aria-live": "polite" },
+		});
+		const show = (copied: boolean) => {
+			const label = copied
+				? copiedLabel(this.records)
+				: copyLabel(this.records);
+			drawIcon(button, copied ? "check" : "copy");
+			button.toggleClass("is-copied", copied);
+			setTooltip(button, label);
+			status.setText(copied ? label : "");
+		};
+		show(false);
+		let revert: number | undefined;
 		button.addEventListener("click", () => {
 			void navigator.clipboard.writeText(this.source).then(() => {
-				drawIcon(button, "check");
-				block.win.setTimeout(() => drawIcon(button, "copy"), 1500);
+				show(true);
+				block.win.clearTimeout(revert);
+				revert = block.win.setTimeout(() => show(false), 1500);
 			});
 		});
 	}

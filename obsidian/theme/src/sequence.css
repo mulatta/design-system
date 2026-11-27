@@ -180,12 +180,14 @@ body .seq-copy svg {
 }
 
 body .seq-block:hover .seq-copy,
-body .seq-copy:focus-visible {
+body .seq-copy:focus-visible,
+body .seq-copy.is-copied {
 	opacity: 1;
 }
 
 body .seq-copy:hover,
-body .seq-copy:focus-visible {
+body .seq-copy:focus-visible,
+body .seq-copy.is-copied {
 	color: var(--wg-rule);
 }
 

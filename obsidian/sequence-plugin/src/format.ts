@@ -90,6 +90,19 @@ export function formatSequences(
 	});
 }
 
+export function copyLabel(records: SequenceRecord[]): string {
+	return records.length > 1
+		? `Copy ${records.length} records`
+		: "Copy sequence";
+}
+
+export function copiedLabel(records: SequenceRecord[]): string {
+	const [only] = records;
+	return records.length === 1 && only !== undefined
+		? `Copied ${only.length} ${only.unit}`
+		: `Copied ${records.length} records`;
+}
+
 export function lineLengthFor(measure: LineMeasure): LineLength {
 	const position =
 		Math.max(3, measure.digits) * measure.digit + measure.positionGap;

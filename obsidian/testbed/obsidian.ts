@@ -3560,6 +3560,7 @@ async function seqcheck(args: string[]): Promise<void> {
 						? {
 								box: box(button.getBoundingClientRect()),
 								opacity: getComputedStyle(button).opacity,
+								label: button.getAttribute("aria-label"),
 							}
 						: null,
 					selectionText: data.getData("text/plain"),
@@ -3647,6 +3648,12 @@ async function seqcheck(args: string[]): Promise<void> {
 							: `button covers ${copyHits.join(", ")}`,
 				}
 			: { pass: false, reason: "no .seq-copy button" };
+		const records = fastaRecords(fence.source).length;
+		const restLabel = records > 1 ? `Copy ${records} records` : "Copy sequence";
+		checks["copy-label"] = {
+			pass: m.copy?.label === restLabel,
+			reason: `label ${JSON.stringify(m.copy?.label ?? null)}, want ${JSON.stringify(restLabel)} for ${records} record(s)`,
+		};
 		const shown = badges.filter((b): b is Box => b !== null);
 		const round = (n: number) => Math.round(n * 10) / 10;
 		const spread = (values: number[]) =>
@@ -3719,6 +3726,7 @@ async function seqcheck(args: string[]): Promise<void> {
 		});
 		let writes: string[] = [];
 		let target = "";
+		let label: string | null = null;
 		try {
 			const b = m.copy.box;
 			const at = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
@@ -3730,6 +3738,14 @@ async function seqcheck(args: string[]): Promise<void> {
 			}, at);
 			await page.mouse.click(at.x, at.y);
 			await page.waitForTimeout(250);
+			label = await page.evaluate(
+				({ view, line }) =>
+					(window as any)
+						.__seqFind(view, line)
+						.querySelector(".seq-copy")
+						.getAttribute("aria-label") as string | null,
+				{ view: values.view, line: fence.line },
+			);
 		} finally {
 			writes = await page.evaluate(() => {
 				const w = window as any;
@@ -3741,13 +3757,55 @@ async function seqcheck(args: string[]): Promise<void> {
 		}
 		(entry.facts as Record<string, unknown>).copyTarget = target;
 		const exact = writes.length === 1 && writes[0] === fence.source;
+		const told = label?.startsWith("Copied ") ?? false;
 		checks["copy-button"] = {
-			pass: exact,
-			reason: exact
-				? "writeText got the source"
-				: writes.length === 0
+			pass: exact && told,
+			reason: !exact
+				? writes.length === 0
 					? `writeText not called; click hit ${target}`
-					: `got ${JSON.stringify(writes[0].slice(0, 80))} (${writes.length} call(s))`,
+					: `got ${JSON.stringify(writes[0].slice(0, 80))} (${writes.length} call(s))`
+				: told
+					? `writeText got the source; label "${label}"`
+					: `writeText got the source but the label stayed ${JSON.stringify(label)}`,
+		};
+		const look = () =>
+			page.evaluate(
+				({ view, line }) => {
+					const block = (window as any).__seqFind(view, line) as HTMLElement;
+					const button = block.querySelector(".seq-copy") as HTMLElement;
+					return {
+						copied: button.classList.contains("is-copied"),
+						opacity: getComputedStyle(button).opacity,
+						label: button.getAttribute("aria-label"),
+						live: [...block.querySelectorAll("[aria-live]")].map(
+							(e) => e.textContent ?? "",
+						),
+					};
+				},
+				{ view: values.view, line: fence.line },
+			);
+		await page.mouse.move(-10, -10);
+		await page.waitForTimeout(250);
+		const held = await look();
+		await page.waitForTimeout(1300);
+		const reverted = await look();
+		const heldFaults = [
+			held.copied ? "" : "is-copied gone 0.5s after the click",
+			held.opacity === "1"
+				? ""
+				: `opacity ${held.opacity} once the pointer left`,
+			held.live.length === 1 && held.live[0] === held.label
+				? ""
+				: `live regions ${JSON.stringify(held.live)} for label ${JSON.stringify(held.label)}`,
+			!reverted.copied && reverted.label === restLabel
+				? ""
+				: `1.8s after the click: is-copied ${reverted.copied}, label ${JSON.stringify(reverted.label)}`,
+		].filter(Boolean);
+		checks["copy-held"] = {
+			pass: heldFaults.length === 0,
+			reason:
+				heldFaults.join("; ") ||
+				`shown and announced as ${JSON.stringify(held.label)} after the pointer left, back to ${JSON.stringify(reverted.label)}`,
 		};
 	}
 	await page.keyboard.press("Escape");

@@ -13,7 +13,7 @@ The sequence plugin (`obsidian/sequence-plugin/`, flake attribute `obsidian-sequ
 - `seq-cells` draws each residue in a square cell, and cells sit only behind residues: the gaps between groups, the position column, and the empty end of a short last line have none.
 - `seq-column` keeps the block inside the 700px note column: its left and right edges meet the column's, and it never scrolls sideways.
 - `seq-reflow` gives the same layout to every input shape: one long line, lines wrapped at 60, 70, or 80, multi-FASTA records of 42, 60, and 132 nt, a 214 aa protein, and a GenBank `ORIGIN` paste, whose position numbers and `ORIGIN` and `//` lines the plugin drops.
-- `seq-copy` returns the original text: the copy button copies the block's source exactly, and a selection copied from the block carries no position numbers or group spaces. The button is an icon of two overlapping cells with no fill or border, as tall as the badge.
+- `seq-copy` returns the original text: the copy button copies the block's source exactly, and a selection copied from the block carries no position numbers or group spaces. The button is an icon of two overlapping cells with no fill or border, as tall as the badge. Its label and tooltip say `Copy sequence`, or `Copy 3 records` for a multi-FASTA block, since the button sits on record 1's head row but copies the whole block. After a click it shows a check and its label names what it copied (`Copied 174 nt`, or `Copied 3 records`) for 1.5 seconds. The button stays shown for that time after the pointer leaves the block, a polite live region in the block says the same label, and a tooltip open on the button says it too.
 - `seq-inline` leaves an inline primer in backticks as ordinary inline code, ungrouped and unnumbered.
 - `seq-live` renders the blocks in Live Preview as in reading view.
 - `seq-dark` keeps every sub-feature above in the dark palette.
@@ -43,7 +43,7 @@ Preconditions:
   - `in-column` proves `seq-column`, and `seq-phone` with `--mobile`.
   - `badge-clear`, `badge-column`, `badge-height`, `badge-width`, and `badge-unit` prove `seq-length`.
   - `copy-clear` proves that the copy button of `seq-copy` hides no header, residue, or badge.
-  - `copy-button` proves the button half of `seq-copy`.
+  - `copy-button` proves the button half of `seq-copy`. `copy-label` proves its rest label, and `copy-held` that the copied state stays shown and is announced for its 1.5 seconds.
   - `copy-selection` proves the selection half of `seq-copy`, and that the header keeps its `>`.
 - **Proof.** Look at every capture against the sub-feature list and report each sub-feature as holding or not, with the capture path.
 

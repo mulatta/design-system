@@ -84,8 +84,22 @@
 	opacity: 0;
 }
 
+.seq-copy.is-copied {
+	color: var(--text-accent);
+}
+
 .seq-block:hover .seq-copy,
 .seq-copy:focus-visible,
+.seq-copy.is-copied,
 .is-mobile .seq-copy {
 	opacity: 1;
+}
+
+.seq-status {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
 }
