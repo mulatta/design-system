@@ -1,6 +1,6 @@
 # Reading view
 
-Reading view shows a rendered note in a calm reading column: the title in MaruBuri, properties on ruled cells, H2 headings marked by a small blue square hung in the margin, Latin gene names in Source Serif 4 italic, tables closed by rules, callouts with a cut corner, and themed code.
+Reading view shows a rendered note in a calm reading column: the title in MaruBuri, properties on ruled cells, H2 headings marked by a small blue square hung in the margin, Latin gene names in Source Serif 4 italic, tables closed by rules, callouts ruled off above and below, and themed code.
 
 ## Sub-features
 
@@ -11,8 +11,8 @@ Reading view shows a rendered note in a calm reading column: the title in MaruBu
 - `read-links-tags` shows resolved links in the accent with an offset underline, unresolved links muted and dotted, tags as square cells.
 - `read-inline` shows inline code on the tint inside a fine box, `==highlight==` as a pale blue wash with no underline, and `~~strikethrough~~` in mute under a red strike that ends in a red delete loop curling up from the line. The loop's foot lies on the strike line. A strikethrough that wraps keeps its line on every line and draws the loop once, at its end. The editing note is hidden. Joins: `delete-loop`.
 - `read-code` shows code blocks on the tint alone, with no rule and no cut corner, at most four token colours, no proof red, and a square copy button. Geometry: `geo-code-top`.
-- `read-table` shows a table as wide as its content, up to the note column, with Hangul wrapping between words, never inside one, and a table wider than the column scrolling sideways in its own box; it has a fine rule above the header, a heavy rule under it, fine row rules, and tabular lining numerals; the header row stays on the page tone.
-- `read-callouts` shows every callout type in the accent except warning, fail, danger, error, and bug in proof red and quote in grey, each on its tint under a top rule that turns down a cut corner, with no side or bottom line. `elements-ko` holds note, tip, danger, quote, summary, todo, and important. Geometry: `geo-callout`. Joins: `cut`.
+- `read-table` shows a table as wide as its content, up to the note column, with Hangul wrapping between words, never inside one, and a table wider than the column scrolling sideways in its own box; it has a fine rule above the header, a 1px ink rule under it, fine row rules, and tabular lining numerals; the header row stays on the page tone.
+- `read-callouts` shows a callout on the page tone between a 1px pale rule above and one below, with its icon and title in mute, its content on the column's left edge, and no fill, cut, or blue. Warning, caution, attention, danger, error, bug, failure, fail, and missing take a 2px proof rule above, a 1px proof rule below, and a proof label. Quote and cite take a 2px pale rule on the left and text set in 2ch, with no rule above or below. `elements-ko` holds note, tip, danger, quote, summary, todo, and important. Geometry: `geo-callout`.
 - `read-quote-hr` shows a blockquote in ink beside a 2px pale left rule, with its text 2ch in from the rule and a nested quote behind a second rule, and a horizontal rule drawn as a strip of whole cells that spans the column, one cell high and closed at its right end. The line above the footnotes is a plain 1px pale line, not the strip.
 - `read-tasks` shows square checkboxes at stock size and position; a done task has a red cross that fills its box and a red strike; the checkbox never touches its label and never starts left of the column edge, and a wrapped second line starts under the first line's text. Geometry: `geo-tasks`.
 

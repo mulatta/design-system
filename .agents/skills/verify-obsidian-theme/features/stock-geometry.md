@@ -20,7 +20,7 @@ Each sub-feature is one `compare` part. "Same as stock" means within 1 CSS px of
 - `geo-tasks` (part `tasks`): the checkbox keeps stock's size and its position left of the item text; the gap between box and text is stock's; a wrapped second line starts under the first line's text; the done mark fills its box in the same proportion as stock's.
 - `geo-heading` (part `heading`): the H2's square marker and its trailing rule sit on the heading's line, and the marker hangs left of the heading text, which starts where stock's does.
 - `geo-code-top` (part `code-top`): the code block starts at a square edge of the tint, with no rule and no cut.
-- `geo-callout` (part `callout`): the callout's top rule runs into its 45° cut without a gap at 2x, and no side or bottom line frames it.
+- `geo-callout` (part `callout`): the warning callout's 2px top rule and 1px bottom rule span the column, with no side line, no fill, and no cut.
 - `geo-table` (part `table`): the note's first table is sized to its content as in stock, with its header rule across the table's full width.
 - `geo-task-line` (part `task-line`, Live Preview only): the checkbox keeps stock's x on the task line, and the done mark fills its box as in reading view.
 - `geo-navbar` (part `navbar`, phone only): the floating navbar and its back button keep stock's boxes; the navbar is square, framed by a 1px accent ring.
@@ -42,7 +42,7 @@ Preconditions:
 - **Compare.** Run `obs compare --base stock --run agent --scheme light`, then `--scheme dark`. `--part <id>` (repeatable) limits it to some parts.
 - **Other places.** Repeat both schemes with `--view live`, with `--mobile`, and with `--view live --mobile`. A change inside the note column needs all four; a change to desktop chrome needs only the first.
 - **Read the output.** Each part prints `same geometry` or the boxes that differ, as `label.x|y|w|h stock -> theme`. Captures land in `build/verify/compare/<view>[-mobile]/<scheme>/`, which each `compare` in that place empties first: `<part>.<run>.png` at 2x, `metrics.json`, `index.html`, and, when `IMPECCABLE_BROWSER` is set as in the devshell, `compare.png`, one sheet with every pair and its differences. `--size` changes the window from 1440x900, or from 390x844 with `--mobile`.
-- **Cuts in pixels.** `obs joins` measures where the top rule meets the 45° cut on every frame that draws one, found by its gradient, from painted pixels: `geo-doc-tab`, `geo-title-rule`, `geo-callout`, and each sequence block; `compare` shows the boxes around them.
+- **Cuts in pixels.** `obs joins` measures where the top rule meets the 45° cut on every frame that draws one, found by its gradient, from painted pixels: `geo-doc-tab`, `geo-title-rule`, and each sequence block; `compare` shows the boxes around them.
 - **Judge.** Look at each pair at 2x. A number difference is a lead, not a verdict: a part can match in numbers and still break visually (a diagonal that does not meet), or differ on purpose.
 - **After a theme edit.** `obs sync --run agent`, then compare again. Keep an earlier output by copying `build/verify/compare/` aside; the next run in the same place overwrites it.
 - **Proof.** Report each sub-feature as holding or failing with the part's numbers and capture paths for both schemes.
