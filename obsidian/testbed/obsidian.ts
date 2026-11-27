@@ -1849,6 +1849,119 @@ const tableFits = async (page: Page, table: string, column: string) => {
 	};
 };
 
+const insideColumn = async (page: Page, view: View): Promise<Outcome> => {
+	const m = await page.evaluate(async (view) => {
+		const leaf = ".workspace-leaf.mod-active";
+		const root = document.querySelector(
+			view === "live"
+				? `${leaf} .markdown-source-view.is-live-preview`
+				: `${leaf} .markdown-reading-view`,
+		);
+		const column = root?.querySelector<HTMLElement>(
+			view === "live" ? ".cm-sizer" : ".markdown-preview-sizer",
+		);
+		const scroller = root?.querySelector<HTMLElement>(
+			view === "live" ? ".cm-scroller" : ".markdown-preview-view",
+		);
+		if (!column || !scroller) return null;
+		for (const el of document.querySelectorAll("[data-column-shot]"))
+			el.removeAttribute("data-column-shot");
+		const clear = (c: string) => c === "transparent" || /, 0\)$/.test(c);
+		const paints = (el: Element, cs: CSSStyleDeclaration) =>
+			el.matches("input, img, svg, canvas, video, iframe, hr") ||
+			cs.boxShadow !== "none" ||
+			cs.backgroundImage !== "none" ||
+			!clear(cs.backgroundColor) ||
+			(["top", "right", "bottom", "left"] as const).some(
+				(s) =>
+					Number.parseFloat(cs.getPropertyValue(`border-${s}-width`)) > 0 &&
+					!["none", "hidden"].includes(
+						cs.getPropertyValue(`border-${s}-style`),
+					) &&
+					!clear(cs.getPropertyValue(`border-${s}-color`)),
+			);
+		const name = (el: Element) =>
+			el.tagName.toLowerCase() +
+			[...el.classList]
+				.slice(0, 2)
+				.map((c) => `.${c}`)
+				.join("");
+		const out = new Map<string, { dx: number; els: Set<Element> }>();
+		const checked = new Set<Element>();
+		const boxes = new Set<Element>();
+		const measure = () => {
+			const cs = getComputedStyle(column);
+			const edge =
+				column.getBoundingClientRect().left +
+				Number.parseFloat(cs.borderLeftWidth) +
+				Number.parseFloat(cs.paddingLeft);
+			const note = (what: string, el: Element, left: number) => {
+				checked.add(el);
+				const dx = Math.round((left - edge) * 10) / 10;
+				if (dx >= -0.5) return;
+				const key = `${what} ${dx}`;
+				const seen = out.get(key) ?? { dx, els: new Set<Element>() };
+				out.set(key, { dx, els: seen.els.add(el) });
+			};
+			const walk = (el: Element, clip: number) => {
+				const cs = getComputedStyle(el);
+				if (cs.display === "none" || cs.visibility === "hidden") return;
+				if (Number.parseFloat(cs.opacity) === 0) return;
+				if (el.matches(".collapse-indicator")) return;
+				const r = el.getBoundingClientRect();
+				if (el.matches(".task-list-item-checkbox")) boxes.add(el);
+				if (r.width > 0 && r.height > 0 && paints(el, cs))
+					note(name(el), el, Math.max(r.left, clip));
+				const inner =
+					cs.overflowX === "visible"
+						? clip
+						: Math.max(clip, r.left + el.clientLeft);
+				for (const n of el.childNodes) {
+					if (n.nodeType === Node.ELEMENT_NODE) walk(n as Element, inner);
+					else if (n.nodeType === Node.TEXT_NODE && n.textContent?.trim()) {
+						const range = document.createRange();
+						range.selectNodeContents(n);
+						for (const t of range.getClientRects())
+							if (t.width > 0)
+								note(`${name(el)} text`, el, Math.max(t.left, inner));
+					}
+				}
+			};
+			walk(column, Number.NEGATIVE_INFINITY);
+		};
+		for (let y = 0; ; y += scroller.clientHeight * 0.7) {
+			scroller.scrollTop = y;
+			await new Promise((r) => setTimeout(r, 200));
+			measure();
+			if (y >= scroller.scrollHeight - scroller.clientHeight) break;
+		}
+		const worst = [...out.entries()].sort((a, b) => a[1].dx - b[1].dx);
+		const shot =
+			worst[0]?.[1].els.values().next().value ??
+			column.querySelector(".task-list-item-checkbox");
+		shot?.setAttribute("data-column-shot", "");
+		shot?.scrollIntoView({ block: "center" });
+		return {
+			checked: checked.size,
+			boxes: boxes.size,
+			outside: worst.map(
+				([what, o]) =>
+					`${what.replace(/ -?[\d.]+$/, "")} ${o.dx}px${o.els.size > 1 ? ` (x${o.els.size})` : ""}`,
+			),
+		};
+	}, view);
+	if (!m)
+		return { pass: false, reason: `no note column in ${view}`, facts: {} };
+	return {
+		pass: m.outside.length === 0,
+		reason:
+			m.outside.length === 0
+				? `${m.checked} painted elements, ${m.boxes} task boxes among them, start at or right of the column edge`
+				: `left of the column edge: ${m.outside.join(", ")}`,
+		facts: m,
+	};
+};
+
 const editChecks: EditCheck[] = [
 	{
 		id: "text-focus",
@@ -1933,6 +2046,20 @@ const editChecks: EditCheck[] = [
 				".cm-content .cm-table-widget table",
 				".cm-content > .cm-line",
 			),
+	},
+	{
+		id: "reading-column",
+		view: "reading",
+		on: everywhere,
+		shot: "[data-column-shot]",
+		run: (page) => insideColumn(page, "reading"),
+	},
+	{
+		id: "live-column",
+		view: "live",
+		on: everywhere,
+		shot: "[data-column-shot]",
+		run: (page) => insideColumn(page, "live"),
 	},
 	{
 		id: "code-active-line",
