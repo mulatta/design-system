@@ -1449,7 +1449,8 @@ type Outcome = {
 
 type EditCheck = {
 	id: string;
-	view: "reading" | "live";
+	view: View;
+	on?: Layout[];
 	open?: Panel;
 	shot: string;
 	run: (page: Page) => Promise<Outcome>;
@@ -1694,6 +1695,7 @@ const selectRows = async (page: Page): Promise<Outcome> => {
 const ringsOnClick = async (page: Page, selector: string): Promise<Outcome> => {
 	const clicked: Record<string, unknown>[] = [];
 	let left = 0;
+	let covered = 0;
 	page.setDefaultTimeout(2000);
 	const count = await page.evaluate((selector) => {
 		const targets = [...document.querySelectorAll(selector)].filter(
@@ -1748,7 +1750,10 @@ const ringsOnClick = async (page: Page, selector: string): Promise<Outcome> => {
 				}
 				return null;
 			});
-			if (!point) continue;
+			if (!point) {
+				covered++;
+				continue;
+			}
 			await page.mouse.click(point.x, point.y);
 			await page.mouse.move(-10, -10);
 			await page.waitForTimeout(250);
@@ -1802,9 +1807,9 @@ const ringsOnClick = async (page: Page, selector: string): Promise<Outcome> => {
 		pass: problems.length === 0,
 		reason:
 			problems.length === 0
-				? `no ring or fill around ${clicked.map((c) => c.focused).join(", ")}${left ? `; ${left} left the DOM before their click` : ""}`
+				? `no ring or fill around ${clicked.map((c) => c.focused).join(", ")}${left ? `; ${left} left the DOM before their click` : ""}${covered ? `; ${covered} covered by another element` : ""}`
 				: problems.join(" | "),
-		facts: { clicked, left },
+		facts: { clicked, left, covered },
 	};
 };
 
@@ -1835,13 +1840,22 @@ const editChecks: EditCheck[] = [
 	{
 		id: "text-focus",
 		view: "live",
+		on: everywhere,
 		open: "search",
+		shot: ":focus",
+		run: (page) => ringsOnClick(page, ":read-write"),
+	},
+	{
+		id: "note-text-focus",
+		view: "live",
+		on: mobileOnly,
 		shot: ":focus",
 		run: (page) => ringsOnClick(page, ":read-write"),
 	},
 	{
 		id: "property-select",
 		view: "live",
+		on: everywhere,
 		shot: ".workspace-leaf.mod-active .metadata-container",
 		run: selectRows,
 	},
@@ -1886,6 +1900,7 @@ const editChecks: EditCheck[] = [
 	{
 		id: "reading-table",
 		view: "reading",
+		on: everywhere,
 		shot: ".markdown-reading-view table",
 		run: (page) =>
 			tableFits(
@@ -1897,6 +1912,7 @@ const editChecks: EditCheck[] = [
 	{
 		id: "live-table",
 		view: "live",
+		on: everywhere,
 		shot: ".cm-content .cm-table-widget table",
 		run: (page) =>
 			tableFits(
@@ -1908,6 +1924,7 @@ const editChecks: EditCheck[] = [
 	{
 		id: "code-active-line",
 		view: "live",
+		on: everywhere,
 		shot: ".cm-line.cm-active",
 		run: async (page) => {
 			const m = await page.evaluate(async () => {
@@ -1983,9 +2000,12 @@ async function editcheck(args: string[]): Promise<void> {
 			run: { type: "string" },
 			scheme: { type: "string", default: "light" },
 			note: { type: "string", default: "lab-note-ko" },
+			mobile: { type: "boolean", default: false },
 		},
 	});
 	if (!values.run) fail("editcheck needs --run <run>");
+	const { layout, mobile, width, height } = screenFor(values.mobile);
+	const suffix = mobile ? `${values.scheme}-mobile` : values.scheme;
 	if (values.scheme !== "light" && values.scheme !== "dark")
 		fail(`--scheme must be light or dark, not ${values.scheme}`);
 	const state = readState(values.run);
@@ -1997,11 +2017,11 @@ async function editcheck(args: string[]): Promise<void> {
 	const report: Record<string, Outcome & { shot?: string }> = {};
 	let undone: string[] = [];
 	try {
-		for (const check of editChecks) {
+		for (const check of editChecks.filter((c) => runsOn(c, layout))) {
 			const prepared = await prepare(page, {
-				width: 1440,
-				height: 900,
-				mobile: false,
+				width,
+				height,
+				mobile,
 				note: values.note,
 				view: check.view,
 				scheme: values.scheme,
@@ -2024,7 +2044,7 @@ async function editcheck(args: string[]): Promise<void> {
 				const shot = join(
 					state.runDir,
 					"shots",
-					`editcheck-${values.scheme}-${check.id}.png`,
+					`editcheck-${suffix}-${check.id}.png`,
 				);
 				const { data } = await cdp.send("Page.captureScreenshot", {
 					format: "png",
@@ -2057,7 +2077,7 @@ async function editcheck(args: string[]): Promise<void> {
 	if (state.hidden) await conceal(page);
 	await browser.close();
 	for (const line of undone) console.log(`VAULT ${line}`);
-	const path = join(state.runDir, `editcheck-${values.scheme}.json`);
+	const path = join(state.runDir, `editcheck-${suffix}.json`);
 	writeFileSync(path, JSON.stringify(report, null, 2));
 	const failed = Object.entries(report).filter(([, o]) => !o.pass);
 	for (const [id, o] of Object.entries(report))
