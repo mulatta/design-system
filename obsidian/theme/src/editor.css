@@ -33,21 +33,24 @@
 }
 
 .markdown-source-view.mod-cm6 .cm-hashtag {
-	font-family: var(--wg-code-family);
+	display: inline-block;
+	padding: 0;
+	font: 400 0.8em / 1.5 var(--wg-code-family);
 	color: var(--wg-rule);
 	background: transparent;
 	border-top: 1px solid var(--wg-rule);
 	border-bottom: 1px solid var(--wg-rule);
+	vertical-align: 1px;
 }
 
 .markdown-source-view.mod-cm6 .cm-hashtag-begin {
 	border-left: 1px solid var(--wg-rule);
-	padding-left: 0.3em;
+	padding-left: 0.45em;
 }
 
 .markdown-source-view.mod-cm6 .cm-hashtag-end {
 	border-right: 1px solid var(--wg-rule);
-	padding-right: 0.3em;
+	padding-right: 0.45em;
 }
 
 .markdown-source-view.mod-cm6 .cm-embed-block .embed-actions {

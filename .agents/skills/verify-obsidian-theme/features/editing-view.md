@@ -11,7 +11,7 @@ Editing view is where the note is written: Live Preview renders most markdown in
 - `edit-quote` draws a blockquote as reading view does: a 2px pale left rule, the text 2ch in from it, a nested quote behind a second rule, and a wrapped line starting under the first line's text. The line holding the caret shows its `>` marks.
 - `edit-hr` draws `---` as the strip of cells reading view draws, the same width and height. The line holding the caret shows the raw `---`.
 - `edit-code-lines` sets fenced code lines in D2Coding on the tint, with a rule above the opening fence and the same token colours as reading view, in Live Preview and source mode.
-- `edit-tags` draws `#tag` as a square cell in D2Coding in the accent.
+- `edit-tags` draws `#tag` as the square cell reading view draws, in D2Coding in the accent at the same type size, padding, and height.
 - `edit-caret` shows a proof-red caret in the editor, and the line holding it gets no fill.
 - `edit-title-focus` lets the inline title be clicked and edited with no outline around it; the caret shows the focus.
 - `edit-property-focus` lets a property's value or name be clicked and edited with no ring around the property row and no fill behind the value.
