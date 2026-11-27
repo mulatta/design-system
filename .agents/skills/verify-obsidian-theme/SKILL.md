@@ -10,7 +10,7 @@ The surface is Obsidian's desktop app, an Electron window. The thing under test 
 Every command runs from the repository root inside the devshell, so `obsidian`, `node`, and `playwright-core` are the flake's own:
 
 ```sh
-nix develop -c node obsidian/testbed/obsidian.ts <launch|doctor|shot|compare|layers|editcheck|sync|stop> [options]
+nix develop -c node obsidian/testbed/obsidian.ts <launch|doctor|shot|compare|layers|joins|editcheck|sync|stop> [options]
 ```
 
 Below, `obs` stands for that whole command. The same harness backs the owner's npm scripts (`npm run obsidian`, `obsidian:doctor`, `obsidian:shot`, `obsidian:compare`, `obsidian:layers`, `obsidian:sync`, `obsidian:stop`), so a run the owner started by hand is the same kind of run. `npm run obsidian` is `launch --foreground`: it stays in the terminal, streams Obsidian's log there and into `obsidian.log`, and tears the run down on Ctrl+C, hangup, or when Obsidian quits. Agents use plain `launch`, which detaches and returns after `READY`, and keep the owner's run for the owner: launch your own run name (for example `--run agent`) instead of driving `main` while the owner looks at it.
@@ -37,7 +37,7 @@ obs launch --run agent
 - The disposable Obsidian config sets `updateDisabled`, so the app makes no update request.
 - Runs are isolated by name. `--run a` and `--run b` can be live side by side. `launch` refuses a name whose recorded process is still alive.
 - Teardown is `obs stop --run <run>`.
-- Always pass `--run`. `doctor`, `shot`, and `sync` default to `main` and `compare` and `layers` to `agent`; `stop` refuses to run without `--run`, so it can never stop the owner's run by omission. `editcheck` refuses too, since it clicks into the window and moves its focus.
+- Always pass `--run`. `doctor`, `shot`, and `sync` default to `main` and `compare`, `layers`, and `joins` to `agent`; `stop` refuses to run without `--run`, so it can never stop the owner's run by omission. `editcheck` refuses too, since it clicks into the window and moves its focus.
 - The owner may have run `main` live from `npm run obsidian`, on screen. Leave it alone: do not drive or stop it. Run `obs doctor --run agent` first; if it reports ok, reuse that invisible run instead of launching again, and leave it live for the next proof unless the task is over. Stop only runs you launched.
 
 ## Doctor
@@ -80,7 +80,7 @@ Each `shot` call does the following, in order:
 
 Fixture notes, in `obsidian/testbed/notes/`. The lab and element notes come in a Korean (`-ko`) and an English (`-en`) version with the same structure, so a change to Latin text or to Hangul can be checked on its own:
 - `lab-note-ko`, `lab-note-en`: a mixed lab note with prose, gene names in italics, an inline primer, math, a `fasta` block, a table, a warning callout, a python block, tasks, and a quote.
-- `elements-ko`, `elements-en`: headings 1 to 4, inline marks, an editing note (`%%`), resolved and unresolved links, a tag, a footnote, nested lists, tasks including a two-line one, note, tip, danger, quote, summary, todo, and important callouts, a blockquote, a horizontal rule, block math, nix/typescript/bash/yaml code, and a right-aligned table.
+- `elements-ko`, `elements-en`: headings 1 to 4, inline marks, an editing note (`%%`), a strikethrough long enough to wrap, resolved and unresolved links, a tag, a footnote, nested lists, tasks including a two-line one, note, tip, danger, quote, summary, todo, and important callouts, a blockquote, a horizontal rule, block math, nix/typescript/bash/yaml code, and a right-aligned table.
 - `long-note`: 30 H2 sections of plain paragraphs, for anything that must still hold after Obsidian unloads off-screen sections.
 - `protocols/pcr-protocol`: a note inside a folder, so the file tree shows a folder row and a nested file.
 
@@ -100,6 +100,20 @@ obs layers --run agent --scheme light|dark [--view reading|live] [--mobile] [--n
 ```
 
 `layers` measures at 1440x900 on desktop, or at 390x844 under phone emulation with `--mobile`, in reading view or, with `--view live`, Live Preview, with the right sidebar hidden. It reads each named region's painted background, its OKLCH lightness, and its visible borders and shadow, then prints the lightness difference at each boundary and flags those below the threshold. The regions and boundaries are the `regions` and `boundaries` tables in `obsidian/testbed/obsidian.ts`; a region names its selector and layouts the way a `compare` part does, and a boundary prints only where both of its regions apply. What each must show is in `features/tonal-layers.md`. Output JSON goes to `build/verify/layers/<run>-<view>[-mobile]-<scheme>.json`.
+
+### Check joins
+
+```sh
+obs joins --run agent --scheme light|dark [--view reading|live] [--mobile]
+```
+
+`joins` measures where two pieces the theme paints apart must meet: a stroke and the mark it runs into. These marks are pseudo-elements, gradients, and masks with no box, so `joins` reads painted pixels. For every instance of each row in each of the row's notes, it captures a crop around the join at scale 2, decodes it in the page with a canvas, and finds the pixel rows painted in the row's colour at a sample before the join and one after it. The colour is a CSS colour such as `var(--wg-proof)` or `rgb(var(--callout-color))`, resolved on the element in the current scheme. A `mark` row compares the whole band, so the strike line and the loop's foot must share both edges. A `cut` row, a straight rule running into the 45° cut, compares only the top edge, after shifting the diagonal back by its slope. Bands more than 0.5 CSS px apart fail. The rows are the `joins` table in `obsidian/testbed/obsidian.ts`; a row names its notes, its selector per view, and its layouts the way a `compare` part does, so a new join is one row. A row finds every instance in its notes by scrolling through each note, not only the first instance. It runs at 1440x900 on desktop, or at 390x844 under phone emulation with `--mobile`, with the right sidebar hidden.
+
+- `delete-loop` (`mark`, reading view): the strike line of each `del` and the foot of the delete loop after it, in `elements-ko` and `elements-en`, the wrapped strikethrough included.
+- `title-rule`, `callout` (`cut`, reading view and Live Preview) and `code-top` (`cut`, reading view): the top rule and the diagonal of the cut, for the title, every callout, and every code block in `lab-note-ko` and `elements-ko` (`long-note` for the title without properties).
+- `doc-tab` (`cut`, desktop): the active tab's top rule and its cut.
+
+It prints one `ok` or `FAIL` line per instance, with both bands in CSS px from the top of the element's line or box and their difference, then `REPORT <path>`, and last `JOINS ok` or `JOINS fail <count>`; it exits 1 on any failure. The report and each instance's crop go to `build/verify/joins/<run>-<view>[-mobile]-<scheme>/`, which each run empties first.
 
 ### Check editing states
 

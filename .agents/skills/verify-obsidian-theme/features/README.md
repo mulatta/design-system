@@ -19,7 +19,7 @@ This directory is the maintained source for verifying what the Wongoji theme doe
 
 - A proof is a capture of the state a user sees, looked at before it is reported, for every scheme and size the change touches.
 - A change that can move or resize a component is also proven against stock Obsidian with `obs compare` (see [Geometry against stock Obsidian](./stock-geometry.md)). A full-window capture at 1x hides defects of a few pixels: broken corners, a drifted caret, a box a few pixels short.
-- `compare` and the `editcheck` rows measure element boxes and computed styles. A mark the theme paints with a pseudo-element, a gradient, or a mask has no box of its own, so no command measures it: the H2 square, the cut corners of the title rule, code blocks, callouts, and the active tab, the proof mark on the tab, the tree caret and folder cell, and the delete loop after a strikethrough. Judge each from a 2x crop of the element, not a full-window capture.
+- `compare` and the `editcheck` rows measure element boxes and computed styles. A mark the theme paints with a pseudo-element, a gradient, or a mask has no box of its own. `joins` measures from painted pixels where such a mark meets the stroke it continues: the delete loop after a strikethrough, and the cut corners of the title rule, code blocks, callouts, and the active tab. No command measures the rest: the H2 square, the proof mark on the tab, and the tree caret and folder cell. Judge those from a 2x crop of the element, not a full-window capture.
 - Record the run name, note, and `shot` options with each capture path.
 - Report a sub-feature that could not be reached with the command tried and the unmet precondition. Do not count a different entry point as proof.
 

@@ -29,6 +29,7 @@ Preconditions:
 - **Stock reference.** The same `shot` options against a stock run (`--run stock`) give the stock mobile layout.
 - **Geometry.** Run `obs compare --base stock --run agent --mobile --scheme light` and `--view live --mobile`, then both with `--scheme dark`. The note parts prove `mobile-column`, `mobile-blocks`, and `mobile-editing`; `navbar` and `top-buttons` prove `mobile-raised` (see [Geometry against stock Obsidian](./stock-geometry.md)).
 - **Tones.** Run `obs layers --run agent --mobile --scheme light` and `--view live --mobile`, then dark.
+- **Joins.** Run `obs joins --run agent --mobile --scheme light` and `--view live --mobile`, then dark. The tab row does not run on the phone, which has no tab strip.
 - **States.** Run `obs editcheck --run agent --mobile --scheme light`, then dark. It runs the rows marked for the phone at 390x844. `reading-column` and `live-column` prove the column-edge part of `mobile-column`, and `floating-header` proves the header part of `mobile-raised`.
 - **Back to desktop.** The next `shot` without `--mobile` switches emulation off again.
 - **Proof.** Report each sub-feature with its capture path, and state that it was proven under emulation.
