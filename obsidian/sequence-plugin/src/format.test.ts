@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+	badgeLabel,
 	copiedLabel,
 	copyLabel,
 	formatSequences,
+	type Language,
 	type LineLength,
 	lineLengthFor,
-	type UnitRule,
 } from "./format.ts";
 
 const alphabet = "ACGT";
@@ -29,25 +30,26 @@ function wrap(sequence: string, width: number): string {
 
 describe("formatSequences input shapes", () => {
 	it("returns no records for empty or blank input", () => {
-		assert.deepEqual(formatSequences("", 60, "infer"), []);
-		assert.deepEqual(formatSequences("\n  \n\t\n", 60, "infer"), []);
+		assert.deepEqual(formatSequences("", 60, "fasta"), []);
+		assert.deepEqual(formatSequences("\n  \n\t\n", 60, "fasta"), []);
 	});
 
 	it("formats a bare sequence with no header", () => {
-		const [record, ...rest] = formatSequences("ACGTACGTAC", 60, "infer");
+		const [record, ...rest] = formatSequences("ACGTACGTAC", 60, "fasta");
 		assert.equal(rest.length, 0);
 		assert.deepEqual(record, {
 			header: null,
 			sequence: "ACGTACGTAC",
 			length: 10,
-			unit: "nt/aa",
+			unit: "nt",
+			molecule: null,
 			lines: [{ start: 1, groups: ["ACGTACGTAC"] }],
 		});
 	});
 
 	it("formats one long sequence line", () => {
 		const sequence = residues(150);
-		const [record] = formatSequences(`>long\n${sequence}`, 60, "infer");
+		const [record] = formatSequences(`>long\n${sequence}`, 60, "fasta");
 		assert.equal(record?.sequence, sequence);
 		assert.deepEqual(
 			record?.lines.map((line) => line.start),
@@ -66,7 +68,7 @@ describe("formatSequences input shapes", () => {
 			const [record] = formatSequences(
 				`>wrapped\n${wrap(sequence, width)}\n`,
 				60,
-				"infer",
+				"fasta",
 			);
 			assert.equal(record?.sequence, sequence);
 			assert.deepEqual(
@@ -94,7 +96,7 @@ describe("formatSequences input shapes", () => {
 			">third one",
 			"acgt",
 		].join("\n");
-		const records = formatSequences(source, 60, "infer");
+		const records = formatSequences(source, 60, "fasta");
 		assert.deepEqual(
 			records.map((record) => [record.header, record.sequence]),
 			[
@@ -114,7 +116,7 @@ describe("formatSequences input shapes", () => {
 		const [record] = formatSequences(
 			`>sp|P69905|TEST Example protein\n${wrap(protein, 60)}`,
 			60,
-			"infer",
+			"fasta",
 		);
 		assert.equal(record?.header, "sp|P69905|TEST Example protein");
 		assert.equal(record?.sequence, protein);
@@ -127,7 +129,7 @@ describe("formatSequences input shapes", () => {
 
 	it("ignores blank lines and strips whitespace inside sequence lines", () => {
 		const source = "\n>spaced\n\nACGTA CGTAC\n\tGG TT\t\n\n   \nAA  \r\nCC\r\n";
-		const [record] = formatSequences(source, 60, "infer");
+		const [record] = formatSequences(source, 60, "fasta");
 		assert.equal(record?.sequence, "ACGTACGTACGGTTAACC");
 		assert.deepEqual(record?.lines, [
 			{ start: 1, groups: ["ACGTACGTAC", "GGTTAACC"] },
@@ -138,13 +140,13 @@ describe("formatSequences input shapes", () => {
 		const [record] = formatSequences(
 			">  NM_000518.5 Homo sapiens  HBB, mRNA  \nACGT",
 			60,
-			"infer",
+			"fasta",
 		);
 		assert.equal(record?.header, "  NM_000518.5 Homo sapiens  HBB, mRNA  ");
 	});
 
 	it("keeps an empty header and a header with no sequence", () => {
-		const records = formatSequences(">\nACGT\n>empty\n>last\nTT", 60, "infer");
+		const records = formatSequences(">\nACGT\n>empty\n>last\nTT", 60, "fasta");
 		assert.deepEqual(
 			records.map((record) => [
 				record.header,
@@ -160,7 +162,7 @@ describe("formatSequences input shapes", () => {
 	});
 
 	it("starts a headerless record for residues before the first header", () => {
-		const records = formatSequences("ACGT\n>named\nGGCC", 60, "infer");
+		const records = formatSequences("ACGT\n>named\nGGCC", 60, "fasta");
 		assert.deepEqual(
 			records.map((record) => [record.header, record.sequence]),
 			[
@@ -174,7 +176,7 @@ describe("formatSequences input shapes", () => {
 		const records = formatSequences(
 			">a\nAC GT\nac\n>b\n>c\n" + residues(61),
 			60,
-			"infer",
+			"fasta",
 		);
 		assert.deepEqual(
 			records.map((record) => record.length),
@@ -183,51 +185,92 @@ describe("formatSequences input shapes", () => {
 	});
 
 	it("preserves lowercase and mixed case residues", () => {
-		const [record] = formatSequences("acgtNNNNacgtACGTnnnn", 60, "infer");
+		const [record] = formatSequences("acgtNNNNacgtACGTnnnn", 60, "fasta");
 		assert.equal(record?.sequence, "acgtNNNNacgtACGTnnnn");
 		assert.deepEqual(record?.lines[0]?.groups, ["acgtNNNNac", "gtACGTnnnn"]);
 	});
 });
 
 describe("formatSequences units", () => {
-	const unitsOf = (source: string, rule: UnitRule) =>
-		formatSequences(source, 60, rule).map((record) => record.unit);
+	const unitsOf = (source: string, language: Language) =>
+		formatSequences(source, 60, language).map((record) => record.unit);
 
-	it("labels a protein record in a fasta block aa", () => {
-		assert.deepEqual(unitsOf(">p\nMKTAYIAKQRQISFVKSHFSRQ", "infer"), ["aa"]);
-	});
-
-	it("labels a nucleotide record in a fasta block nt/aa", () => {
-		assert.deepEqual(unitsOf(">n\nACGTURYSWKMBDHVN-ACGT", "infer"), ["nt/aa"]);
-	});
-
-	for (const symbol of ["E", "F", "I", "J", "L", "O", "P", "Q", "Z", "*"]) {
-		it(`labels a record aa when ${symbol} is its only amino-acid-only symbol`, () => {
-			assert.deepEqual(unitsOf(`ACGTAC${symbol}GTAC`, "infer"), ["aa"]);
+	for (const [letters, unit] of [
+		["ACGTACGTAC", "nt"],
+		["ACGUACGUAC", "nt"],
+		["acgtacgtac", "nt"],
+		["acguNNNNac", "nt"],
+		["NNNNNNNNNN", "nt"],
+		["MKTAYIAKQR", "aa"],
+		["ACGTACRTAC", "nt/aa"],
+		["ACGTACYTAC", "nt/aa"],
+		["ACGTURYSWKMBDHVN-ACGT", "nt/aa"],
+		["ACGTXXXXACGT", "nt/aa"],
+		["ACGT-ACGT", "nt"],
+		["ACGT..ACGT", "nt"],
+		["MKT-AYI.AKQR", "aa"],
+		["ACGT-RYACGT", "nt/aa"],
+	] as const) {
+		it(`reads ${letters} in a fasta block as ${unit}`, () => {
+			assert.deepEqual(unitsOf(`>r\n${letters}`, "fasta"), [unit]);
 		});
 	}
 
-	it("does not take X as an amino-acid-only symbol", () => {
-		assert.deepEqual(unitsOf("ACGTXXXXACGT\n>x\nXXXX", "infer"), [
-			"nt/aa",
-			"nt/aa",
-		]);
-	});
+	for (const symbol of ["E", "F", "I", "J", "L", "O", "P", "Q", "Z", "*"]) {
+		it(`labels a record aa when ${symbol} is its only amino-acid-only symbol`, () => {
+			assert.deepEqual(unitsOf(`ACGTAC${symbol}GTAC`, "fasta"), ["aa"]);
+		});
+	}
 
 	it("reads amino-acid-only symbols in lowercase", () => {
-		assert.deepEqual(unitsOf("mktayiakqr\n>e\nacgte", "infer"), ["aa", "aa"]);
+		assert.deepEqual(unitsOf("mktayiakqr\n>e\nacgte", "fasta"), ["aa", "aa"]);
+	});
+
+	it("keeps nt/aa for a record with no residues", () => {
+		assert.deepEqual(unitsOf(">empty", "fasta"), ["nt/aa"]);
+	});
+
+	it("keeps nt/aa for a record of only gaps", () => {
+		assert.deepEqual(unitsOf(">gaps\n--..--", "fasta"), ["nt/aa"]);
+	});
+
+	it("counts alignment gaps in the length", () => {
+		const [record] = formatSequences("ACGT-ACGT", 60, "fasta");
+		assert.equal(record?.length, 9);
 	});
 
 	it("labels each record of a multi-FASTA block on its own", () => {
 		assert.deepEqual(
-			unitsOf(">prot\nMKTAYIAKQR\n>nuc\nACGTACGTAA\n>empty", "infer"),
-			["aa", "nt/aa", "nt/aa"],
+			unitsOf(
+				">prot\nMKTAYIAKQR\n>nuc\nACGTACGTAA\n>amb\nACGTRYACGT\n>empty",
+				"fasta",
+			),
+			["aa", "nt", "nt/aa", "nt/aa"],
 		);
 	});
 
-	it("keeps nt for a dna block and aa for a protein block", () => {
-		assert.deepEqual(unitsOf(">p\nMKTAYIAKQR\n>n\nACGT", "nt"), ["nt", "nt"]);
-		assert.deepEqual(unitsOf(">p\nMKTAYIAKQR\n>n\nACGT", "aa"), ["aa", "aa"]);
+	it("takes the unit from a dna, rna, or protein fence whatever the letters", () => {
+		const source = ">p\nMKTAYIAKQR\n>n\nACGT\n>r\nACGTRY";
+		assert.deepEqual(unitsOf(source, "dna"), ["nt", "nt", "nt"]);
+		assert.deepEqual(unitsOf(source, "rna"), ["nt", "nt", "nt"]);
+		assert.deepEqual(unitsOf(source, "protein"), ["aa", "aa", "aa"]);
+	});
+});
+
+describe("formatSequences molecule", () => {
+	const moleculesOf = (language: Language) =>
+		formatSequences(">a\nACGU\n>b\nMKTAYIAKQR", 60, language).map(
+			(record) => record.molecule,
+		);
+
+	it("names the molecule a dna, rna, or protein fence declares", () => {
+		assert.deepEqual(moleculesOf("dna"), ["DNA", "DNA"]);
+		assert.deepEqual(moleculesOf("rna"), ["RNA", "RNA"]);
+		assert.deepEqual(moleculesOf("protein"), ["Protein", "Protein"]);
+	});
+
+	it("names no molecule in a fasta fence", () => {
+		assert.deepEqual(moleculesOf("fasta"), [null, null]);
 	});
 });
 
@@ -244,7 +287,7 @@ describe("formatSequences GenBank ORIGIN input", () => {
 
 	it("drops position numbers and the ORIGIN and // lines", () => {
 		const sequence = residues(130).toLowerCase();
-		const [record, ...rest] = formatSequences(origin(sequence), 60, "nt");
+		const [record, ...rest] = formatSequences(origin(sequence), 60, "dna");
 		assert.equal(rest.length, 0);
 		assert.equal(record?.header, null);
 		assert.equal(record?.sequence, sequence);
@@ -262,7 +305,7 @@ describe("formatSequences GenBank ORIGIN input", () => {
 		const [record] = formatSequences(
 			`>syn 12 ORIGIN\n  ${origin(sequence)}`,
 			60,
-			"nt",
+			"dna",
 		);
 		assert.equal(record?.header, "syn 12 ORIGIN");
 		assert.equal(record?.sequence, sequence);
@@ -271,13 +314,13 @@ describe("formatSequences GenBank ORIGIN input", () => {
 
 describe("formatSequences boundaries", () => {
 	it("keeps exactly 10 residues in one group", () => {
-		const [record] = formatSequences(residues(10), 60, "infer");
+		const [record] = formatSequences(residues(10), 60, "fasta");
 		assert.deepEqual(record?.lines, [{ start: 1, groups: [residues(10)] }]);
 	});
 
 	it("opens a second group at 11 residues", () => {
 		const sequence = residues(11);
-		const [record] = formatSequences(sequence, 60, "infer");
+		const [record] = formatSequences(sequence, 60, "fasta");
 		assert.deepEqual(record?.lines, [
 			{ start: 1, groups: [sequence.slice(0, 10), sequence.slice(10)] },
 		]);
@@ -285,7 +328,7 @@ describe("formatSequences boundaries", () => {
 
 	it("keeps exactly 60 residues on one line of six groups", () => {
 		const sequence = residues(60);
-		const [record] = formatSequences(sequence, 60, "infer");
+		const [record] = formatSequences(sequence, 60, "fasta");
 		assert.equal(record?.lines.length, 1);
 		assert.deepEqual(record?.lines[0]?.groups, [
 			sequence.slice(0, 10),
@@ -299,7 +342,7 @@ describe("formatSequences boundaries", () => {
 
 	it("opens a second line at 61 residues starting at position 61", () => {
 		const sequence = residues(61);
-		const [record] = formatSequences(sequence, 60, "infer");
+		const [record] = formatSequences(sequence, 60, "fasta");
 		assert.equal(record?.lines.length, 2);
 		assert.equal(record?.lines[0]?.groups.length, 6);
 		assert.deepEqual(record?.lines[1], {
@@ -309,7 +352,7 @@ describe("formatSequences boundaries", () => {
 	});
 
 	it("numbers line starts 1, 61, 121 and onward", () => {
-		const [record] = formatSequences(residues(600), 60, "infer");
+		const [record] = formatSequences(residues(600), 60, "fasta");
 		assert.deepEqual(
 			record?.lines.map((line) => line.start),
 			[1, 61, 121, 181, 241, 301, 361, 421, 481, 541],
@@ -330,7 +373,7 @@ describe("formatSequences line length", () => {
 			const [record] = formatSequences(
 				`>reflow\n${wrap(sequence, 70)}`,
 				lineLength,
-				"infer",
+				"fasta",
 			);
 			const lineCount = Math.ceil(205 / lineLength);
 			assert.deepEqual(
@@ -354,7 +397,7 @@ describe("formatSequences line length", () => {
 
 	it("opens a new line at residue 31 with 30 per line", () => {
 		const sequence = residues(61);
-		const [record] = formatSequences(sequence, 30, "infer");
+		const [record] = formatSequences(sequence, 30, "fasta");
 		assert.deepEqual(record?.lines, [
 			{
 				start: 1,
@@ -446,11 +489,11 @@ describe("lineLengthFor", () => {
 describe("copiedLabel", () => {
 	it("names the length and unit of a single record", () => {
 		assert.equal(
-			copiedLabel(formatSequences(`>one\n${residues(174)}`, 60, "nt")),
+			copiedLabel(formatSequences(`>one\n${residues(174)}`, 60, "dna")),
 			"Copied 174 nt",
 		);
 		assert.equal(
-			copiedLabel(formatSequences("MKTAYIAKQR", 60, "infer")),
+			copiedLabel(formatSequences("MKTAYIAKQR", 60, "fasta")),
 			"Copied 10 aa",
 		);
 	});
@@ -465,7 +508,7 @@ describe("copiedLabel", () => {
 			residues(132),
 		];
 		assert.equal(
-			copiedLabel(formatSequences(source.join("\n"), 60, "infer")),
+			copiedLabel(formatSequences(source.join("\n"), 60, "fasta")),
 			"Copied 3 records",
 		);
 	});
@@ -474,7 +517,7 @@ describe("copiedLabel", () => {
 describe("copyLabel", () => {
 	it("says the sequence for a single record", () => {
 		assert.equal(
-			copyLabel(formatSequences(`>one\n${residues(174)}`, 60, "nt")),
+			copyLabel(formatSequences(`>one\n${residues(174)}`, 60, "dna")),
 			"Copy sequence",
 		);
 	});
@@ -482,8 +525,54 @@ describe("copyLabel", () => {
 	it("counts the records of a multi-FASTA block", () => {
 		const source = [">a", residues(42), ">b", residues(60)];
 		assert.equal(
-			copyLabel(formatSequences(source.join("\n"), 60, "infer")),
+			copyLabel(formatSequences(source.join("\n"), 60, "fasta")),
 			"Copy 2 records",
 		);
+	});
+});
+
+describe("badgeLabel", () => {
+	const label = (source: string, language: Language) =>
+		formatSequences(source, 60, language).map(badgeLabel);
+
+	it("names the declared molecule and spells out its unit", () => {
+		assert.deepEqual(label(residues(96), "dna"), ["DNA, 96 nucleotides"]);
+		assert.deepEqual(label("ACGU".repeat(15), "rna"), ["RNA, 60 nucleotides"]);
+		assert.deepEqual(label("M".repeat(214), "protein"), [
+			"Protein, 214 amino acids",
+		]);
+	});
+
+	it("says a fasta record's nucleotides were read from the letters", () => {
+		assert.deepEqual(label(residues(174), "fasta"), [
+			"174 nucleotides, read from the letters. Use a dna or rna block to say which.",
+		]);
+	});
+
+	it("says a fasta record's amino acids were read from the letters", () => {
+		assert.deepEqual(label("MKTAYIAKQR".repeat(9) + "MKTAYI", "fasta"), [
+			"96 amino acids, read from the letters. Use a protein block to say so.",
+		]);
+	});
+
+	it("names both units and every block that settles them for an ambiguous fasta record", () => {
+		assert.deepEqual(label("ACGTRYACGTRYACGTRYACGTRY", "fasta"), [
+			"24 residues, nucleotides or amino acids. Use a dna, rna or protein block to say which.",
+		]);
+	});
+
+	it("uses the singular for a length of 1", () => {
+		assert.deepEqual(label("A", "dna"), ["DNA, 1 nucleotide"]);
+		assert.deepEqual(label("U", "rna"), ["RNA, 1 nucleotide"]);
+		assert.deepEqual(label("M", "protein"), ["Protein, 1 amino acid"]);
+		assert.deepEqual(label("A", "fasta"), [
+			"1 nucleotide, read from the letters. Use a dna or rna block to say which.",
+		]);
+		assert.deepEqual(label("E", "fasta"), [
+			"1 amino acid, read from the letters. Use a protein block to say so.",
+		]);
+		assert.deepEqual(label("R", "fasta"), [
+			"1 residue, a nucleotide or an amino acid. Use a dna, rna or protein block to say which.",
+		]);
 	});
 });

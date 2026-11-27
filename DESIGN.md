@@ -100,6 +100,8 @@ A cool neutral paper with one printed blue and one correcting red; each scheme, 
 
 **The One Blue Rule.** Manuscript Rule Blue is the only accent. A new role gets a tone of paper, ink, or blue, not a new hue.
 
+**The Printed Apparatus Rule.** In a sequence block, the parts printed on the sheet take Manuscript Rule Blue: the top rule, the cell lines in `cell-line`, the length badge, and its molecule cell. What the writer put there, the header and the residues, is ink. The header's `>` mark is `mute`.
+
 ## Typography
 
 **Body Font:** Source Serif 4, with MaruBuri for Hangul (`text`)

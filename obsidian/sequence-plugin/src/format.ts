@@ -2,7 +2,22 @@ export type SequenceLine = { start: number; groups: string[] };
 
 export type Unit = "nt" | "aa" | "nt/aa";
 
-export type UnitRule = "nt" | "aa" | "infer";
+export type Molecule = "DNA" | "RNA" | "Protein";
+
+type Declaration =
+	| { rule: "infer"; molecule: null }
+	| { rule: "nt" | "aa"; molecule: Molecule };
+
+export const fences = {
+	fasta: { rule: "infer", molecule: null },
+	dna: { rule: "nt", molecule: "DNA" },
+	rna: { rule: "nt", molecule: "RNA" },
+	protein: { rule: "aa", molecule: "Protein" },
+} as const satisfies Record<string, Declaration>;
+
+export type Language = keyof typeof fences;
+
+export const languages = Object.keys(fences) as Language[];
 
 export type SequenceRecord = {
 	header: string | null;
@@ -10,6 +25,7 @@ export type SequenceRecord = {
 	sequence: string;
 	length: number;
 	unit: Unit;
+	molecule: Molecule | null;
 };
 
 export type LineLength = 10 | 20 | 30 | 40 | 50 | 60;
@@ -45,18 +61,20 @@ export function sequenceLines(
 	}));
 }
 
-function unitOf(sequence: string, rule: UnitRule): Unit {
-	if (rule !== "infer") {
-		return rule;
+function inferUnit(sequence: string): Unit {
+	const letters = sequence.replace(/[-.]/g, "");
+	if (/[efijlopqz*]/i.test(letters)) {
+		return "aa";
 	}
-	return /[efijlopqz*]/i.test(sequence) ? "aa" : "nt/aa";
+	return /^[acgtun]+$/i.test(letters) ? "nt" : "nt/aa";
 }
 
 export function formatSequences(
 	source: string,
 	lineLength: LineLength,
-	rule: UnitRule,
+	language: Language,
 ): SequenceRecord[] {
+	const { rule, molecule }: Declaration = fences[language];
 	const parsed: { header: string | null; parts: string[] }[] = [];
 	for (const raw of source.split(/\r?\n/)) {
 		const line = raw.trimStart();
@@ -84,7 +102,8 @@ export function formatSequences(
 			header,
 			sequence,
 			length: sequence.length,
-			unit: unitOf(sequence, rule),
+			unit: rule === "infer" ? inferUnit(sequence) : rule,
+			molecule,
 			lines: sequenceLines(sequence, lineLength),
 		};
 	});
@@ -114,4 +133,28 @@ export function lineLengthFor(measure: LineMeasure): LineLength {
 		);
 	};
 	return LINE_LENGTHS.find(fits) ?? 10;
+}
+
+const unitNames: Record<Unit, { one: string; many: string; read: string }> = {
+	nt: {
+		one: "nucleotide",
+		many: "nucleotides",
+		read: ", read from the letters. Use a dna or rna block to say which.",
+	},
+	aa: {
+		one: "amino acid",
+		many: "amino acids",
+		read: ", read from the letters. Use a protein block to say so.",
+	},
+	"nt/aa": {
+		one: "residue, a nucleotide or an amino acid",
+		many: "residues, nucleotides or amino acids",
+		read: ". Use a dna, rna or protein block to say which.",
+	},
+};
+
+export function badgeLabel({ length, unit, molecule }: SequenceRecord): string {
+	const { one, many, read } = unitNames[unit];
+	const count = `${length} ${length === 1 ? one : many}`;
+	return molecule === null ? `${count}${read}` : `${molecule}, ${count}`;
 }

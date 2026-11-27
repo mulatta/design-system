@@ -68,6 +68,12 @@
 	-webkit-user-select: none;
 }
 
+.seq-badge-kind {
+	margin-inline: -0.6ch -0.4ch;
+	padding-inline: 0.6ch;
+	border-inline-end: 1px solid var(--background-modifier-border);
+}
+
 .seq-badge-len {
 	min-width: var(--seq-len-width, auto);
 	text-align: end;

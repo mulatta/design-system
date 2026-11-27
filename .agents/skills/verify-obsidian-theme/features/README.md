@@ -33,7 +33,7 @@ Each feature file has an H1, one paragraph, and exactly four H2 sections in this
 - [Editing view](./editing-view.md) covers Live Preview and source mode: markdown markers, code lines and the caret on them, inline code, tags, tables, the caret, and the editable title.
 - [App chrome](./app-chrome.md) covers the ribbon, file tree, tabs, status bar, command palette, settings, search, and keyboard focus.
 - [Mobile](./mobile.md) covers Obsidian's mobile layout at phone width.
-- [Sequence blocks](./sequence-blocks.md) covers `fasta`, `dna`, and `protein` blocks rendered by the sequence plugin: 60 residues per line in groups of ten, start positions, headers, residue cells, reflow of every input shape, copy, and inline primers.
+- [Sequence blocks](./sequence-blocks.md) covers `fasta`, `dna`, `rna`, and `protein` blocks rendered by the sequence plugin: 60 residues per line in groups of ten, start positions, headers, residue cells, reflow of every input shape, copy, and inline primers.
 - [Comparison](./comparison.md) covers capturing another stylesheet, such as the vault's current snippet, on the same notes.
 - [Tonal layers](./tonal-layers.md) covers depth by tone: which regions share a tone, the lightness step at each layer boundary, and the absence of lines there.
 - [Geometry against stock Obsidian](./stock-geometry.md) covers sizes, positions, and joins of components, compared part by part with stock Obsidian at 2x.

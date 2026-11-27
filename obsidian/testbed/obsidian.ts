@@ -3271,7 +3271,7 @@ function sequenceFences(note: string): Fence[] {
 	const lines = note.split("\n");
 	const found: Fence[] = [];
 	for (let i = 0; i < lines.length; i++) {
-		const open = /^```(fasta|dna|protein)\s*$/.exec(lines[i]);
+		const open = /^```(fasta|dna|rna|protein)\s*$/.exec(lines[i]);
 		if (!open) continue;
 		const close = lines.findIndex((l, j) => j > i && /^```\s*$/.test(l));
 		if (close < 0) break;
@@ -3314,17 +3314,50 @@ function lengthDigits(source: string): number {
 	return String(Math.max(0, ...lengths)).length;
 }
 
+const declared: Record<string, { molecule: string; unit: "nt" | "aa" }> = {
+	dna: { molecule: "DNA", unit: "nt" },
+	rna: { molecule: "RNA", unit: "nt" },
+	protein: { molecule: "Protein", unit: "aa" },
+};
+
+function unitOf(fence: Fence, residues: string): "nt" | "aa" | "nt/aa" {
+	const own = declared[fence.language];
+	if (own) return own.unit;
+	const letters = residues.replace(/[-.]/g, "");
+	if (/[efijlopqz*]/i.test(letters)) return "aa";
+	return /^[acgtun]+$/i.test(letters) ? "nt" : "nt/aa";
+}
+
 function unitChars(fence: Fence): number {
-	const unit = (residues: string) =>
-		fence.language === "dna"
-			? "nt"
-			: fence.language === "protein" || /[efijlopqz*]/i.test(residues)
-				? "aa"
-				: "nt/aa";
 	return Math.max(
 		0,
-		...fastaRecords(fence.source).map((r) => unit(r.residues).length),
+		...fastaRecords(fence.source).map((r) => unitOf(fence, r.residues).length),
 	);
+}
+
+const unitWords = {
+	nt: ["nucleotide", "nucleotides"],
+	aa: ["amino acid", "amino acids"],
+	"nt/aa": [
+		"residue, a nucleotide or an amino acid",
+		"residues, nucleotides or amino acids",
+	],
+} as const;
+
+const inferredTail = {
+	nt: ", read from the letters. Use a dna or rna block to say which.",
+	aa: ", read from the letters. Use a protein block to say so.",
+	"nt/aa": ". Use a dna, rna or protein block to say which.",
+} as const;
+
+function badgeLabels(fence: Fence): string[] {
+	return fastaRecords(fence.source).map(({ residues }) => {
+		const unit = unitOf(fence, residues);
+		const n = residues.length;
+		const count = `${n} ${unitWords[unit][n === 1 ? 0 : 1]}`;
+		const own = declared[fence.language];
+		return own ? `${own.molecule}, ${count}` : count + inferredTail[unit];
+	});
 }
 
 type Check = { pass: boolean; reason: string };
@@ -3519,6 +3552,7 @@ async function seqcheck(args: string[]): Promise<void> {
 		index: number;
 		digits: number;
 		unit: number;
+		kind: number;
 		width: number;
 	}[] = [];
 	for (const [index, fence] of fences.entries()) {
@@ -3662,6 +3696,33 @@ async function seqcheck(args: string[]): Promise<void> {
 					);
 					return { below: r1(badge.getBoundingClientRect().y - row) };
 				});
+				const badgeLabels = [...block.querySelectorAll(".seq-record")].map(
+					(r) =>
+						r
+							.querySelector(":scope > .seq-head > .seq-badge")
+							?.getAttribute("aria-label") ?? null,
+				);
+				const kinds = [...block.querySelectorAll(".seq-record")].map((r) => {
+					const badge = r.querySelector(":scope > .seq-head > .seq-badge");
+					const kind = badge?.querySelector(":scope > .seq-badge-kind");
+					if (!badge || !kind) return null;
+					const b = badge.getBoundingClientRect();
+					const k = kind.getBoundingClientRect();
+					const bs = getComputedStyle(badge);
+					const ks = getComputedStyle(kind);
+					return {
+						text: kind.textContent ?? "",
+						left: r1(k.x - b.x - parseFloat(bs.borderLeftWidth)),
+						top: r1(k.y - b.y - parseFloat(bs.borderTopWidth)),
+						bottom: r1(b.bottom - parseFloat(bs.borderBottomWidth) - k.bottom),
+						divider: `${ks.borderRightWidth} ${ks.borderRightStyle} ${ks.borderRightColor}`,
+						frame: `${bs.borderLeftWidth} ${bs.borderLeftStyle} ${bs.borderLeftColor}`,
+						after: r1(
+							(kind.nextElementSibling?.getBoundingClientRect().x ?? k.right) -
+								k.right,
+						),
+					};
+				});
 				const units = [...block.querySelectorAll(".seq-record")].map((r) => {
 					const unit = r.querySelector(
 						":scope > .seq-head > .seq-badge > .seq-badge-unit",
@@ -3702,7 +3763,9 @@ async function seqcheck(args: string[]): Promise<void> {
 					column,
 					badges,
 					heads,
+					badgeLabels,
 					phone: document.body.classList.contains("is-phone"),
+					kinds,
 					units,
 					scroller: inner(scrollerEl),
 					clippedBy,
@@ -3872,6 +3935,23 @@ async function seqcheck(args: string[]): Promise<void> {
 			pass: m.copy?.label === restLabel,
 			reason: `label ${JSON.stringify(m.copy?.label ?? null)}, want ${JSON.stringify(restLabel)} for ${records} record(s)`,
 		};
+		const wantLabels = badgeLabels(fence);
+		const labelFaults = wantLabels.flatMap((want, i) =>
+			m.badgeLabels[i] === want
+				? []
+				: [
+						`badge ${i} ${JSON.stringify(m.badgeLabels[i] ?? null)}, want ${JSON.stringify(want)}`,
+					],
+		);
+		checks["badge-label"] = {
+			pass:
+				labelFaults.length === 0 && m.badgeLabels.length === wantLabels.length,
+			reason:
+				labelFaults.join("; ") ||
+				(m.badgeLabels.length === wantLabels.length
+					? `${wantLabels.length} label(s) as built from the fence`
+					: `${m.badgeLabels.length} badge(s) for ${wantLabels.length} record(s)`),
+		};
 		const shown = badges.filter((b): b is Box => b !== null);
 		const round = (n: number) => Math.round(n * 10) / 10;
 		const spread = (values: number[]) =>
@@ -3907,6 +3987,39 @@ async function seqcheck(args: string[]): Promise<void> {
 				reason: `badge tops ${below.join(", ")}px below the first head row, right edges ${ends.join(", ")}, copy button right edge ${copyEnd}`,
 			};
 		}
+		const own = declared[fence.language];
+		const kindFaults = own
+			? m.kinds.flatMap((k, i) => {
+					if (!k) return [`badge ${i} has no molecule cell`];
+					const faults = [
+						k.text === own.molecule
+							? ""
+							: `text ${JSON.stringify(k.text)}, want ${JSON.stringify(own.molecule)}`,
+						Math.abs(k.left) <= 0.5 &&
+						Math.abs(k.top) <= 0.5 &&
+						Math.abs(k.bottom) <= 0.5
+							? ""
+							: `${k.left}px from the frame's left, ${k.top}px from its top, ${k.bottom}px from its bottom`,
+						k.divider === k.frame
+							? ""
+							: `divider ${k.divider}, frame ${k.frame}`,
+						k.after >= 0 ? "" : `length overlaps the divider by ${-k.after}px`,
+					].filter(Boolean);
+					return faults.length > 0 ? [`badge ${i}: ${faults.join(", ")}`] : [];
+				})
+			: m.kinds.flatMap((k, i) =>
+					k
+						? [`badge ${i} shows ${JSON.stringify(k.text)} in a fasta block`]
+						: [],
+				);
+		checks["badge-kind"] = {
+			pass: kindFaults.length === 0 && m.kinds.length === badges.length,
+			reason:
+				kindFaults.join("; ") ||
+				(own
+					? `${m.kinds.length} ${own.molecule} cell(s) inside the frame, joined by its line`
+					: "no molecule cell"),
+		};
 		const units = m.units.filter(
 			(u): u is { part: number; text: number } => u !== null,
 		);
@@ -3922,6 +4035,7 @@ async function seqcheck(args: string[]): Promise<void> {
 				index,
 				digits: lengthDigits(fence.source),
 				unit: unitChars(fence),
+				kind: declared[fence.language]?.molecule.length ?? 0,
 				width: shown[0].w,
 			});
 		const fasta = fastaOf(fence.source);
@@ -4191,12 +4305,13 @@ async function seqcheck(args: string[]): Promise<void> {
 
 	for (const own of badgeWidths) {
 		const peer = badgeWidths.find(
-			(b) => b.digits === own.digits && b.unit === own.unit,
+			(b) =>
+				b.digits === own.digits && b.unit === own.unit && b.kind === own.kind,
 		);
 		if (!peer || peer === own) continue;
 		(blocks[own.index].checks as Record<string, Check>)["badge-width"] = {
 			pass: Math.abs(own.width - peer.width) <= 0.5,
-			reason: `${own.width}px, block ${peer.index} with ${own.digits}-digit lengths and ${own.unit}-letter units ${peer.width}px`,
+			reason: `${own.width}px, block ${peer.index} with ${own.digits}-digit lengths, ${own.unit}-letter units and a ${own.kind}-letter molecule ${peer.width}px`,
 		};
 	}
 

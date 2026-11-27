@@ -1,23 +1,19 @@
 import { MarkdownRenderChild, Notice, Plugin, setTooltip } from "obsidian";
 import {
+	badgeLabel,
 	copiedLabel,
 	copyLabel,
 	formatSequences,
 	GROUP_LENGTH,
+	type Language,
 	type LineLength,
 	type LineMeasure,
+	languages,
 	lineLengthFor,
 	type SequenceLine,
 	type SequenceRecord,
 	sequenceLines,
-	type UnitRule,
 } from "./format.ts";
-
-const languages: [string, UnitRule][] = [
-	["fasta", "infer"],
-	["dna", "nt"],
-	["protein", "aa"],
-];
 
 const icons = {
 	copy: {
@@ -95,17 +91,17 @@ class SequenceBlock extends MarkdownRenderChild {
 	private frame: number | null = null;
 	private readonly source: string;
 
-	constructor(containerEl: HTMLElement, source: string, rule: UnitRule) {
+	constructor(containerEl: HTMLElement, source: string, language: Language) {
 		super(containerEl);
 		this.source = source;
-		this.records = formatSequences(source, this.lineLength, rule);
+		this.records = formatSequences(source, this.lineLength, language);
 		this.widestDigits = String(
 			lastStart(
 				this.records.map((record) => sequenceLines(record.sequence, 10)),
 			),
 		).length;
 		this.block = containerEl.createDiv({
-			cls: rule === "aa" ? ["seq-block", "seq-block--protein"] : "seq-block",
+			cls: "seq-block",
 			attr: { "data-records": this.records.length },
 		});
 		const longest = Math.max(0, ...this.records.map((record) => record.length));
@@ -126,6 +122,10 @@ class SequenceBlock extends MarkdownRenderChild {
 				headerEl.appendText(record.header);
 			}
 			const badge = head.createSpan({ cls: "seq-badge" });
+			setTooltip(badge, badgeLabel(record));
+			if (record.molecule !== null) {
+				badge.createSpan({ cls: "seq-badge-kind", text: record.molecule });
+			}
 			badge.createSpan({ cls: "seq-badge-len", text: String(record.length) });
 			badge.appendText(" ");
 			badge.createSpan({ cls: "seq-badge-unit", text: record.unit });
@@ -271,9 +271,9 @@ class SequenceBlock extends MarkdownRenderChild {
 
 export default class SequenceBlocksPlugin extends Plugin {
 	override async onload(): Promise<void> {
-		for (const [language, rule] of languages) {
+		for (const language of languages) {
 			this.registerMarkdownCodeBlockProcessor(language, (source, el, ctx) => {
-				ctx.addChild(new SequenceBlock(el, source, rule));
+				ctx.addChild(new SequenceBlock(el, source, language));
 			});
 		}
 	}

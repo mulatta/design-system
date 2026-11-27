@@ -46,7 +46,7 @@ buildNpmPackage {
   '';
 
   meta = {
-    description = "Obsidian plugin that renders fasta, dna, and protein code blocks";
+    description = "Obsidian plugin that renders fasta, dna, rna, and protein code blocks";
     platforms = lib.platforms.all;
   };
 }

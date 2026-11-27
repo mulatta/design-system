@@ -5,13 +5,19 @@
 
 body .block-language-fasta,
 body .block-language-dna,
+body .block-language-rna,
 body .block-language-protein {
 	margin: 1.4em 0;
 }
 
 body
 	.markdown-source-view.mod-cm6
-	.cm-embed-block:is(.cm-lang-fasta, .cm-lang-dna, .cm-lang-protein)
+	.cm-embed-block:is(
+		.cm-lang-fasta,
+		.cm-lang-dna,
+		.cm-lang-rna,
+		.cm-lang-protein
+	)
 	.edit-block-button:hover {
 	color: var(--wg-rule);
 	background: none;
@@ -79,7 +85,7 @@ body .seq-header {
 	font-size: 1.1em;
 	font-weight: 700;
 	line-height: 1.35;
-	color: var(--wg-rule);
+	color: var(--wg-ink);
 	white-space: pre-wrap;
 	overflow-wrap: anywhere;
 }
@@ -101,6 +107,12 @@ body .seq-badge {
 	border: 1px solid var(--wg-rule);
 	user-select: none;
 	-webkit-user-select: none;
+}
+
+body .seq-badge-kind {
+	margin: 0 -0.4ch 0 -0.6ch;
+	padding: 0 0.6ch;
+	border-right: 1px solid var(--wg-rule);
 }
 
 body .seq-line {
