@@ -1814,25 +1814,38 @@ const ringsOnClick = async (page: Page, selector: string): Promise<Outcome> => {
 };
 
 const tableFits = async (page: Page, table: string, column: string) => {
+	await installFind(page);
 	const m = await page.evaluate(
-		({ table, column }) => {
-			const t = document.querySelector(table) as HTMLElement | null;
+		async ({ table, column }) => {
+			const t = (await (window as any).__wgFind(table)) as HTMLElement | null;
 			const c = document.querySelector(column);
 			if (!t || !c) return null;
 			t.scrollIntoView({ block: "center" });
+			const round = (n: number) => Math.round(n * 10) / 10;
+			const sized = (width: string) => {
+				const copy = t.cloneNode(true) as HTMLElement;
+				copy.style.cssText = `position:absolute;visibility:hidden;max-width:none;width:${width}`;
+				t.parentElement?.append(copy);
+				const w = copy.getBoundingClientRect().width;
+				copy.remove();
+				return round(w);
+			};
 			return {
-				table: Math.round(t.getBoundingClientRect().width * 10) / 10,
-				column: Math.round(c.getBoundingClientRect().width * 10) / 10,
+				table: round(t.getBoundingClientRect().width),
+				column: round(c.getBoundingClientRect().width),
+				content: sized("max-content"),
+				least: sized("min-content"),
 			};
 		},
 		{ table, column },
 	);
 	if (!m) return { pass: false, reason: `no ${table} or ${column}`, facts: {} };
-	const pass = Math.abs(m.table - m.column) <= 1;
+	const expected = Math.max(Math.min(m.content, m.column), m.least);
+	const pass = Math.abs(m.table - expected) <= 1;
 	return {
 		pass,
-		reason: `table ${m.table}px, column ${m.column}px`,
-		facts: m,
+		reason: `table ${m.table}px, content ${m.content}px, column ${m.column}px, expected ${expected}px`,
+		facts: { ...m, expected },
 	};
 };
 
