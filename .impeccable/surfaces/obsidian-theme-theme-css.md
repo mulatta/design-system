@@ -13,7 +13,7 @@ Mode: Read for the note column; Operate for the app chrome.
 
 Audience and job: one researcher reading and writing long Korean notes daily that mix English terms, Latin gene names in italic, DNA and protein sequences, math, code, and tables. Success: long sessions read comfortably, sequences can be counted by position, standard Obsidian wayfinding stays intact, and the theme is recognisable with the content removed.
 
-Sequence rule: GenBank convention. 60 residues per line, a space every 10, right-aligned tabular start position per line, styled `>` headers, rules between records in multi-FASTA. Each residue sits in a square cell drawn only behind the residues, and the block breaks out of the reading column to fit 60 cells. Any input shape (one long line, 60/70/80-character lines, multi-FASTA, protein) is reflowed. Copy returns the original. Inline primers stay ungrouped. Rendered by the companion plugin for `fasta`, `dna`, `protein` blocks.
+Sequence rule: GenBank convention. Groups of 10, up to six per line as the reading column allows, a right-aligned tabular start position per line, styled `>` headers, rules between records in multi-FASTA. Each residue sits in a square cell drawn only behind the residues, and the block stays inside the reading column. Any input shape (one long line, 60/70/80-character lines, multi-FASTA, protein) is reflowed. Copy returns the original. Inline primers stay ungrouped. Rendered by the companion plugin for `fasta`, `dna`, `protein` blocks.
 
 Code rule: at most four token colours derived from the palette; proof red never in code; every token colour passes contrast on the code ground; Prism (reading) and CodeMirror (editing) both themed; checked with nix, python, typescript, bash, yaml/json and Korean comments, light and dark.
 
@@ -29,7 +29,7 @@ OWN-WORLD: cool paper in three tonal layers: page #FAFAFA, side panels and tab s
 
 STORY: the reader opens a mixed lab note, reads the Korean body in a calm column, finds a primer by its position number in a gridded sequence block, and moves between notes through the familiar tree, tabs, and outline.
 
-FIRST VIEWPORT: desktop 1440 wide. Ribbon, sidebar tab row, file tree, and vault bar form one #F0F1F3 column; the open note is bold with a red proof caret before its name. The tab strip sits in the same tone with square tab cells; the active tab is page-toned, joins the note, and is cut at its corner. A centred reading column of 700px with the title on a blue rule cut at its end, properties as ruled rows on the cell module, H2s opened by a blue square marker, and a fasta block (a plain code block until the deferred sequence plugin ships).
+FIRST VIEWPORT: desktop 1440 wide. Ribbon, sidebar tab row, file tree, and vault bar form one #F0F1F3 column; the open note is bold with a red proof caret before its name. The tab strip sits in the same tone with square tab cells; the active tab is page-toned, joins the note, and is cut at its corner. A centred reading column of 700px with the title on a blue rule cut at its end, properties as ruled rows on the cell module, H2s opened by a blue square marker, and a sequence block drawn by the companion plugin on the cell grid.
 
 FORM: 원고지 Manuscript Grid, my first-ranked grounded candidate, picked by the user in the safer re-roll round; seed:9c5aab12d17a8dbb.
 
@@ -38,6 +38,5 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 ## Open decisions
 
 - Contrast standard (PRODUCT.md open item).
-- Sequence plugin: deferred; it will consume this flake's outputs. Until then `fasta` blocks render as plain code.
 - H2 numbers: Obsidian unloads off-screen sections, so CSS counters number wrong in long notes. H2s carry an unnumbered marker until the owner decides whether the companion plugin should number them.
 - Icon set: Lucide stays at a 1.5px stroke; replacing it with a square-geometry set through a companion plugin is under the owner's review.
