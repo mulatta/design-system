@@ -119,9 +119,9 @@ body :is(input, textarea):read-write:focus {
 	background:
 		linear-gradient(
 			225deg,
-			transparent 8px,
-			var(--wg-rule) 8px 9.5px,
-			transparent 9.5px
+			transparent var(--wg-cut-in),
+			var(--wg-rule) var(--wg-cut-in) var(--wg-cut-out),
+			transparent var(--wg-cut-out)
 		)
 		right top / var(--wg-cut) var(--wg-cut) no-repeat border-box,
 		var(--wg-paper);
@@ -131,13 +131,7 @@ body :is(input, textarea):read-write:focus {
 		inset -1px 0 var(--wg-rule);
 	color: var(--wg-ink);
 	font-weight: 700;
-	clip-path: polygon(
-		0 0,
-		calc(100% - var(--wg-cut)) 0,
-		100% var(--wg-cut),
-		100% 100%,
-		0 100%
-	);
+	clip-path: var(--wg-cut-clip);
 }
 
 .mod-root

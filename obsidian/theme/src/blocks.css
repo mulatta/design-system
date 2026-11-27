@@ -31,22 +31,16 @@
 	background:
 		linear-gradient(
 			225deg,
-			transparent 8px,
-			rgb(var(--callout-color)) 8px 9.5px,
-			transparent 9.5px
+			transparent var(--wg-cut-in),
+			rgb(var(--callout-color)) var(--wg-cut-in) var(--wg-cut-out),
+			transparent var(--wg-cut-out)
 		)
 		right top / var(--wg-cut) var(--wg-cut) no-repeat border-box,
 		color-mix(in srgb, rgb(var(--callout-color)) 15%, var(--wg-paper));
 	border: 0;
 	border-top: 2px solid rgb(var(--callout-color));
 	border-radius: 0;
-	clip-path: polygon(
-		0 0,
-		calc(100% - var(--wg-cut)) 0,
-		100% var(--wg-cut),
-		100% 100%,
-		0 100%
-	);
+	clip-path: var(--wg-cut-clip);
 }
 
 .callout-title {

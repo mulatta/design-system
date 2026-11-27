@@ -16,6 +16,15 @@ body {
 	--icon-s-stroke-width: 1.5px;
 	--icon-m-stroke-width: 1.5px;
 	--icon-l-stroke-width: 1.25px;
+	--wg-cut-in: calc(var(--wg-cut) * 0.70711 - 0.5px);
+	--wg-cut-out: calc(var(--wg-cut) * 0.70711 + 1px);
+	--wg-cut-clip: polygon(
+		0 0,
+		calc(100% - var(--wg-cut)) 0,
+		100% var(--wg-cut),
+		100% 100%,
+		0 100%
+	);
 }
 
 /* Obsidian redefines radius variables on these body classes. */

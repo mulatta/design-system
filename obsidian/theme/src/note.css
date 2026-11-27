@@ -32,9 +32,9 @@
 	background:
 		linear-gradient(
 			225deg,
-			transparent 8px,
-			var(--wg-rule) 8px 9.5px,
-			transparent 9.5px
+			transparent var(--wg-cut-in),
+			var(--wg-rule) var(--wg-cut-in) var(--wg-cut-out),
+			transparent var(--wg-cut-out)
 		)
 		right top / var(--wg-cut) var(--wg-cut) no-repeat,
 		linear-gradient(var(--wg-rule), var(--wg-rule)) left top /
