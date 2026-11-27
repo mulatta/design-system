@@ -47,21 +47,23 @@
 
 .token.number,
 .token.boolean,
-.cm-number,
-.cm-atom {
+.cm-number {
 	color: var(--code-value);
 }
 
 .token.function,
 .token.builtin,
 .cm-def,
-.cm-variable-2 {
+.cm-builtin,
+.cm-type {
 	color: var(--code-function);
 	font-weight: 700;
 }
 
 .token.property,
-.cm-property {
+.token.key,
+.cm-property,
+.cm-atom {
 	color: var(--code-property);
 }
 
