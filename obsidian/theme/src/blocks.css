@@ -1,6 +1,8 @@
 .markdown-rendered table {
 	border-collapse: collapse;
-	width: 100%;
+	width: auto;
+	max-width: 100%;
+	word-break: keep-all;
 	font-variant-numeric: tabular-nums lining-nums;
 	font-size: 0.95em;
 }

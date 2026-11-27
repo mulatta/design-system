@@ -11,7 +11,7 @@ Reading view shows a rendered note in a calm reading column: the title in MaruBu
 - `read-links-tags` shows resolved links in the accent with an offset underline, unresolved links muted and dotted, tags as square cells.
 - `read-inline` shows inline code on the tint inside a fine box, `==highlight==` as a pale blue wash with no underline, and `~~strikethrough~~` in mute under a red strike that ends in a red delete loop curling up from the line. The editing note is hidden.
 - `read-code` shows code blocks on the tint with a top rule that runs into the cut corner, at most four token colours, no proof red, and a square copy button. Geometry: `geo-code-top`.
-- `read-table` shows a full-width table with a fine rule above the header, a heavy rule under it, fine row rules, and tabular lining numerals; the header row stays on the page tone.
+- `read-table` shows a table as wide as its content, up to the note column, with Hangul wrapping between words, never inside one, and a table wider than the column scrolling sideways in its own box; it has a fine rule above the header, a heavy rule under it, fine row rules, and tabular lining numerals; the header row stays on the page tone.
 - `read-callouts` shows every callout type in the accent except warning, fail, danger, error, and bug in proof red and quote in grey, each on its tint under a top rule that turns down a cut corner, with no side or bottom line. `elements-ko` holds note, tip, danger, quote, summary, todo, and important. Geometry: `geo-callout`.
 - `read-quote-hr` shows a plain blockquote between fine rules in the muted colour, and a horizontal rule drawn as a strip of cells.
 - `read-tasks` shows square checkboxes at stock size and position; a done task has a red cross that fills its box and a red strike; the checkbox never touches its label, and a wrapped second line starts under the first line's text. Geometry: `geo-tasks`.
@@ -34,7 +34,7 @@ Preconditions:
 - **English.** Repeat the lab note and element note captures with `lab-note-en` and `elements-en`. Body text is Source Serif 4 throughout, and the headings, table, and callouts keep the rhythm of the Korean notes.
 - **Dark.** Repeat each capture with `--scheme dark`. The same elements keep their roles with the dark palette.
 - **Geometry.** For `read-title-props`, `read-headings`, `read-code`, `read-callouts`, and `read-tasks`, also run their parts with `obs compare` against a stock run: `--part title-rule --part properties --part heading --part code-top --part callout --part tasks`.
-- **Table width.** `obs editcheck --run agent` measures `read-table`'s width against the column as `reading-table`.
+- **Table width.** `obs editcheck --run agent` measures `read-table`'s width against its content and the column as `reading-table`.
 - **Proof.** Look at every capture against the sub-feature list and report each sub-feature as holding or not, with the capture path.
 
 ## Gotchas

@@ -13,7 +13,7 @@ Editing view is where the note is written: Live Preview renders most markdown in
 - `edit-title-focus` lets the inline title be clicked and edited with no outline around it; the caret shows the focus.
 - `edit-property-focus` lets a property's value or name be clicked and edited with no ring around the property row and no fill behind the value.
 - `edit-property-select` leaves a property row and its name unchanged under the pointer, and shows a row selected by a click beside its value with the selected-item tint of the file tree, not a ring, once the button is released.
-- `edit-table` draws a Live Preview table across the note column, as wide as in reading view.
+- `edit-table` sizes a Live Preview table to its content, up to the note column, as reading view does; a table wider than the column scrolls inside its widget.
 - `edit-code-active` keeps a code line on the code block's tint while the caret is on it.
 
 ## How to get to it (user POV)

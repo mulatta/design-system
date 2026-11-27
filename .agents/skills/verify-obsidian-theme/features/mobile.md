@@ -10,7 +10,7 @@ Obsidian's mobile app uses its own layout: no ribbon or side panes on screen, a 
 - `mobile-blocks` keeps code blocks, tables, and callouts inside the width or scrollable inside their own box.
 - `mobile-raised` draws the floating navbar and the top sidebar, edit, and more buttons square, framed by a 1px accent ring on paper with the theme's shadow and no blur.
 - `mobile-settings` opens settings as a square modal over the note.
-- `mobile-editing` keeps Live Preview at phone width like desktop Live Preview: the title rule, properties, the H2 marker, the code top rule, callouts, task boxes, and a table across the column.
+- `mobile-editing` keeps Live Preview at phone width like desktop Live Preview: the title rule, properties, the H2 marker, the code top rule, callouts, task boxes, and a table sized to its content within the column.
 
 ## How to get to it (user POV)
 
@@ -41,5 +41,5 @@ Preconditions:
 - `shot` cannot open the mobile drawers (`.workspace-drawer`) apart from search; prove a drawer change with a custom CDP drive. Each step of the harness closes both drawers first, so a drawer from an earlier step does not cover the note.
 - Obsidian hides the navbar and the top buttons while the editor has focus, so `compare` and `layers` measure them only in reading view.
 - The search drawer covers the note, so `editcheck --mobile` reaches only the search field in `text-focus` and the note's editing roots in `note-text-focus`.
-- On 2026-11-27 (Obsidian 1.15.1) three phone defects were measured and not fixed: the reading-view task checkbox sits 3.6px left of the column edge (desktop: on it); Live Preview's table is 311px in a 327px column (`editcheck --mobile` fails `live-table`); the view header's 1px underline runs across the floating header, where stock draws none (`build/verify/compare/reading-mobile/<scheme>/top-buttons.*.png`).
+- On 2026-11-27 (Obsidian 1.15.1) two phone defects were measured and not fixed: the reading-view task checkbox sits 3.6px left of the column edge (desktop: on it); the view header's 1px underline runs across the floating header, where stock draws none (`build/verify/compare/reading-mobile/<scheme>/top-buttons.*.png`).
 - Emulation is a stand-in. It does not prove behaviour on a real iOS or Android WebView: safe-area insets, real font loading from a synced vault, and touch states stay unverified until checked on a device.

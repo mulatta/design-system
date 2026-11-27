@@ -44,7 +44,3 @@
 	border-right: 1px solid var(--wg-rule);
 	padding-right: 0.3em;
 }
-
-.markdown-source-view.mod-cm6 .cm-table-widget .table-wrapper {
-	width: 100%;
-}
