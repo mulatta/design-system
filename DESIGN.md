@@ -153,7 +153,7 @@ Every component looks printed on the sheet or marked on it afterwards. Obsidian 
 - **Style:** `==text==` keeps ink text on Manuscript Rule Blue at 12%, in reading view and the editor. It takes no underline, which would read as a link.
 
 ### Proof marks
-- **Delete:** `~~text~~` turns `mute` under a 1.5px Proofreader's Red strike. Reading view ends the strike with the delete loop, curling up from the line as a proofreader draws it.
+- **Delete:** `~~text~~` turns `mute` under a 1.5px Proofreader's Red strike. The strike ends with the delete loop, curling up from the line as a proofreader draws it. In Live Preview the line holding the caret shows its raw `~~` and no loop.
 - **Editing note:** in the editor the `%%` marks of a comment are bold Proofreader's Red and the note between them is `mute`. Reading view hides the note.
 - A footnote reference stays blue: the writer adds it, a proofreader does not.
 

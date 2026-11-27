@@ -89,7 +89,19 @@
 	-webkit-box-decoration-break: slice;
 }
 
-.markdown-rendered del::after {
+.markdown-rendered del::after,
+.markdown-source-view.mod-cm6
+	.cm-strikethrough:not(.cm-formatting):is(
+		:has(+ [contenteditable="false"]),
+		:has(+ img.cm-widgetBuffer + [contenteditable="false"])
+	):not(
+		:has(
+			+ img.cm-widgetBuffer
+				+ [contenteditable="false"]
+				+ img.cm-widgetBuffer
+				+ .cm-strikethrough
+		)
+	)::after {
 	content: "";
 	display: inline-block;
 	width: 0.5em;

@@ -6,7 +6,7 @@ Editing view is where the note is written: Live Preview renders most markdown in
 
 - `edit-live` renders headings, emphasis, links, and inline code like reading view; H2 carries the same hung square marker, without reading view's trailing rule.
 - `edit-markers` shows markdown markers (`#`, `*`, `` ` ``) in the faint colour.
-- `edit-inline` sets inline code in D2Coding on the tint between fine rules, `==highlight==` as a pale blue wash with no underline, and `~~strikethrough~~` in mute under a red strike. The editing note shows its `%%` marks in bold red and its text in mute; a comment inside a code block keeps the code comment colour.
+- `edit-inline` sets inline code in D2Coding on the tint between fine rules, `==highlight==` as a pale blue wash with no underline, and `~~strikethrough~~` in mute under a red strike that ends in the delete loop, as in reading view, once per strikethrough even when bold, code, or a link inside it splits it. The line holding the caret shows the raw `~~` and no loop. The editing note shows its `%%` marks in bold red and its text in mute; a comment inside a code block keeps the code comment colour.
 - `edit-code-lines` sets fenced code lines in D2Coding on the tint, with a rule above the opening fence and the same token colours as reading view, in Live Preview and source mode.
 - `edit-tags` draws `#tag` as a square cell in D2Coding in the accent.
 - `edit-caret` shows a proof-red caret in the editor, and the line holding it gets no fill.
@@ -34,6 +34,7 @@ Preconditions:
 - **Caret.** `edit-caret` needs focus in the editor; write a custom drive over CDP (port in `build/verify/agent/run.json`) that clicks into a paragraph and captures. `shot` focuses the editor, but the caret blinks, so a plain `shot` may capture it switched off.
 - **Geometry.** Run `obs compare --base stock --run agent --view live --scheme light`, then `--scheme dark`, against a stock run. The `title-rule`, `properties`, `heading`, `code-top`, `callout`, `table`, and `task-line` parts measure the Live Preview counterparts of the reading parts (see [Geometry against stock Obsidian](./stock-geometry.md)).
 - **Tones.** Run `obs layers --run agent --view live --scheme light`, then `--scheme dark`. `note | code`, `note | inline-code`, and `note | property-key` prove the tint of `edit-code-lines` and `edit-inline`.
+- **Joins.** Run `obs joins --run agent --view live`, and with `--mobile`. `delete-loop` proves the loop of `edit-inline` meets its strike.
 - **States.** Run `obs editcheck --run agent --scheme light`, then `--scheme dark`. `text-focus` proves `edit-title-focus` and `edit-property-focus`, `property-select` proves `edit-property-select`, `live-table` proves `edit-table`, `live-column` proves `edit-column`, and `code-active-line` proves `edit-code-active`.
 - **Phone.** Add `--mobile` to `compare --view live`, `layers --view live`, and `editcheck` to repeat them under phone emulation (see [Mobile](./mobile.md)).
 - **Proof.** Report each sub-feature with its capture path.
@@ -44,5 +45,6 @@ Preconditions:
 - Live Preview's table widget pads itself by the drag-handle size and pulls itself out by the same amount, so a table starts on the column edge. Obsidian makes the handles 24px on the phone but pulls only 16px; the theme pulls by the handle size, or a column-wide table comes up 16px short.
 - The rule above the opening fence is a plain 2px border with no 45° cut, unlike reading view's code block; the `code-top` part shows it.
 - CodeMirror renders only the lines near the viewport, so a block far down the note is not in the DOM until the editor scrolls to it. `compare` and `layers` scroll from the top until a part or region appears.
+- Live Preview hides a marker such as `~~` or `**` as an empty `contenteditable="false"` span between `img.cm-widgetBuffer`s, and splits a strikethrough into one `.cm-strikethrough` span per run between markers. The loop goes on a piece followed by a hidden marker unless another `.cm-strikethrough` follows that marker, so only a strikethrough's last piece carries it. A revealed marker is a `.cm-formatting` span, not a hidden one, so the caret's line gets no loop.
 - Live Preview reveals markers only on the active line; without a focused line, markers mostly stay hidden.
 - `--scroll` scrolls `.cm-scroller`, whose height differs from reading view; adjust the value per capture.
