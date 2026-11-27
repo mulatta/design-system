@@ -10,7 +10,14 @@
 .markdown-rendered h1,
 .markdown-rendered h2,
 .markdown-rendered h3,
-.markdown-rendered h4 {
+.markdown-rendered h4,
+.markdown-source-view.mod-cm6
+	:is(
+		.HyperMD-header-1,
+		.HyperMD-header-2,
+		.HyperMD-header-3,
+		.HyperMD-header-4
+	) {
 	font-family: var(--wg-text-family);
 	letter-spacing: -0.01em;
 	text-wrap: balance;
