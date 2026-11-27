@@ -36,7 +36,7 @@
 			transparent 9.5px
 		)
 		right top / var(--wg-cut) var(--wg-cut) no-repeat border-box,
-		color-mix(in srgb, rgb(var(--callout-color)) 7%, var(--wg-paper));
+		color-mix(in srgb, rgb(var(--callout-color)) 15%, var(--wg-paper));
 	border: 0;
 	border-top: 2px solid rgb(var(--callout-color));
 	border-radius: 0;

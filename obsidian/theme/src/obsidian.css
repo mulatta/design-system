@@ -174,6 +174,7 @@ body,
 	--checkbox-marker-color: var(--wg-proof);
 	--checklist-done-color: var(--wg-mute);
 	--checklist-done-decoration: line-through;
+	--callout-blend-mode: normal;
 	--callout-default: var(--wg-rule-rgb);
 	--callout-important: var(--wg-rule-rgb);
 	--callout-info: var(--wg-rule-rgb);
