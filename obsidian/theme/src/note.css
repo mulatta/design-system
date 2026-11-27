@@ -154,7 +154,8 @@
 	font-style: italic;
 }
 
-.markdown-rendered strong {
+.markdown-rendered strong,
+.markdown-source-view.mod-cm6 .cm-strong {
 	font-weight: 700;
 }
 
