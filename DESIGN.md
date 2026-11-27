@@ -140,6 +140,15 @@ Every component looks printed on the sheet or marked on it afterwards. Obsidian 
 
 **The Shared Line Rule.** Rules that neighbouring panes draw at one height meet on one line. The note's view header takes Obsidian's `--header-height`, 40px against stock's 38.3px, so its rule continues the one under the sidebar's pane header.
 
+### Reading and editing
+A device looks the same in reading view and in Live Preview while the caret is outside it. The two views differ only where the editor needs something reading view has no use for, and this list is all of it:
+- The line holding the caret shows its markdown marks.
+- Reading view runs the H2's fine rule to the column edge. An editor line cannot be the flex row that rule needs, so Live Preview shows the square alone.
+- Live Preview names a code block's language at the block's top right, in the code family in `mute`.
+- Live Preview shows a footnote reference as typed, `[^1]`, and keeps the footnote where it was written, so it has no footnote section and no line above one.
+- A list item and a task box sit where Obsidian's editor puts them, after the marker and the spaces typed before it.
+- The two highlighters name code tokens differently, and a token takes the same colour in both views only where the names line up. The editor sets brackets, separators, and a literal such as `true` in ink and a name that a statement defines in bold, and reading view sets a called member in bold. Where the editor has no mode for a language, as for nix, it leaves the code plain.
+
 ### Tabs
 - **Shape:** square cells sharing borders along the tab strip.
 - **Active:** a 2px Manuscript Rule Blue top rule that turns down the 45° cut, with a small red proof mark before the title.
@@ -160,6 +169,12 @@ Every component looks printed on the sheet or marked on it afterwards. Obsidian 
 - **Delete:** `~~text~~` turns `mute` under a 1.5px Proofreader's Red strike. The strike ends with the delete loop, curling up from the line as a proofreader draws it. In Live Preview the line holding the caret shows its raw `~~` and no loop.
 - **Editing note:** in the editor the `%%` marks of a comment are bold Proofreader's Red and the note between them is `mute`. Reading view hides the note.
 - A footnote reference stays blue: the writer adds it, a proofreader does not.
+
+### Blockquote
+- **Style:** a 2px `pale` left rule with the text 2ch in from it, in ink on the page: no top or bottom rule, no fill, square. A nested quote draws the same rule again inside the first.
+
+### Divider
+- **Style:** `---` is a strip of empty cells in 1px `pale` lines, one `cell` high, in whole cells stretched to span the column, closed at its right end. Only a divider takes the strip: the line above the footnotes is a plain 1px `pale` line.
 
 ### Callouts and code blocks
 - **Corner Style:** square, with the one 45° cut.

@@ -160,7 +160,7 @@ The rows cover the paragraph, headings 1 to 6 and the H2 marker, bold, italic, s
 
 Code tokens are compared character by character. The check pairs the code blocks of the two views in order and, for each character, takes the colour, weight, and slant of the token that holds it. It prints one line per pair of token classes, such as `typescript keyword as keyword "export"`, so a class that one highlighter has and the other lacks shows up by name.
 
-A difference the editor needs is declared in the `pairDiffs` table with its reason. It prints as a `diff` line with both values and the reason, so no difference passes without a line.
+A difference the editor needs is declared in the `pairDiffs` table with its reason. It prints as a `diff` line with both values and the reason, so no difference passes without a line. `DESIGN.md` lists the same differences under "Reading and editing"; a row added to one goes into the other.
 
 The fixture is `pairs`, which holds every kind once or more and ends with an empty line for the caret. `pairs` records the vault's files before it opens the note and puts them back after, as `editcheck` does, and prints a `VAULT` line for each change.
 
