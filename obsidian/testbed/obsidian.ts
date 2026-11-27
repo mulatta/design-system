@@ -3270,7 +3270,9 @@ function sequenceFences(note: string): Fence[] {
 	return found;
 }
 
-function fastaOf(source: string): string {
+function fastaRecords(
+	source: string,
+): { header: string | null; residues: string }[] {
 	const records: { header: string | null; residues: string }[] = [];
 	for (const line of source.split("\n")) {
 		const text = line.trim();
@@ -3283,9 +3285,31 @@ function fastaOf(source: string): string {
 			records[records.length - 1].residues += residues;
 		}
 	}
-	return records
+	return records;
+}
+
+function fastaOf(source: string): string {
+	return fastaRecords(source)
 		.map((r) => (r.header === null ? r.residues : `${r.header}\n${r.residues}`))
 		.join("\n");
+}
+
+function lengthDigits(source: string): number {
+	const lengths = fastaRecords(source).map((r) => r.residues.length);
+	return String(Math.max(0, ...lengths)).length;
+}
+
+function unitChars(fence: Fence): number {
+	const unit = (residues: string) =>
+		fence.language === "dna"
+			? "nt"
+			: fence.language === "protein" || /[efijlopqz*]/i.test(residues)
+				? "aa"
+				: "nt/aa";
+	return Math.max(
+		0,
+		...fastaRecords(fence.source).map((r) => unit(r.residues).length),
+	);
 }
 
 type Check = { pass: boolean; reason: string };
@@ -3381,6 +3405,12 @@ async function seqcheck(args: string[]): Promise<void> {
 	const note = readFileSync(join(state.vault, prepared.note), "utf8");
 	const fences = sequenceFences(note);
 	const blocks: Record<string, unknown>[] = [];
+	const badgeWidths: {
+		index: number;
+		digits: number;
+		unit: number;
+		width: number;
+	}[] = [];
 	for (const [index, fence] of fences.entries()) {
 		const entry: Record<string, unknown> = {
 			index,
@@ -3477,6 +3507,18 @@ async function seqcheck(args: string[]): Promise<void> {
 					const badge = r.querySelector(":scope > .seq-head > .seq-badge");
 					return badge ? box(badge.getBoundingClientRect()) : null;
 				});
+				const units = [...block.querySelectorAll(".seq-record")].map((r) => {
+					const unit = r.querySelector(
+						":scope > .seq-head > .seq-badge > .seq-badge-unit",
+					);
+					if (!unit) return null;
+					const range = document.createRange();
+					range.selectNodeContents(unit);
+					return {
+						part: r1(unit.getBoundingClientRect().width),
+						text: r1(range.getBoundingClientRect().width),
+					};
+				});
 				const headers = [...block.querySelectorAll(".seq-header")].map((h) => {
 					const range = document.createRange();
 					range.selectNodeContents(h);
@@ -3504,6 +3546,7 @@ async function seqcheck(args: string[]): Promise<void> {
 					rect,
 					column,
 					badges,
+					units,
 					scroller: inner(scrollerEl),
 					clippedBy,
 					scrollWidth: block.scrollWidth,
@@ -3604,6 +3647,43 @@ async function seqcheck(args: string[]): Promise<void> {
 							: `button covers ${copyHits.join(", ")}`,
 				}
 			: { pass: false, reason: "no .seq-copy button" };
+		const shown = badges.filter((b): b is Box => b !== null);
+		const round = (n: number) => Math.round(n * 10) / 10;
+		const spread = (values: number[]) =>
+			round(Math.max(...values) - Math.min(...values));
+		const ends = shown.map((b) => round(b.x + b.w));
+		checks["badge-column"] = {
+			pass:
+				shown.length > 0 &&
+				spread(shown.map((b) => b.w)) <= 0.5 &&
+				spread(ends) <= 0.5,
+			reason: `widths ${shown.map((b) => b.w).join(", ")}, right edges ${ends.join(", ")}`,
+		};
+		const cell = m.groups[0]?.h;
+		checks["badge-height"] = {
+			pass:
+				cell !== undefined &&
+				shown.length > 0 &&
+				shown.every((b) => Math.abs(b.h - cell - 2) <= 0.5),
+			reason: `heights ${shown.map((b) => b.h).join(", ")}, cell ${cell}`,
+		};
+		const units = m.units.filter(
+			(u): u is { part: number; text: number } => u !== null,
+		);
+		const widestUnit = Math.max(...units.map((u) => u.text));
+		checks["badge-unit"] = {
+			pass:
+				units.length > 0 &&
+				units.every((u) => Math.abs(u.part - widestUnit) <= 0.5),
+			reason: `unit parts ${units.map((u) => u.part).join(", ")}, widest unit text ${widestUnit}`,
+		};
+		if (shown[0])
+			badgeWidths.push({
+				index,
+				digits: lengthDigits(fence.source),
+				unit: unitChars(fence),
+				width: shown[0].w,
+			});
 		const fasta = fastaOf(fence.source);
 		const at = [...fasta].findIndex((c, i) => m.selectionText[i] !== c);
 		const near = (t: string) =>
@@ -3674,6 +3754,17 @@ async function seqcheck(args: string[]): Promise<void> {
 	await page.mouse.move(-10, -10);
 	if (state.hidden) await conceal(page);
 	await browser.close();
+
+	for (const own of badgeWidths) {
+		const peer = badgeWidths.find(
+			(b) => b.digits === own.digits && b.unit === own.unit,
+		);
+		if (!peer || peer === own) continue;
+		(blocks[own.index].checks as Record<string, Check>)["badge-width"] = {
+			pass: Math.abs(own.width - peer.width) <= 0.5,
+			reason: `${own.width}px, block ${peer.index} with ${own.digits}-digit lengths and ${own.unit}-letter units ${peer.width}px`,
+		};
+	}
 
 	const failures = blocks.flatMap((b) =>
 		Object.entries(b.checks as Record<string, Check>)

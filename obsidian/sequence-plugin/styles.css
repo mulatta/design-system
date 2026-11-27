@@ -57,6 +57,8 @@
 }
 
 .seq-badge {
+	display: inline-flex;
+	gap: 1ch;
 	flex: none;
 	margin-inline-start: auto;
 	padding: 0 0.6ch;
@@ -66,6 +68,15 @@
 	font-size: var(--font-smallest);
 	user-select: none;
 	-webkit-user-select: none;
+}
+
+.seq-badge-len {
+	min-width: var(--seq-len-width, auto);
+	text-align: end;
+}
+
+.seq-badge-unit {
+	width: var(--seq-unit-width, 5ch);
 }
 
 .seq-copy {

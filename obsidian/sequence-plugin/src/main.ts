@@ -72,6 +72,15 @@ class SequenceBlock extends MarkdownRenderChild {
 			cls: rule === "aa" ? ["seq-block", "seq-block--protein"] : "seq-block",
 			attr: { "data-records": this.records.length },
 		});
+		const longest = Math.max(0, ...this.records.map((record) => record.length));
+		const widestUnit = Math.max(
+			0,
+			...this.records.map((record) => record.unit.length),
+		);
+		this.block.setCssProps({
+			"--seq-len-width": `${String(longest).length}ch`,
+			"--seq-unit-width": `${widestUnit}ch`,
+		});
 		for (const record of this.records) {
 			const recordEl = this.block.createDiv({ cls: "seq-record" });
 			const head = recordEl.createDiv({ cls: "seq-head" });
@@ -80,10 +89,10 @@ class SequenceBlock extends MarkdownRenderChild {
 				headerEl.createSpan({ cls: "seq-header-mark", text: ">" });
 				headerEl.appendText(record.header);
 			}
-			head.createSpan({
-				cls: "seq-badge",
-				text: `${record.length} ${record.unit}`,
-			});
+			const badge = head.createSpan({ cls: "seq-badge" });
+			badge.createSpan({ cls: "seq-badge-len", text: String(record.length) });
+			badge.appendText(" ");
+			badge.createSpan({ cls: "seq-badge-unit", text: record.unit });
 			this.recordEls.push(recordEl);
 		}
 		this.renderLines(this.records.map((record) => record.lines));

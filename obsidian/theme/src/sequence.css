@@ -89,8 +89,11 @@ body .seq-header-mark {
 
 body .seq-badge {
 	flex: none;
+	box-sizing: border-box;
+	height: calc(var(--wg-s) + 2px);
 	margin-left: auto;
-	padding: 2px 0.6ch;
+	padding: 0 0.6ch;
+	font-size: 1em;
 	line-height: var(--wg-s);
 	color: var(--wg-rule);
 	border: 1px solid var(--wg-rule);
