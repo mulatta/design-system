@@ -691,18 +691,68 @@ async function shot(args: string[]): Promise<void> {
 	console.log(`SHOT ${name}`);
 }
 
+type View = "reading" | "live";
+type Layout = "desktop" | "mobile";
+type Where = string | Partial<Record<View, string>>;
+
+const everywhere: Layout[] = ["desktop", "mobile"];
+const mobileOnly: Layout[] = ["mobile"];
+const leaf = ".workspace-leaf.mod-active";
+const reading = `${leaf} .markdown-reading-view`;
+const live = `${leaf} .markdown-source-view.is-live-preview`;
+const inNote = (selector: string): Where => ({
+	reading: `${reading} ${selector}`,
+	live: `${live} ${selector}`,
+});
+
+const selectorIn = (where: Where, view: View): string | undefined =>
+	typeof where === "string" ? where : where[view];
+
+const runsOn = (row: { on?: Layout[] }, layout: Layout): boolean =>
+	(row.on ?? ["desktop"]).includes(layout);
+
+const placed = <T extends { on?: Layout[] }>(
+	rows: T[],
+	where: (row: T) => Where,
+	view: View,
+	layout: Layout,
+): { row: T; selector: string }[] =>
+	rows.flatMap((row) => {
+		const selector = selectorIn(where(row), view);
+		return selector !== undefined && runsOn(row, layout)
+			? [{ row, selector }]
+			: [];
+	});
+
+function screenFor(mobile: boolean, size?: string) {
+	const fallback = mobile ? "390x844" : "1440x900";
+	const match = /^(\d+)x(\d+)$/.exec(size ?? fallback);
+	if (!match) fail(`bad --size ${size} (WIDTHxHEIGHT, e.g. ${fallback})`);
+	const layout: Layout = mobile ? "mobile" : "desktop";
+	return { layout, mobile, width: Number(match[1]), height: Number(match[2]) };
+}
+
+function placeFor(view: string, mobile: boolean, size?: string) {
+	if (view !== "reading" && view !== "live")
+		fail(`unknown --view ${view} (reading|live)`);
+	return {
+		...screenFor(mobile, size),
+		view: view as View,
+		tag: mobile ? `${view}-mobile` : view,
+	};
+}
+
 type Part = {
 	id: string;
 	note: string;
-	root: string;
+	root: Where;
+	on?: Layout[];
 	last?: boolean;
 	pad: [number, number, number, number];
 	rightEdge?: number;
 	maxHeight?: number;
 	measure: Record<string, string>;
 };
-
-const reading = ".workspace-leaf.mod-active .markdown-reading-view";
 
 const parts: Part[] = [
 	{
@@ -793,14 +843,16 @@ const parts: Part[] = [
 	{
 		id: "title-rule",
 		note: "lab-note-ko",
-		root: `${reading} .inline-title`,
+		root: inNote(".inline-title"),
+		on: everywhere,
 		pad: [8, 24, 28, 8],
 		measure: {},
 	},
 	{
 		id: "properties",
 		note: "elements-ko",
-		root: `${reading} .metadata-properties`,
+		root: inNote(".metadata-properties"),
+		on: everywhere,
 		pad: [8, 8, 8, 8],
 		measure: {
 			key: ".metadata-property-key",
@@ -814,7 +866,8 @@ const parts: Part[] = [
 	{
 		id: "tasks",
 		note: "elements-ko",
-		root: `${reading} ul.contains-task-list`,
+		root: { reading: `${reading} ul.contains-task-list` },
+		on: everywhere,
 		last: true,
 		pad: [6, 8, 6, 40],
 		measure: {
@@ -824,63 +877,151 @@ const parts: Part[] = [
 		},
 	},
 	{
+		id: "task-line",
+		note: "elements-ko",
+		root: { live: `${live} .HyperMD-task-line` },
+		on: everywhere,
+		pad: [6, 8, 60, 40],
+		measure: {
+			label: ".task-list-label",
+			box: ".task-list-item-checkbox",
+		},
+	},
+	{
 		id: "heading",
 		note: "lab-note-ko",
-		root: `${reading} h2`,
+		root: { reading: `${reading} h2`, live: `${live} .HyperMD-header-2` },
+		on: everywhere,
 		pad: [8, 8, 8, 32],
 		measure: {},
 	},
 	{
 		id: "code-top",
 		note: "lab-note-ko",
-		root: `${reading} .el-pre:not(.mod-frontmatter) pre`,
-		pad: [12, 12, 0, 12],
+		root: {
+			reading: `${reading} .el-pre:not(.mod-frontmatter) pre`,
+			live: `${live} .HyperMD-codeblock-begin`,
+		},
+		on: everywhere,
+		pad: [12, 12, 32, 12],
 		maxHeight: 64,
 		measure: {},
 	},
 	{
 		id: "callout",
 		note: "lab-note-ko",
-		root: `${reading} .callout`,
+		root: {
+			reading: `${reading} .callout`,
+			live: `${live} .cm-callout .callout`,
+		},
+		on: everywhere,
 		pad: [12, 12, 12, 12],
 		measure: {},
+	},
+	{
+		id: "table",
+		note: "lab-note-ko",
+		root: {
+			reading: `${reading} table`,
+			live: `${live} .cm-table-widget table`,
+		},
+		on: everywhere,
+		pad: [8, 8, 8, 8],
+		measure: { head: "thead th", cell: "tbody td" },
+	},
+	{
+		id: "navbar",
+		note: "lab-note-ko",
+		root: { reading: ".mobile-navbar" },
+		on: mobileOnly,
+		pad: [8, 8, 8, 8],
+		measure: {
+			actions: ".mobile-navbar-actions",
+			back: ".mobile-navbar-action-back",
+			icon: ".mobile-navbar-action-back svg",
+		},
+	},
+	{
+		id: "top-buttons",
+		note: "lab-note-ko",
+		root: { reading: `${leaf} .view-header` },
+		on: mobileOnly,
+		pad: [4, 0, 8, 0],
+		measure: {
+			sidebar: ".mod-left-split-toggle",
+			actions: ".view-actions",
+			more: ".view-actions .view-action:last-child",
+		},
 	},
 ];
 
 type Box = { x: number; y: number; w: number; h: number };
 type Measured = { root: Box; boxes: Record<string, Box | null> };
 
-async function measurePart(page: Page, part: Part): Promise<Measured | null> {
-	return page.evaluate(async (p) => {
-		const all = document.querySelectorAll(p.root);
-		const root = (p.last ? all[all.length - 1] : all[0]) as
-			| HTMLElement
-			| undefined;
-		if (!root) return null;
-		root.scrollIntoView({ block: "center" });
-		await new Promise((r) => setTimeout(r, 400));
-		const box = (r: DOMRect) => ({ x: r.x, y: r.y, w: r.width, h: r.height });
-		const rootRect = root.getBoundingClientRect();
-		const boxes: Record<
-			string,
-			{ x: number; y: number; w: number; h: number } | null
-		> = {};
-		for (const [label, selector] of Object.entries(p.measure)) {
-			const el = root.querySelector(selector);
-			if (!el) {
-				boxes[label] = null;
-				continue;
+const installFind = (page: Page) =>
+	page.evaluate(() => {
+		(window as any).__wgFind = async (selector: string, last = false) => {
+			const visible = () =>
+				[...document.querySelectorAll(selector)].filter((e) =>
+					e.checkVisibility(),
+				);
+			const scroller = [
+				...document.querySelectorAll<HTMLElement>(
+					".workspace-leaf.mod-active .markdown-preview-view, .workspace-leaf.mod-active .cm-scroller",
+				),
+			].find((e) => e.checkVisibility());
+			if (scroller) scroller.scrollTop = 0;
+			let found: Element[] = [];
+			for (let before = -1; scroller?.scrollTop !== before; ) {
+				await new Promise((r) => setTimeout(r, 150));
+				found = visible();
+				if (found.length > 0 || !scroller) break;
+				before = scroller.scrollTop;
+				scroller.scrollTop += scroller.clientHeight * 0.7;
 			}
-			const r = el.getBoundingClientRect();
-			boxes[label] = {
-				x: r.x - rootRect.x,
-				y: r.y - rootRect.y,
-				w: r.width,
-				h: r.height,
-			};
-		}
-		return { root: box(rootRect), boxes };
-	}, part);
+			return (last ? found[found.length - 1] : found[0]) ?? null;
+		};
+	});
+
+async function measurePart(
+	page: Page,
+	part: Part,
+	selector: string,
+): Promise<Measured | null> {
+	await installFind(page);
+	return page.evaluate(
+		async ({ p, selector }) => {
+			const root = (await (window as any).__wgFind(
+				selector,
+				p.last,
+			)) as HTMLElement | null;
+			if (!root) return null;
+			root.scrollIntoView({ block: "center" });
+			await new Promise((r) => setTimeout(r, 400));
+			const box = (r: DOMRect) => ({ x: r.x, y: r.y, w: r.width, h: r.height });
+			const rootRect = root.getBoundingClientRect();
+			const boxes: Record<
+				string,
+				{ x: number; y: number; w: number; h: number } | null
+			> = {};
+			for (const [label, selector] of Object.entries(p.measure)) {
+				const el = root.querySelector(selector);
+				if (!el) {
+					boxes[label] = null;
+					continue;
+				}
+				const r = el.getBoundingClientRect();
+				boxes[label] = {
+					x: r.x - rootRect.x,
+					y: r.y - rootRect.y,
+					w: r.width,
+					h: r.height,
+				};
+			}
+			return { root: box(rootRect), boxes };
+		},
+		{ p: part, selector },
+	);
 }
 
 function clipFor(part: Part, root: Box, width: number, height: number): Box {
@@ -914,17 +1055,26 @@ async function compare(args: string[]): Promise<void> {
 			run: { type: "string", default: "agent" },
 			scheme: { type: "string", default: "light" },
 			part: { type: "string", multiple: true, default: [] },
-			size: { type: "string", default: "1440x900" },
+			view: { type: "string", default: "reading" },
+			mobile: { type: "boolean", default: false },
+			size: { type: "string" },
 		},
 	});
-	const [width, height] = values.size.split("x").map(Number);
+	const { view, layout, mobile, width, height, tag } = placeFor(
+		values.view,
+		values.mobile,
+		values.size,
+	);
+	const here = placed(parts, (p) => p.root, view, layout);
 	const chosen =
 		values.part.length > 0
-			? parts.filter((p) => values.part.includes(p.id))
-			: parts;
+			? here.filter(({ row }) => values.part.includes(row.id))
+			: here;
 	if (chosen.length === 0)
-		fail(`no part matches; parts: ${parts.map((p) => p.id).join(", ")}`);
-	const outDir = join(verifyRoot, "compare", values.scheme);
+		fail(
+			`no part matches in ${tag}; parts: ${here.map(({ row }) => row.id).join(", ")}`,
+		);
+	const outDir = join(verifyRoot, "compare", tag, values.scheme);
 	rmSync(outDir, { recursive: true, force: true });
 	mkdirSync(outDir, { recursive: true });
 	const runs = [values.base, values.run];
@@ -935,20 +1085,20 @@ async function compare(args: string[]): Promise<void> {
 		const { browser, page } = await connect(state);
 		const cdp = await page.context().newCDPSession(page);
 		results[run] = {};
-		for (const part of chosen) {
+		for (const { row: part, selector } of chosen) {
 			const prepared = await prepare(page, {
 				width,
 				height,
-				mobile: false,
+				mobile,
 				note: part.note,
-				view: "reading",
+				view,
 				scheme: values.scheme,
 				open: "none",
 				hideRight: true,
 			});
 			if ("error" in prepared) fail(prepared.error);
 			await page.waitForTimeout(500);
-			const measured = await measurePart(page, part);
+			const measured = await measurePart(page, part, selector);
 			results[run][part.id] = measured;
 			if (!measured) continue;
 			const clip = clipFor(part, measured.root, width, height);
@@ -972,7 +1122,7 @@ async function compare(args: string[]): Promise<void> {
 	const round = (n: number) => Math.round(n * 2) / 2;
 	const lines: string[] = [];
 	const rows: string[] = [];
-	for (const part of chosen) {
+	for (const { row: part } of chosen) {
 		const a = results[values.base]?.[part.id];
 		const b = results[values.run]?.[part.id];
 		const diffs: string[] = [];
@@ -1025,7 +1175,12 @@ async function compare(args: string[]): Promise<void> {
 	console.log(`COMPARE ${outDir}`);
 }
 
-type Region = { id: string; selector: string; palette?: boolean };
+type Region = {
+	id: string;
+	selector: Where;
+	on?: Layout[];
+	palette?: boolean;
+};
 
 const regions: Region[] = [
 	{ id: "ribbon", selector: ".workspace-ribbon.mod-primary" },
@@ -1037,18 +1192,57 @@ const regions: Region[] = [
 	{ id: "vault-bar", selector: ".workspace-sidedock-vault-profile" },
 	{ id: "tab-strip", selector: ".mod-root .workspace-tab-header-container" },
 	{ id: "active-tab", selector: ".mod-root .workspace-tab-header.is-active" },
+	{ id: "view-header", selector: `.mod-root ${leaf} .view-header` },
 	{
-		id: "view-header",
-		selector: ".mod-root .workspace-leaf.mod-active .view-header",
+		id: "note",
+		selector: {
+			reading: `${reading} .markdown-preview-view`,
+			live: `${live} .cm-scroller`,
+		},
+		on: everywhere,
 	},
-	{ id: "note", selector: `${reading} .markdown-preview-view` },
 	{ id: "status-bar", selector: ".status-bar" },
-	{ id: "property-key", selector: `${reading} .metadata-property-key` },
-	{ id: "code", selector: `${reading} .el-pre:not(.mod-frontmatter) pre` },
-	{ id: "inline-code", selector: `${reading} p code` },
-	{ id: "table-head", selector: `${reading} thead th` },
-	{ id: "callout", selector: `${reading} .callout` },
-	{ id: "palette", selector: ".prompt", palette: true },
+	{
+		id: "property-key",
+		selector: inNote(".metadata-property-key"),
+		on: everywhere,
+	},
+	{
+		id: "code",
+		selector: {
+			reading: `${reading} .el-pre:not(.mod-frontmatter) pre`,
+			live: `${live} .HyperMD-codeblock-bg:not(.HyperMD-codeblock-begin)`,
+		},
+		on: everywhere,
+	},
+	{
+		id: "inline-code",
+		selector: { reading: `${reading} p code`, live: `${live} .cm-inline-code` },
+		on: everywhere,
+	},
+	{
+		id: "table-head",
+		selector: {
+			reading: `${reading} thead th`,
+			live: `${live} .cm-table-widget thead th`,
+		},
+		on: everywhere,
+	},
+	{
+		id: "callout",
+		selector: {
+			reading: `${reading} .callout`,
+			live: `${live} .cm-callout .callout`,
+		},
+		on: everywhere,
+	},
+	{ id: "navbar", selector: { reading: ".mobile-navbar" }, on: mobileOnly },
+	{
+		id: "top-buttons",
+		selector: { reading: `${leaf} .view-actions` },
+		on: mobileOnly,
+	},
+	{ id: "palette", selector: ".prompt", palette: true, on: everywhere },
 ];
 
 const boundaries: [string, string][] = [
@@ -1065,6 +1259,8 @@ const boundaries: [string, string][] = [
 	["note", "inline-code"],
 	["note", "table-head"],
 	["note", "callout"],
+	["note", "navbar"],
+	["note", "top-buttons"],
 	["note", "palette"],
 ];
 
@@ -1096,8 +1292,9 @@ async function readRegion(
 	page: Page,
 	selector: string,
 ): Promise<RegionStyle | null> {
-	return page.evaluate((sel) => {
-		const el = document.querySelector(sel) as HTMLElement | null;
+	await installFind(page);
+	return page.evaluate(async (sel) => {
+		const el = (await (window as any).__wgFind(sel)) as HTMLElement | null;
 		if (!el) return null;
 		const probe = document
 			.createElement("canvas")
@@ -1157,41 +1354,50 @@ async function layers(args: string[]): Promise<void> {
 			run: { type: "string", default: "agent" },
 			scheme: { type: "string", default: "light" },
 			note: { type: "string", default: "lab-note-ko" },
+			view: { type: "string", default: "reading" },
+			mobile: { type: "boolean", default: false },
 			threshold: { type: "string", default: "0.025" },
 		},
 	});
+	const { view, layout, mobile, width, height, tag } = placeFor(
+		values.view,
+		values.mobile,
+	);
+	const here = placed(regions, (r) => r.selector, view, layout);
 	const state = readState(values.run);
 	if (!alive(state.pid))
 		fail(`run "${values.run}" is not live; launch it again`);
 	const { browser, page } = await connect(state);
 	const base = {
-		width: 1440,
-		height: 900,
-		mobile: false,
+		width,
+		height,
+		mobile,
 		note: values.note,
-		view: "reading",
+		view,
 		scheme: values.scheme,
 		hideRight: true,
 	};
-	const prepared = await prepare(page, { ...base, open: "none" });
-	if ("error" in prepared) fail(prepared.error);
-	await page.waitForTimeout(500);
 	const found: Record<string, RegionStyle | null> = {};
-	for (const r of regions.filter((r) => !r.palette))
-		found[r.id] = await readRegion(page, r.selector);
-	await prepare(page, { ...base, open: "palette" });
-	await page.waitForTimeout(500);
-	for (const r of regions.filter((r) => r.palette))
-		found[r.id] = await readRegion(page, r.selector);
+	for (const palette of [false, true]) {
+		const prepared = await prepare(page, {
+			...base,
+			open: palette ? "palette" : "none",
+		});
+		if ("error" in prepared) fail(prepared.error);
+		await page.waitForTimeout(500);
+		for (const { row, selector } of here)
+			if (!!row.palette === palette)
+				found[row.id] = await readRegion(page, selector);
+	}
 	await page.keyboard.press("Escape");
 	if (state.hidden) await conceal(page);
 	await browser.close();
 
 	const threshold = Number(values.threshold);
 	const lines: string[] = [
-		`regions (${values.run}, ${values.scheme}): background, L, borders`,
+		`regions (${values.run}, ${tag}, ${values.scheme}): background, L, borders`,
 	];
-	for (const r of regions) {
+	for (const { row: r } of here) {
 		const s = found[r.id];
 		if (!s) {
 			lines.push(`  ${r.id.padEnd(13)} not found`);
@@ -1207,13 +1413,17 @@ async function layers(args: string[]): Promise<void> {
 		);
 	}
 	lines.push(`boundaries: dL (flag below ${threshold})`);
-	const pairs = boundaries.map(([a, b]) => {
-		const sa = found[a];
-		const sb = found[b];
-		const dL =
-			sa && sb ? Math.abs(oklchL(sa.background) - oklchL(sb.background)) : null;
-		return { a, b, dL };
-	});
+	const pairs = boundaries
+		.filter(([a, b]) => a in found && b in found)
+		.map(([a, b]) => {
+			const sa = found[a];
+			const sb = found[b];
+			const dL =
+				sa && sb
+					? Math.abs(oklchL(sa.background) - oklchL(sb.background))
+					: null;
+			return { a, b, dL };
+		});
 	for (const { a, b, dL } of pairs)
 		lines.push(
 			`  ${`${a} | ${b}`.padEnd(26)} ${dL === null ? "missing" : `${dL.toFixed(3)}${dL < threshold ? "  < threshold" : ""}`}`,
@@ -1221,8 +1431,12 @@ async function layers(args: string[]): Promise<void> {
 	const outDir = join(verifyRoot, "layers");
 	mkdirSync(outDir, { recursive: true });
 	writeFileSync(
-		join(outDir, `${values.run}-${values.scheme}.json`),
-		JSON.stringify({ regions: found, boundaries: pairs }, null, 2),
+		join(outDir, `${values.run}-${tag}-${values.scheme}.json`),
+		JSON.stringify(
+			{ view, layout, regions: found, boundaries: pairs },
+			null,
+			2,
+		),
 	);
 	console.log(lines.join("\n"));
 }
