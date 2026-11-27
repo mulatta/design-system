@@ -3392,6 +3392,29 @@ async function controlsNear(
 	return controls;
 }
 
+function spacingFaults(area: Box, controls: Control[]): string[] {
+	const small = (b: Box) => b.w < 24 || b.h < 24;
+	if (!small(area)) return [];
+	const cx = area.x + area.w / 2;
+	const cy = area.y + area.h / 2;
+	const r1 = (n: number) => Math.round(n * 10) / 10;
+	return controls.flatMap((c) => {
+		const gap = Math.hypot(
+			Math.max(c.box.x - cx, 0, cx - c.box.x - c.box.w),
+			Math.max(c.box.y - cy, 0, cy - c.box.y - c.box.h),
+		);
+		const apart = Math.hypot(
+			c.box.x + c.box.w / 2 - cx,
+			c.box.y + c.box.h / 2 - cy,
+		);
+		if (gap < 12 - 0.05)
+			return [`24px circle meets ${c.name} (${r1(gap)}px from the centre)`];
+		if (small(c.box) && apart < 24 - 0.05)
+			return [`24px circle meets ${c.name}'s (${r1(apart)}px apart)`];
+		return [];
+	});
+}
+
 async function seqcheck(args: string[]): Promise<void> {
 	const { values } = parseArgs({
 		args,
@@ -3940,38 +3963,25 @@ async function seqcheck(args: string[]): Promise<void> {
 					w: r1(x1 - x0 + step),
 					h: r1(y1 - y0 + step),
 				};
-				const pointer = (el: Element | null) =>
-					el !== null && getComputedStyle(el).cursor === "pointer";
-				const controls = [...document.querySelectorAll("body *")].flatMap(
-					(el) => {
-						if (
-							el === button ||
-							button.contains(el) ||
-							el.contains(button) ||
-							!pointer(el) ||
-							pointer(el.parentElement)
-						)
-							return [];
-						const c = el.getBoundingClientRect();
-						const meets =
-							Math.min(area.x + area.w, c.right) - Math.max(area.x, c.x) >
-								0.5 &&
-							Math.min(area.y + area.h, c.bottom) - Math.max(area.y, c.y) > 0.5;
-						return meets && c.width > 0 && c.height > 0
-							? [
-									`${el.tagName.toLowerCase()}${[...el.classList].map((k) => `.${k}`).join("")}`,
-								]
-							: [];
-					},
-				);
 				const fill = Math.round(
 					(count * step * step * 100) / (area.w * area.h),
 				);
-				return { ...area, fill, controls };
+				return { ...area, fill };
 			},
 			{ view: values.view, line: fence.line, cell: cell ?? m.copy.box.h },
 		);
-		(entry.facts as Record<string, unknown>).copyReach = reach;
+		const controls =
+			reach === null
+				? []
+				: await controlsNear(
+						cdp,
+						reach,
+						`__seqFind(${JSON.stringify(values.view)}, ${fence.line}).querySelector(".seq-copy")`,
+					);
+		(entry.facts as Record<string, unknown>).copyReach = reach && {
+			...reach,
+			controls: controls.map(({ name, box }) => ({ name, box })),
+		};
 		if (reach === null) {
 			checks["copy-reach"] = {
 				pass: false,
@@ -3980,8 +3990,11 @@ async function seqcheck(args: string[]): Promise<void> {
 		} else {
 			const covered = [
 				...hits(reach),
-				...reach.controls.map((c) => `control ${c}`),
+				...controls
+					.filter((c) => meets(reach, c.box))
+					.map((c) => `control ${c.name}`),
 			];
+			const crowded = spacingFaults(reach, controls);
 			const phone = await page.evaluate(() =>
 				document.body.classList.contains("is-phone"),
 			);
@@ -3994,11 +4007,12 @@ async function seqcheck(args: string[]): Promise<void> {
 				b && meets(reach, b) ? [`badge ${i}`] : [],
 			);
 			checks["copy-reach"] = {
-				pass: covered.length === 0 && big,
+				pass: covered.length === 0 && crowded.length === 0 && big,
 				reason: [
 					`hit area ${reach.w}x${reach.h}, ${reach.fill}% filled, for a ${m.copy.box.w}x${m.copy.box.h} button`,
 					phone ? `phone wants ${want}x${want}` : "",
 					covered.length > 0 ? `covers ${covered.join(", ")}` : "",
+					crowded.length > 0 ? crowded.join(", ") : "",
 					onBadge.length > 0 ? `meets ${onBadge.join(", ")}` : "",
 				]
 					.filter(Boolean)

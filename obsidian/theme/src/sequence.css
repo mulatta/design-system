@@ -72,8 +72,10 @@ body .seq-head {
 	padding-right: calc(var(--seq-head-end, 0px) + var(--seq-copy) + 1ch);
 }
 
+/* Obsidian's edit button: padding --size-2-3, an --icon-size icon; editor.css insets it by --wg-cut. */
 body .markdown-source-view.mod-cm6 .cm-embed-block .seq-block {
-	--seq-head-end: calc(var(--size-4-9) - var(--wg-s));
+	--seq-edit: calc(var(--wg-cut) + var(--size-2-3) * 2 + var(--icon-size));
+	--seq-head-end: calc(var(--seq-edit) - var(--wg-s) / 2);
 }
 
 body .seq-header {
