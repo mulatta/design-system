@@ -12,6 +12,7 @@ body .block-language-protein {
 body .seq-block {
 	--wg-s: clamp(12px, calc((100cqi - 32px) / 70), 14px);
 	--wg-row: calc(var(--wg-s) * 1.7);
+	--seq-copy: calc(var(--wg-s) + 6px);
 	position: relative;
 	box-sizing: border-box;
 	padding: var(--wg-s);
@@ -59,15 +60,11 @@ body .seq-head {
 	gap: calc(var(--wg-s) * 0.35) 1ch;
 	min-height: var(--wg-row);
 	margin-bottom: calc(var(--wg-s) * 0.35);
-	padding-right: var(--seq-head-end, 0px);
+	padding-right: calc(var(--seq-head-end, 0px) + var(--seq-copy) + 1ch);
 }
 
 body .markdown-source-view.mod-cm6 .cm-embed-block .seq-block {
 	--seq-head-end: calc(var(--size-4-9) - var(--wg-s));
-}
-
-body .seq-record + .seq-record > .seq-head {
-	padding-right: calc(var(--seq-head-end, 0px) + var(--wg-s) + 6px + 1ch);
 }
 
 body .seq-header {
@@ -152,11 +149,18 @@ body .seq-pos + .seq-group {
 	margin-left: calc(var(--wg-s) / 2);
 }
 
-body .seq-copy {
-	flex: none;
-	width: calc(var(--wg-s) + 6px);
-	height: calc(var(--wg-s) + 6px);
+/* Obsidian pads buttons through .is-tablet button:not(.clickable-icon). */
+body .seq-block .seq-copy {
+	position: absolute;
+	top: calc(var(--wg-s) + (var(--wg-row) - var(--seq-copy)) / 2);
+	right: calc(var(--wg-s) + var(--seq-head-end, 0px));
+	width: var(--seq-copy);
+	min-width: 0;
+	height: var(--seq-copy);
 	padding: 0;
+}
+
+body .seq-copy {
 	display: grid;
 	place-items: center;
 	color: var(--wg-mute);

@@ -21,13 +21,11 @@
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--size-4-1) 1ch;
+	padding-inline-end: var(--seq-head-end, 0px);
 }
 
-.markdown-source-view.mod-cm6
-	.cm-embed-block
-	.seq-record:first-child
-	> .seq-head {
-	padding-inline-end: calc(var(--size-4-9) - var(--size-4-3));
+.markdown-source-view.mod-cm6 .cm-embed-block .seq-block {
+	--seq-head-end: calc(var(--size-4-9) - var(--size-4-3));
 }
 
 .seq-header {
