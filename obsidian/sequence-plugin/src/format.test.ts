@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
 	badgeLabel,
+	blockSource,
 	copiedLabel,
-	copyLabel,
+	copyFailedLabel,
+	fenceAt,
 	formatSequences,
 	type Language,
 	type LineLength,
+	languages,
 	lineLengthFor,
 } from "./format.ts";
 
@@ -39,6 +42,7 @@ describe("formatSequences input shapes", () => {
 		assert.equal(rest.length, 0);
 		assert.deepEqual(record, {
 			header: null,
+			source: "ACGTACGTAC",
 			sequence: "ACGTACGTAC",
 			length: 10,
 			unit: "nt",
@@ -420,6 +424,65 @@ describe("formatSequences line length", () => {
 	});
 });
 
+describe("record source", () => {
+	const sources = (source: string, language: Language = "fasta") =>
+		formatSequences(source, 60, language).map((record) => record.source);
+
+	it("slices each record of a multi-FASTA block from its header line", () => {
+		const source = [
+			">a first",
+			"ACGTACGTAC",
+			"GGCC",
+			">b",
+			"TTTT",
+			">c last",
+			"acgt",
+		].join("\n");
+		assert.deepEqual(sources(source), [
+			">a first\nACGTACGTAC\nGGCC",
+			">b\nTTTT",
+			">c last\nacgt",
+		]);
+	});
+
+	it("keeps the lines as written, spaces, digits, and indentation included", () => {
+		const source = ">a\n  ACGTA CGTAC 10\n\tGG\n>b\nTT";
+		assert.deepEqual(sources(source), [">a\n  ACGTA CGTAC 10\n\tGG", ">b\nTT"]);
+	});
+
+	it("starts a headerless record at its first line", () => {
+		assert.deepEqual(sources("\n\nACGT\nGG\n>named\nCC"), [
+			"ACGT\nGG",
+			">named\nCC",
+		]);
+	});
+
+	it("keeps a GenBank ORIGIN paste whole, its ORIGIN and // lines included", () => {
+		const source = [
+			"ORIGIN",
+			"        1 atggcagctc tcccccttac",
+			"       21 tatggcaggg",
+			"//",
+			"",
+		].join("\n");
+		assert.deepEqual(sources(source, "dna"), [source.trimEnd()]);
+	});
+
+	it("drops blank lines after a record but keeps blank lines inside it", () => {
+		const source = ">a\nACGT\n\nGG\n\n  \n>b\nTT\n\n";
+		assert.deepEqual(sources(source), [">a\nACGT\n\nGG", ">b\nTT"]);
+	});
+
+	it("keeps CRLF line ends inside a record and drops the one after it", () => {
+		const source = ">a\r\nACGT\r\nGG\r\n>b\r\nTT\r\n";
+		assert.deepEqual(sources(source), [">a\r\nACGT\r\nGG", ">b\r\nTT"]);
+	});
+
+	it("gives a header with no residues its header line", () => {
+		assert.deepEqual(sources(">empty\n>full\nAC"), [">empty", ">full\nAC"]);
+	});
+});
+
 describe("lineLengthFor", () => {
 	const measure = {
 		group: 100,
@@ -514,23 +577,6 @@ describe("copiedLabel", () => {
 	});
 });
 
-describe("copyLabel", () => {
-	it("says the sequence for a single record", () => {
-		assert.equal(
-			copyLabel(formatSequences(`>one\n${residues(174)}`, 60, "dna")),
-			"Copy sequence",
-		);
-	});
-
-	it("counts the records of a multi-FASTA block", () => {
-		const source = [">a", residues(42), ">b", residues(60)];
-		assert.equal(
-			copyLabel(formatSequences(source.join("\n"), 60, "fasta")),
-			"Copy 2 records",
-		);
-	});
-});
-
 describe("badgeLabel", () => {
 	const label = (source: string, language: Language) =>
 		formatSequences(source, 60, language).map(badgeLabel);
@@ -574,5 +620,180 @@ describe("badgeLabel", () => {
 		assert.deepEqual(label("R", "fasta"), [
 			"1 residue, a nucleotide or an amino acid. Use a dna, rna or protein block to say which.",
 		]);
+	});
+});
+
+describe("copyFailedLabel", () => {
+	it("names the macOS shortcut", () => {
+		assert.equal(
+			copyFailedLabel("macos"),
+			"Could not copy the sequence. Select the block and press ⌘C.",
+		);
+	});
+
+	it("names the Ctrl shortcut on other desktops", () => {
+		assert.equal(
+			copyFailedLabel("desktop"),
+			"Could not copy the sequence. Select the block and press Ctrl+C.",
+		);
+	});
+
+	it("names the Copy action on mobile, which has no key to press", () => {
+		assert.equal(
+			copyFailedLabel("mobile"),
+			"Could not copy the sequence. Select the block and choose Copy.",
+		);
+	});
+});
+
+describe("fenceAt", () => {
+	const at = (lines: string[], line: number) =>
+		fenceAt(lines.join("\n"), line, languages);
+	const note = [
+		"# Note",
+		"",
+		"```fasta",
+		">first",
+		"ACGTACGTAC",
+		"GGCC",
+		">second",
+		"TTTT",
+		"```",
+		"prose",
+	];
+	const multi = {
+		language: "fasta",
+		source: ">first\nACGTACGTAC\nGGCC\n>second\nTTTT",
+	};
+
+	it("returns the lines between the fences of a multi-record fasta block", () => {
+		assert.deepEqual(at(note, 4), multi);
+		assert.equal(formatSequences(multi.source, 60, "fasta").length, 2);
+	});
+
+	it("counts the opening and closing fence lines as inside", () => {
+		assert.deepEqual(at(note, 2), multi);
+		assert.deepEqual(at(note, 8), multi);
+	});
+
+	it("returns null outside every fence", () => {
+		for (const line of [0, 1, 9]) assert.equal(at(note, line), null);
+	});
+
+	it("reads an rna fence", () => {
+		assert.deepEqual(at(["```rna", ">guide", "ACGU", "```"], 2), {
+			language: "rna",
+			source: ">guide\nACGU",
+		});
+	});
+
+	it("reads a tilde fence", () => {
+		assert.deepEqual(at(["~~~dna", "ACGT", "~~~"], 1), {
+			language: "dna",
+			source: "ACGT",
+		});
+	});
+
+	it("keeps a shorter fence line inside a longer fence", () => {
+		const lines = ["````protein", "MKT", "```", "AYI", "````", "after"];
+		assert.deepEqual(at(lines, 3), {
+			language: "protein",
+			source: "MKT\n```\nAYI",
+		});
+		assert.equal(at(lines, 5), null);
+	});
+
+	it("does not close a backtick fence with tildes or with an info string", () => {
+		const lines = ["```dna", "ACGT", "~~~", "```dna", "GG", "```"];
+		assert.deepEqual(at(lines, 4), {
+			language: "dna",
+			source: "ACGT\n~~~\n```dna\nGG",
+		});
+	});
+
+	it("runs an unclosed fence to the end of the document", () => {
+		assert.deepEqual(at(["prose", "```dna", "ACGT", "GGCC", ""], 3), {
+			language: "dna",
+			source: "ACGT\nGGCC\n",
+		});
+	});
+
+	it("takes the first word of the info string as the language", () => {
+		assert.deepEqual(at(["```fasta title=x", "ACGT", "```"], 1), {
+			language: "fasta",
+			source: "ACGT",
+		});
+	});
+
+	it("matches the language case-sensitively, as Obsidian does", () => {
+		assert.equal(at(["```FASTA", "ACGT", "```"], 1), null);
+	});
+
+	it("returns null inside a fence of another language", () => {
+		assert.equal(at(["```python", "ACGT", "```"], 1), null);
+	});
+
+	it("does not open a sequence fence inside a fence of another language", () => {
+		const lines = ["````markdown", "```fasta", "ACGT", "```", "````"];
+		assert.equal(at(lines, 2), null);
+	});
+
+	it("strips up to the opening fence's indentation from each line", () => {
+		const lines = ["   ```dna", "     ACGT", "  GG", "CC", "   ```"];
+		assert.deepEqual(at(lines, 2), {
+			language: "dna",
+			source: "  ACGT\nGG\nCC",
+		});
+	});
+
+	it("does not take a line indented four spaces as a fence", () => {
+		assert.equal(at(["    ```dna", "ACGT", "    ```"], 1), null);
+	});
+
+	it("returns null for a fence in a blockquote or callout, which it does not read", () => {
+		assert.equal(at(["> ```fasta", "> ACGT", "> ```"], 1), null);
+		assert.equal(at(["> [!note]", "> ```dna", "> ACGT", "> ```"], 2), null);
+	});
+});
+
+describe("blockSource", () => {
+	const doc = (lines: string[]) => lines.join("\n");
+	const command = (text: string, line: number) =>
+		fenceAt(text, line, languages)?.source;
+
+	it("copies what the command copies from a fence indented three spaces", () => {
+		const text = doc(["prose", "", "   ```dna", "     ACGT", "  GG", "   ```"]);
+		const section = { text, lineStart: 2 };
+		const live = blockSource(section, "     ACGT\n  GG", "dna");
+		const reading = blockSource(section, "  ACGT\nGG", "dna");
+		assert.equal(live, "  ACGT\nGG");
+		assert.equal(reading, live);
+		assert.equal(command(text, 3), live);
+	});
+
+	it("copies what the command copies from a fence in a bullet list", () => {
+		const text = doc(["- item", "  ```dna", "  TTTT", "  ```", "- next"]);
+		const live = blockSource({ text, lineStart: 1 }, "  TTTT", "dna");
+		const reading = blockSource({ text, lineStart: 0 }, "TTTT", "dna");
+		assert.equal(live, "TTTT");
+		assert.equal(reading, live);
+		assert.equal(command(text, 2), live);
+	});
+
+	it("drops the list indentation of a fence four spaces into a numbered item", () => {
+		const text = doc(["1. item", "    ```rna", "    ACGU", "    ```"]);
+		const live = blockSource({ text, lineStart: 1 }, "    ACGU", "rna");
+		const reading = blockSource({ text, lineStart: 0 }, "ACGU", "rna");
+		assert.equal(live, "ACGU");
+		assert.equal(reading, live);
+	});
+
+	it("keeps the processor's text for a fence in a blockquote", () => {
+		const text = doc(["> ```dna", "> CCCC", "> ```"]);
+		assert.equal(blockSource({ text, lineStart: 0 }, "CCCC", "dna"), "CCCC");
+	});
+
+	it("keeps the processor's text without a section", () => {
+		assert.equal(blockSource(null, "  ACGT", "dna"), "  ACGT");
 	});
 });

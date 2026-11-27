@@ -1,8 +1,17 @@
-import { MarkdownRenderChild, Notice, Plugin, setTooltip } from "obsidian";
+import {
+	MarkdownRenderChild,
+	Notice,
+	Platform,
+	Plugin,
+	setTooltip,
+} from "obsidian";
 import {
 	badgeLabel,
+	blockSource,
 	copiedLabel,
-	copyLabel,
+	copyFailedLabel,
+	type Fence,
+	fenceAt,
 	formatSequences,
 	GROUP_LENGTH,
 	type Language,
@@ -10,43 +19,35 @@ import {
 	type LineMeasure,
 	languages,
 	lineLengthFor,
+	type PlatformKind,
 	type SequenceLine,
 	type SequenceRecord,
 	sequenceLines,
 } from "./format.ts";
 
-const icons = {
-	copy: {
-		paths: ["M5.5 10.5H0.5V0.5H10.5V5.5", "M5.5 5.5H15.5V15.5H5.5Z"],
-		rendering: "crispEdges",
-	},
-	check: {
-		paths: ["M3.5 8.5L6.5 11.5L12.5 4.5"],
-		rendering: "geometricPrecision",
-	},
-};
-
-function drawIcon(button: HTMLElement, icon: keyof typeof icons): void {
-	const { paths, rendering } = icons[icon];
-	button.empty();
-	const svg = button.createSvg("svg", {
-		attr: {
-			viewBox: "0 0 16 16",
-			width: 16,
-			height: 16,
-			fill: "none",
-			stroke: "currentColor",
-			"stroke-width": 1,
-			"stroke-linecap": "square",
-			"shape-rendering": rendering,
-			"aria-hidden": "true",
-		},
-	});
-	for (const d of paths) {
-		svg.createSvg("path", {
-			attr: { d, "vector-effect": "non-scaling-stroke" },
-		});
+function platformKind(): PlatformKind {
+	if (Platform.isMobile) {
+		return "mobile";
 	}
+	return Platform.isMacOS ? "macos" : "desktop";
+}
+
+async function writeSource(source: string): Promise<boolean> {
+	try {
+		await navigator.clipboard.writeText(source);
+		return true;
+	} catch {
+		new Notice(copyFailedLabel(platformKind()));
+		return false;
+	}
+}
+
+async function copyFence(fence: Fence<Language>): Promise<boolean> {
+	if (!(await writeSource(fence.source))) {
+		return false;
+	}
+	new Notice(copiedLabel(formatSequences(fence.source, 60, fence.language)));
+	return true;
 }
 
 function recordText(root: ParentNode): string {
@@ -65,7 +66,7 @@ function recordText(root: ParentNode): string {
 function selectionText(range: Range): string {
 	const fragment = range.cloneContents();
 	for (const element of Array.from(
-		fragment.querySelectorAll(".seq-pos, .seq-copy, .seq-badge, .seq-status"),
+		fragment.querySelectorAll(".seq-pos, .seq-badge, .seq-status"),
 	)) {
 		element.remove();
 	}
@@ -84,17 +85,23 @@ function lastStart(lines: SequenceLine[][]): number {
 class SequenceBlock extends MarkdownRenderChild {
 	private readonly records: SequenceRecord[];
 	private readonly block: HTMLElement;
+	private readonly status: HTMLElement;
 	private readonly recordEls: HTMLElement[] = [];
 	private readonly widestDigits: number;
+	private readonly fence: Fence<Language>;
 	private lineLength: LineLength = 60;
 	private digits = 1;
 	private frame: number | null = null;
-	private readonly source: string;
+	private copied: { badge: HTMLElement; timer: number } | null = null;
 
-	constructor(containerEl: HTMLElement, source: string, language: Language) {
+	constructor(containerEl: HTMLElement, fence: Fence<Language>) {
 		super(containerEl);
-		this.source = source;
-		this.records = formatSequences(source, this.lineLength, language);
+		this.fence = fence;
+		this.records = formatSequences(
+			fence.source,
+			this.lineLength,
+			fence.language,
+		);
 		this.widestDigits = String(
 			lastStart(
 				this.records.map((record) => sequenceLines(record.sequence, 10)),
@@ -121,20 +128,15 @@ class SequenceBlock extends MarkdownRenderChild {
 				headerEl.createSpan({ cls: "seq-header-mark", text: ">" });
 				headerEl.appendText(record.header);
 			}
-			const badge = head.createSpan({ cls: "seq-badge" });
-			setTooltip(badge, badgeLabel(record));
-			if (record.molecule !== null) {
-				badge.createSpan({ cls: "seq-badge-kind", text: record.molecule });
-			}
-			badge.createSpan({ cls: "seq-badge-len", text: String(record.length) });
-			badge.appendText(" ");
-			badge.createSpan({ cls: "seq-badge-unit", text: record.unit });
+			this.renderBadge(head, record);
 			this.recordEls.push(recordEl);
 		}
 		this.renderLines(this.records.map((record) => record.lines));
-		this.renderCopy(
-			this.recordEls[0]?.querySelector<HTMLElement>(".seq-head") ?? this.block,
-		);
+		this.status = this.block.createSpan({
+			cls: "seq-status",
+			attr: { "aria-live": "polite" },
+		});
+		this.block.addEventListener("copy", (event) => this.copySelection(event));
 	}
 
 	override onload(): void {
@@ -146,6 +148,57 @@ class SequenceBlock extends MarkdownRenderChild {
 				this.block.win.cancelAnimationFrame(this.frame);
 			}
 		});
+	}
+
+	private renderBadge(head: HTMLElement, record: SequenceRecord): void {
+		const badge = head.createSpan({
+			cls: "seq-badge",
+			attr: { role: "button", tabindex: 0 },
+		});
+		setTooltip(badge, `Copy · ${badgeLabel(record)}`);
+		if (record.molecule !== null) {
+			badge.createSpan({ cls: "seq-badge-kind", text: record.molecule });
+		}
+		badge.createSpan({ cls: "seq-badge-len", text: String(record.length) });
+		badge.appendText(" ");
+		badge.createSpan({ cls: "seq-badge-unit", text: record.unit });
+		const text = this.records.length === 1 ? this.fence.source : record.source;
+		const copy = async () => {
+			if (!(await writeSource(text))) {
+				return;
+			}
+			const copied = copiedLabel([record]);
+			new Notice(copied);
+			this.settleCopied();
+			this.status.setText(copied);
+			badge.addClass("is-copied");
+			this.copied = {
+				badge,
+				timer: this.block.win.setTimeout(() => this.settleCopied(), 1000),
+			};
+		};
+		badge.addEventListener("mousedown", (event) => event.preventDefault());
+		badge.addEventListener("click", () => void copy());
+		badge.addEventListener("keydown", (event) => {
+			if (event.key !== "Enter" && event.key !== " ") {
+				return;
+			}
+			event.preventDefault();
+			event.stopPropagation();
+			if (!event.repeat) {
+				void copy();
+			}
+		});
+	}
+
+	private settleCopied(): void {
+		if (this.copied === null) {
+			return;
+		}
+		this.block.win.clearTimeout(this.copied.timer);
+		this.copied.badge.removeClass("is-copied");
+		this.status.setText("");
+		this.copied = null;
 	}
 
 	private renderLines(lines: SequenceLine[][]): void {
@@ -216,56 +269,20 @@ class SequenceBlock extends MarkdownRenderChild {
 		};
 	}
 
-	private renderCopy(parent: HTMLElement): void {
-		const block = this.block;
-		block.addEventListener("copy", (event) => {
-			const selection = block.win.getSelection();
-			if (selection === null || selection.rangeCount === 0) {
-				return;
-			}
-			const range = selection.getRangeAt(0);
-			if (
-				!block.contains(range.commonAncestorContainer) ||
-				event.clipboardData === null
-			) {
-				return;
-			}
-			event.clipboardData.setData("text/plain", selectionText(range));
-			event.preventDefault();
-		});
-
-		const button = parent.createEl("button", {
-			cls: "seq-copy",
-			attr: { type: "button" },
-		});
-		const status = block.createSpan({
-			cls: "seq-status",
-			attr: { "aria-live": "polite" },
-		});
-		const show = (copied: boolean) => {
-			const label = copied
-				? copiedLabel(this.records)
-				: copyLabel(this.records);
-			drawIcon(button, copied ? "check" : "copy");
-			button.toggleClass("is-copied", copied);
-			setTooltip(button, label);
-			status.setText(copied ? label : "");
-		};
-		show(false);
-		let revert: number | undefined;
-		const copy = async () => {
-			block.win.clearTimeout(revert);
-			try {
-				await navigator.clipboard.writeText(this.source);
-			} catch {
-				show(false);
-				new Notice("Could not copy the sequence");
-				return;
-			}
-			show(true);
-			revert = block.win.setTimeout(() => show(false), 1500);
-		};
-		button.addEventListener("click", () => void copy());
+	private copySelection(event: ClipboardEvent): void {
+		const selection = this.block.win.getSelection();
+		if (selection === null || selection.rangeCount === 0) {
+			return;
+		}
+		const range = selection.getRangeAt(0);
+		if (
+			!this.block.contains(range.commonAncestorContainer) ||
+			event.clipboardData === null
+		) {
+			return;
+		}
+		event.clipboardData.setData("text/plain", selectionText(range));
+		event.preventDefault();
 	}
 }
 
@@ -273,8 +290,27 @@ export default class SequenceBlocksPlugin extends Plugin {
 	override async onload(): Promise<void> {
 		for (const language of languages) {
 			this.registerMarkdownCodeBlockProcessor(language, (source, el, ctx) => {
-				ctx.addChild(new SequenceBlock(el, source, language));
+				const text = blockSource(ctx.getSectionInfo(el), source, language);
+				ctx.addChild(new SequenceBlock(el, { language, source: text }));
 			});
 		}
+		this.addCommand({
+			id: "copy-sequence-block",
+			name: "Copy sequence block at cursor",
+			editorCheckCallback: (checking, editor) => {
+				const fence = fenceAt(
+					editor.getValue(),
+					editor.getCursor().line,
+					languages,
+				);
+				if (fence === null) {
+					return false;
+				}
+				if (!checking) {
+					void copyFence(fence);
+				}
+				return true;
+			},
+		});
 	}
 }

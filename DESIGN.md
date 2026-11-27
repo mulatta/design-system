@@ -100,7 +100,7 @@ A cool neutral paper with one printed blue and one correcting red; each scheme, 
 
 **The One Blue Rule.** Manuscript Rule Blue is the only accent. A new role gets a tone of paper, ink, or blue, not a new hue.
 
-**The Printed Apparatus Rule.** In a sequence block, the parts printed on the sheet take Manuscript Rule Blue: the top rule, the cell lines in `cell-line`, the length badge, and its molecule cell. What the writer put there, the header and the residues, is ink. The header's `>` mark is `mute`.
+**The Printed Apparatus Rule.** In a sequence block, the parts printed on the sheet take Manuscript Rule Blue: the top rule, the cell lines in `cell-line`, the length badge, and its molecule cell. What the writer put there, the header and the residues, is ink. The header's `>` mark is `mute`. The length badge is the block's copy control. Hovered, it sits on Manuscript Rule Blue at 12%. Focused, it takes the focus ring. Once it has copied, it fills with Manuscript Rule Blue for one second, with its text and molecule divider in `paper`.
 
 ## Typography
 
@@ -163,7 +163,7 @@ Every component looks printed on the sheet or marked on it afterwards. Obsidian 
 - **Corner Style:** square, with the one 45° cut.
 - **Background:** the `tint` layer, or the callout colour at low strength.
 - **Border:** a Manuscript Rule Blue top rule for code; warning and danger callouts take Proofreader's Red. Neither takes a side or bottom line: the tint already sets the block apart as its own layer.
-- **Live Preview hover:** a hovered block draws no ring around its frame, and its edit button sits `cut` in from the right edge, clear of the diagonal.
+- **Live Preview hover:** a hovered block draws no ring around its frame, and its edit button sits `cut` in from the right edge, clear of the diagonal. A sequence block is the exception: its edit button sits at the top left, over the empty position column, because the length badge, its copy control, ends at the block's right edge, under the stock spot.
 
 ### Navigation (file tree)
 - **Style:** plain rows on the `paper-alt` layer under a bold ink pane header with a fine `pale` underline.
@@ -174,7 +174,7 @@ Every component looks printed on the sheet or marked on it afterwards. Obsidian 
 - **Style:** the floating navbar and the top buttons are square on `paper`, with a 1px Manuscript Rule Blue ring, the floating shadow, and no backdrop blur. A phone without the floating navbar gives its navbar a 1px blue top rule instead.
 
 ### Icons
-- **Style:** Obsidian's Lucide set at a 1.5px stroke, and 1.25px at the large size. The sequence block's copy button is the one exception: the companion plugin draws two overlapping cells in a 1px line, the weight of the cell lines and the length badge beside it.
+- **Style:** Obsidian's Lucide set at a 1.5px stroke, and 1.25px at the large size. The sequence block has no copy icon: its length badge is the copy control.
 
 ### Section heading marker
 A signature component. Each H2 carries a filled square, 0.36em on a side, in Manuscript Rule Blue, in reading view and Live Preview. It hangs in the left margin 0.6em before the heading text, so the text starts at the column edge with the body; on a phone, where the margin is too narrow, it sits inside the line instead. Reading view runs a fine `pale` rule from the text to the column edge; Live Preview shows the square alone. The marker carries no number: Obsidian unloads sections outside the viewport, so a CSS counter numbers long notes wrong. Numbered H2 through the companion plugin is an open item and has not shipped.

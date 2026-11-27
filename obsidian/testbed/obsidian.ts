@@ -3309,6 +3309,25 @@ function fastaOf(source: string): string {
 		.join("\n");
 }
 
+function recordSources(source: string): string[] {
+	const lines = source.split("\n");
+	const heads = lines.flatMap((l, i) =>
+		l.trimStart().startsWith(">") ? [i] : [],
+	);
+	const lead = lines
+		.slice(0, heads[0] ?? lines.length)
+		.some(
+			(l) => !/^\s*(ORIGIN|\/\/)/.test(l) && l.replace(/[\s\d]+/g, "") !== "",
+		);
+	const starts = lead ? [0, ...heads] : heads;
+	return starts.map((start, k) => {
+		const part = lines.slice(start, starts[k + 1] ?? lines.length);
+		while (part.length > 0 && part[0].trim() === "") part.shift();
+		while (part.length > 0 && (part.at(-1) ?? "").trim() === "") part.pop();
+		return part.join("\n");
+	});
+}
+
 function lengthDigits(source: string): number {
 	const lengths = fastaRecords(source).map((r) => r.residues.length);
 	return String(Math.max(0, ...lengths)).length;
@@ -3358,6 +3377,10 @@ function badgeLabels(fence: Fence): string[] {
 		const own = declared[fence.language];
 		return own ? `${own.molecule}, ${count}` : count + inferredTail[unit];
 	});
+}
+
+function fenceEnd(fence: Fence): number {
+	return fence.line + fence.source.split("\n").length + 1;
 }
 
 type Check = { pass: boolean; reason: string };
@@ -3434,29 +3457,6 @@ async function controlsNear(
 	return controls;
 }
 
-function spacingFaults(area: Box, controls: Control[]): string[] {
-	const small = (b: Box) => b.w < 24 || b.h < 24;
-	if (!small(area)) return [];
-	const cx = area.x + area.w / 2;
-	const cy = area.y + area.h / 2;
-	const r1 = (n: number) => Math.round(n * 10) / 10;
-	return controls.flatMap((c) => {
-		const gap = Math.hypot(
-			Math.max(c.box.x - cx, 0, cx - c.box.x - c.box.w),
-			Math.max(c.box.y - cy, 0, cy - c.box.y - c.box.h),
-		);
-		const apart = Math.hypot(
-			c.box.x + c.box.w / 2 - cx,
-			c.box.y + c.box.h / 2 - cy,
-		);
-		if (gap < 12 - 0.05)
-			return [`24px circle meets ${c.name} (${r1(gap)}px from the centre)`];
-		if (small(c.box) && apart < 24 - 0.05)
-			return [`24px circle meets ${c.name}'s (${r1(apart)}px apart)`];
-		return [];
-	});
-}
-
 async function seqcheck(args: string[]): Promise<void> {
 	const { values } = parseArgs({
 		args,
@@ -3516,6 +3516,36 @@ async function seqcheck(args: string[]): Promise<void> {
 			for (const b of cm.contentDOM.querySelectorAll(".seq-block"))
 				if (cm.state.doc.lineAt(cm.posAtDOM(b)).number - 1 === line) return b;
 			return null;
+		};
+		w.__seqRecord = (fail: boolean) => {
+			w.__seqWrites = [];
+			w.__seqOwn = Object.getOwnPropertyDescriptor(
+				navigator.clipboard,
+				"writeText",
+			);
+			Object.defineProperty(navigator.clipboard, "writeText", {
+				configurable: true,
+				writable: true,
+				value: (text: string) => {
+					w.__seqWrites.push(text);
+					return fail
+						? Promise.reject(
+								new DOMException("Write permission denied.", "NotAllowedError"),
+							)
+						: Promise.resolve();
+				},
+			});
+		};
+		w.__seqRestore = (): { writes: string[]; notices: string[] } => {
+			if (w.__seqOwn)
+				Object.defineProperty(navigator.clipboard, "writeText", w.__seqOwn);
+			else delete (navigator.clipboard as any).writeText;
+			const notices = [...document.querySelectorAll(".notice")];
+			for (const n of notices) n.remove();
+			return {
+				writes: w.__seqWrites as string[],
+				notices: notices.map((n) => n.textContent ?? ""),
+			};
 		};
 	});
 	const find = (fence: Fence, scroll: boolean) =>
@@ -3585,6 +3615,7 @@ async function seqcheck(args: string[]): Promise<void> {
 			};
 			continue;
 		}
+		await page.mouse.move(-10, -10);
 		await cdp.send("DOM.getDocument", { depth: 0 });
 		// CDP forces :hover on one node only; a real pointer hovers each ancestor too.
 		const hoverChain = await elementsOf(
@@ -3684,18 +3715,6 @@ async function seqcheck(args: string[]): Promise<void> {
 					const badge = r.querySelector(":scope > .seq-head > .seq-badge");
 					return badge ? box(badge.getBoundingClientRect()) : null;
 				});
-				const heads = [...block.querySelectorAll(".seq-record")].map((r) => {
-					const head = r.querySelector(":scope > .seq-head");
-					const badge = head?.querySelector(":scope > .seq-badge");
-					if (!head || !badge) return null;
-					const header = head.querySelector(":scope > .seq-header");
-					const top = head.getBoundingClientRect().y;
-					const row = Math.max(
-						top + parseFloat(getComputedStyle(head).minHeight),
-						header?.getBoundingClientRect().bottom ?? top,
-					);
-					return { below: r1(badge.getBoundingClientRect().y - row) };
-				});
 				const badgeLabels = [...block.querySelectorAll(".seq-record")].map(
 					(r) =>
 						r
@@ -3743,7 +3762,6 @@ async function seqcheck(args: string[]): Promise<void> {
 						box: box(range.getBoundingClientRect()),
 					};
 				});
-				const button = block.querySelector(".seq-copy");
 				const selection = getSelection() as Selection;
 				selection.removeAllRanges();
 				const range = document.createRange();
@@ -3762,7 +3780,6 @@ async function seqcheck(args: string[]): Promise<void> {
 					rect,
 					column,
 					badges,
-					heads,
 					badgeLabels,
 					phone: document.body.classList.contains("is-phone"),
 					kinds,
@@ -3778,13 +3795,6 @@ async function seqcheck(args: string[]): Promise<void> {
 						box(g.getBoundingClientRect()),
 					),
 					records: block.querySelectorAll(".seq-record").length,
-					copy: button
-						? {
-								box: box(button.getBoundingClientRect()),
-								opacity: getComputedStyle(button).opacity,
-								label: button.getAttribute("aria-label"),
-							}
-						: null,
 					selectionText: data.getData("text/plain"),
 				};
 			},
@@ -3912,30 +3922,7 @@ async function seqcheck(args: string[]): Promise<void> {
 				badgeHits.join("; ") ||
 				`${badges.filter(Boolean).length} badge(s) clear`,
 		};
-		const copyHits = m.copy
-			? [
-					...hits(m.copy.box),
-					...badges.flatMap((b, i) =>
-						b && m.copy && meets(m.copy.box, b) ? [`badge ${i}`] : [],
-					),
-				]
-			: [];
-		checks["copy-clear"] = m.copy
-			? {
-					pass: copyHits.length === 0,
-					reason:
-						copyHits.length === 0
-							? "button clear"
-							: `button covers ${copyHits.join(", ")}`,
-				}
-			: { pass: false, reason: "no .seq-copy button" };
-		const records = fastaRecords(fence.source).length;
-		const restLabel = records > 1 ? `Copy ${records} records` : "Copy sequence";
-		checks["copy-label"] = {
-			pass: m.copy?.label === restLabel,
-			reason: `label ${JSON.stringify(m.copy?.label ?? null)}, want ${JSON.stringify(restLabel)} for ${records} record(s)`,
-		};
-		const wantLabels = badgeLabels(fence);
+		const wantLabels = badgeLabels(fence).map((l) => `Copy · ${l}`);
 		const labelFaults = wantLabels.flatMap((want, i) =>
 			m.badgeLabels[i] === want
 				? []
@@ -3972,21 +3959,6 @@ async function seqcheck(args: string[]): Promise<void> {
 				shown.every((b) => Math.abs(b.h - cell - 2) <= 0.5),
 			reason: `heights ${shown.map((b) => b.h).join(", ")}, cell ${cell}`,
 		};
-		if (m.phone) {
-			const below = m.heads.map((h) => h?.below ?? null);
-			const offsets = below.filter((b): b is number => b !== null);
-			const copyEnd = m.copy ? round(m.copy.box.x + m.copy.box.w) : null;
-			checks["head-shape"] = {
-				pass:
-					offsets.length === shown.length &&
-					offsets.length > 0 &&
-					offsets.every((b) => b >= -0.5) &&
-					spread(offsets) <= 0.5 &&
-					copyEnd !== null &&
-					ends.every((e) => Math.abs(e - copyEnd) <= 0.5),
-				reason: `badge tops ${below.join(", ")}px below the first head row, right edges ${ends.join(", ")}, copy button right edge ${copyEnd}`,
-			};
-		}
 		const own = declared[fence.language];
 		const kindFaults = own
 			? m.kinds.flatMap((k, i) => {
@@ -4051,187 +4023,200 @@ async function seqcheck(args: string[]): Promise<void> {
 						? `got ${m.selectionText.length - fasta.length} extra char(s) after the FASTA text`
 						: `differs at char ${at}: got ${near(m.selectionText)}, want ${near(fasta)}`,
 		};
-		if (!m.copy) {
-			checks["copy-button"] = { pass: false, reason: "no .seq-copy button" };
-			continue;
-		}
-		const reach = await page.evaluate(
-			({ view, line, cell }) => {
-				const block = (window as any).__seqFind(view, line) as HTMLElement;
-				const button = block.querySelector(".seq-copy") as HTMLElement;
-				const r = button.getBoundingClientRect();
-				const step = 0.5;
-				let x0 = Infinity;
-				let y0 = Infinity;
-				let x1 = -Infinity;
-				let y1 = -Infinity;
-				let count = 0;
-				for (let x = r.x - 2 * cell; x <= r.right + 2 * cell; x += step)
-					for (let y = r.y - 2 * cell; y <= r.bottom + 2 * cell; y += step) {
-						if (
-							document.elementFromPoint(x, y)?.closest(".seq-copy") !== button
-						)
-							continue;
-						count += 1;
-						x0 = Math.min(x0, x);
-						y0 = Math.min(y0, y);
-						x1 = Math.max(x1, x);
-						y1 = Math.max(y1, y);
-					}
-				if (x0 === Infinity) return null;
-				const r1 = (n: number) => Math.round(n * 10) / 10;
-				const area = {
-					x: r1(x0),
-					y: r1(y0),
-					w: r1(x1 - x0 + step),
-					h: r1(y1 - y0 + step),
-				};
-				const fill = Math.round(
-					(count * step * step * 100) / (area.w * area.h),
-				);
-				return { ...area, fill };
-			},
-			{ view: values.view, line: fence.line, cell: cell ?? m.copy.box.h },
+		const live = values.view === "live";
+		let proseLine = fence.line - 1;
+		while (
+			proseLine > 0 &&
+			fences.some((f) => f.line <= proseLine && proseLine <= fenceEnd(f))
+		)
+			proseLine -= 1;
+		const records = fastaRecords(fence.source);
+		const sources =
+			records.length === 1 ? [fence.source] : recordSources(fence.source);
+		const copiedLabels = records.map(
+			(r) => `Copied ${r.residues.length} ${unitOf(fence, r.residues)}`,
 		);
-		const controls =
-			reach === null
-				? []
-				: await controlsNear(
-						cdp,
-						reach,
-						`__seqFind(${JSON.stringify(values.view)}, ${fence.line}).querySelector(".seq-copy")`,
-					);
-		(entry.facts as Record<string, unknown>).copyReach = reach && {
-			...reach,
-			controls: controls.map(({ name, box }) => ({ name, box })),
+		const targets = await page.evaluate(
+			({ view, line }) => {
+				const block = (window as any).__seqFind(view, line) as HTMLElement;
+				const r1 = (n: number) => Math.round(n * 10) / 10;
+				return [...block.querySelectorAll(".seq-record")].map((rec) => {
+					const badge = rec.querySelector(":scope > .seq-head > .seq-badge");
+					if (!badge) return null;
+					const r = badge.getBoundingClientRect();
+					const step = 0.5;
+					let x0 = Infinity;
+					let y0 = Infinity;
+					let x1 = -Infinity;
+					let y1 = -Infinity;
+					for (let x = r.x - 24; x <= r.right + 24; x += step)
+						for (let y = r.y - 24; y <= r.bottom + 24; y += step) {
+							if (
+								document.elementFromPoint(x, y)?.closest(".seq-badge") !== badge
+							)
+								continue;
+							x0 = Math.min(x0, x);
+							y0 = Math.min(y0, y);
+							x1 = Math.max(x1, x);
+							y1 = Math.max(y1, y);
+						}
+					if (x0 === Infinity) return null;
+					return {
+						x: r1(x0),
+						y: r1(y0),
+						w: r1(x1 - x0 + step),
+						h: r1(y1 - y0 + step),
+					};
+				});
+			},
+			{ view: values.view, line: fence.line },
+		);
+		const targetFaults = targets.flatMap((t, i) => {
+			if (!t) return [`no point around badge ${i} hits it`];
+			const faults = [
+				t.w >= 24 - 0.5 && t.h >= 24 - 0.5 ? "" : `${t.w}x${t.h}`,
+				...hits(t).map((h) => `covers ${h}`),
+			].filter(Boolean);
+			return faults.length > 0 ? [`badge ${i}: ${faults.join(", ")}`] : [];
+		});
+		checks["badge-target"] = {
+			pass: targetFaults.length === 0 && targets.length === records.length,
+			reason:
+				targetFaults.join("; ") ||
+				`hit areas ${targets.map((t) => (t ? `${t.w}x${t.h}` : "none")).join(", ")}, sampled every 0.5px`,
 		};
-		if (reach === null) {
-			checks["copy-reach"] = {
-				pass: false,
-				reason: "no point around the button hits it",
-			};
-		} else {
-			const covered = [
-				...hits(reach),
-				...controls
-					.filter((c) => meets(reach, c.box))
-					.map((c) => `control ${c.name}`),
-			];
-			const crowded = spacingFaults(reach, controls);
-			const phone = await page.evaluate(() =>
-				document.body.classList.contains("is-phone"),
-			);
-			const want = phone && cell !== undefined ? 3 * cell : 0;
-			const big =
-				reach.w >= want - 1 &&
-				reach.h >= want - 1 &&
-				(!phone || reach.fill >= 90);
-			const onBadge = badges.flatMap((b, i) =>
-				b && meets(reach, b) ? [`badge ${i}`] : [],
-			);
-			checks["copy-reach"] = {
-				pass: covered.length === 0 && crowded.length === 0 && big,
-				reason: [
-					`hit area ${reach.w}x${reach.h}, ${reach.fill}% filled, for a ${m.copy.box.w}x${m.copy.box.h} button`,
-					phone ? `phone wants ${want}x${want}` : "",
-					covered.length > 0 ? `covers ${covered.join(", ")}` : "",
-					crowded.length > 0 ? crowded.join(", ") : "",
-					onBadge.length > 0 ? `meets ${onBadge.join(", ")}` : "",
-				]
-					.filter(Boolean)
-					.join("; "),
-			};
-		}
-		const clickCopy = async (fail: boolean) => {
-			await page.evaluate(
-				({ view, line, fail }) => {
+		const look = (i: number) =>
+			page.evaluate(
+				({ view, line, i }) => {
 					const w = window as any;
-					w.__seqWrites = [];
-					w.__seqLook = (b: Element | null) =>
-						b
-							? [
-									b.getAttribute("aria-label"),
-									b.classList.contains("is-copied"),
-									b.innerHTML,
-								].join("|")
-							: null;
-					w.__seqBefore = w.__seqLook(
-						(w.__seqFind(view, line) as HTMLElement).querySelector(".seq-copy"),
-					);
-					w.__seqOwn = Object.getOwnPropertyDescriptor(
-						navigator.clipboard,
-						"writeText",
-					);
-					Object.defineProperty(navigator.clipboard, "writeText", {
-						configurable: true,
-						writable: true,
-						value: (text: string) => {
-							w.__seqWrites.push(text);
-							return fail
-								? Promise.reject(
-										new DOMException(
-											"Write permission denied.",
-											"NotAllowedError",
-										),
-									)
-								: Promise.resolve();
-						},
-					});
+					const block = w.__seqFind(view, line) as HTMLElement | null;
+					const badge = block
+						?.querySelectorAll(".seq-record")
+						[i]?.querySelector(":scope > .seq-head > .seq-badge");
+					if (!block || !badge) return null;
+					const paint = (value: string) => {
+						const probe = document.createElement("span");
+						probe.style.color = value;
+						block.append(probe);
+						const color = getComputedStyle(probe).color;
+						probe.remove();
+						return color;
+					};
+					const kind = badge.querySelector(":scope > .seq-badge-kind");
+					const editor =
+						view === "live" ? w.app.workspace.activeLeaf.view.editor : null;
+					return {
+						copied: badge.classList.contains("is-copied"),
+						fill: getComputedStyle(badge).backgroundColor,
+						text: getComputedStyle(badge).color,
+						divider: kind ? getComputedStyle(kind).borderRightColor : null,
+						rule: paint("var(--wg-rule)"),
+						paper: paint("var(--wg-paper)"),
+						live: [...block.querySelectorAll("[aria-live]")].map(
+							(e) => e.textContent ?? "",
+						),
+						focused: document.activeElement === badge,
+						editorFocus: editor ? (editor.hasFocus() as boolean) : null,
+						cursor: editor ? (editor.getCursor().line as number) : null,
+						doc: editor ? (editor.getValue() as string) : null,
+					};
 				},
-				{ view: values.view, line: fence.line, fail },
+				{ view: values.view, line: fence.line, i },
 			);
-			let target = "";
-			let after: {
-				writes: string[];
-				label: string | null;
-				unchanged: boolean;
-				notices: string[];
-			};
+		const park = async () => {
+			if (!live) return null;
+			return page.evaluate((line) => {
+				const editor = (window as any).app.workspace.activeLeaf.view.editor;
+				editor.focus();
+				editor.setCursor({ line, ch: 0 });
+				return editor.getValue() as string;
+			}, proseLine);
+		};
+		const unpark = (doc: string | null) =>
+			doc === null
+				? Promise.resolve()
+				: page.evaluate((doc) => {
+						const editor = (window as any).app.workspace.activeLeaf.view.editor;
+						if (editor.getValue() !== doc) editor.setValue(doc);
+					}, doc);
+		const press = async (
+			i: number,
+			how: "click" | "key" | "hold",
+			fail = false,
+		) => {
+			const at = await page.evaluate(
+				({ view, line, i }) => {
+					const block = (window as any).__seqFind(view, line) as HTMLElement;
+					const r = block
+						.querySelectorAll(".seq-record")
+						[i]?.querySelector(":scope > .seq-head > .seq-badge")
+						?.getBoundingClientRect();
+					return r ? { x: r.x + r.width / 2, y: r.y + r.height / 2 } : null;
+				},
+				{ view: values.view, line: fence.line, i },
+			);
+			await page.evaluate((fail) => (window as any).__seqRecord(fail), fail);
+			let target = "no badge";
+			let held: Awaited<ReturnType<typeof look>> = null;
+			let recorded: { writes: string[]; notices: string[] };
 			try {
-				const b = (m.copy as { box: Box }).box;
-				const at = { x: b.x + b.w / 2, y: b.y + b.h / 2 };
-				target = await page.evaluate(({ x, y }) => {
-					const el = document.elementFromPoint(x, y);
-					return el
-						? `${el.tagName.toLowerCase()}.${[...el.classList].join(".")}`
-						: "none";
-				}, at);
-				await page.mouse.click(at.x, at.y);
+				if (at && how === "click") {
+					target = await page.evaluate(({ x, y }) => {
+						const el = document.elementFromPoint(x, y);
+						return el
+							? `${el.tagName.toLowerCase()}.${[...el.classList].join(".")}`
+							: "none";
+					}, at);
+					await page.mouse.move(at.x, at.y);
+					await page.mouse.click(at.x, at.y);
+				} else if (at) {
+					target = await page.evaluate(
+						({ view, line, i }) => {
+							const badge = (window as any)
+								.__seqFind(view, line)
+								.querySelectorAll(".seq-record")
+								[i].querySelector(
+									":scope > .seq-head > .seq-badge",
+								) as HTMLElement;
+							badge.focus();
+							return document.activeElement === badge
+								? "focused"
+								: `focus on ${document.activeElement?.className}`;
+						},
+						{ view: values.view, line: fence.line, i },
+					);
+					if (how === "hold") {
+						for (let n = 0; n < 4; n++) await page.keyboard.down("Enter");
+						await page.keyboard.up("Enter");
+					} else await page.keyboard.press("Enter");
+				}
 				await page.waitForTimeout(250);
 			} finally {
-				after = await page.evaluate(
-					({ view, line }) => {
-						const w = window as any;
-						if (w.__seqOwn)
-							Object.defineProperty(
-								navigator.clipboard,
-								"writeText",
-								w.__seqOwn,
-							);
-						else delete (navigator.clipboard as any).writeText;
-						const button = (
-							w.__seqFind(view, line) as HTMLElement
-						).querySelector(".seq-copy");
-						const notices = [...document.querySelectorAll(".notice")];
-						for (const n of notices) n.remove();
-						return {
-							writes: w.__seqWrites as string[],
-							label: button?.getAttribute("aria-label") ?? null,
-							unchanged: w.__seqLook(button) === w.__seqBefore,
-							notices: notices.map((n) => n.textContent ?? ""),
-						};
-					},
-					{ view: values.view, line: fence.line },
-				);
+				held = await look(i);
+				recorded = await page.evaluate(() => (window as any).__seqRestore());
 			}
-			return { target, ...after };
+			return { target, held, ...recorded };
 		};
-		const failed = await clickCopy(true);
+		const wrote = (i: number, r: { writes: string[]; target: string }) =>
+			r.writes.length === 1 && r.writes[0] === sources[i]
+				? ""
+				: r.writes.length === 0
+					? `badge ${i}: writeText not called (${r.target})`
+					: `badge ${i}: writeText got ${JSON.stringify(r.writes[0].slice(0, 60))} (${r.writes.length} call(s)), want ${JSON.stringify(sources[i].slice(0, 60))}`;
+		await page.mouse.move(-10, -10);
+		const failed = await press(0, "click", true);
+		const failedAction = values.mobile
+			? "choose Copy"
+			: `press ${process.platform === "darwin" ? "⌘C" : "Ctrl+C"}`;
+		const failedNotice = `Could not copy the sequence. Select the block and ${failedAction}.`;
 		const noticed =
-			failed.notices.length === 1 &&
-			failed.notices[0].startsWith("Could not copy");
+			failed.notices.length === 1 && failed.notices[0] === failedNotice;
+		const unchanged =
+			failed.held !== null &&
+			!failed.held.copied &&
+			failed.held.live.every((t) => t === "");
 		checks["copy-failure"] = {
-			pass: failed.writes.length === 1 && noticed && failed.unchanged,
+			pass: failed.writes.length === 1 && noticed && unchanged,
 			reason:
 				failed.writes.length === 0
 					? `writeText not called; click hit ${failed.target}`
@@ -4239,63 +4224,183 @@ async function seqcheck(args: string[]): Promise<void> {
 							noticed
 								? `notice ${JSON.stringify(failed.notices[0])}`
 								: `notices ${JSON.stringify(failed.notices)}`,
-							failed.unchanged
-								? "button unchanged"
-								: `button changed, label ${JSON.stringify(failed.label)}`,
+							unchanged
+								? "badge unchanged"
+								: `badge copied ${failed.held?.copied}, live ${JSON.stringify(failed.held?.live)}`,
 						].join("; "),
 		};
-		const { writes, target, label } = await clickCopy(false);
-		(entry.facts as Record<string, unknown>).copyTarget = target;
-		const exact = writes.length === 1 && writes[0] === fence.source;
-		const told = label?.startsWith("Copied ") ?? false;
-		checks["copy-button"] = {
-			pass: exact && told,
-			reason: !exact
-				? writes.length === 0
-					? `writeText not called; click hit ${target}`
-					: `got ${JSON.stringify(writes[0].slice(0, 80))} (${writes.length} call(s))`
-				: told
-					? `writeText got the source; label "${label}"`
-					: `writeText got the source but the label stayed ${JSON.stringify(label)}`,
-		};
-		const look = () =>
-			page.evaluate(
-				({ view, line }) => {
-					const block = (window as any).__seqFind(view, line) as HTMLElement;
-					const button = block.querySelector(".seq-copy") as HTMLElement;
-					return {
-						copied: button.classList.contains("is-copied"),
-						opacity: getComputedStyle(button).opacity,
-						label: button.getAttribute("aria-label"),
-						live: [...block.querySelectorAll("[aria-live]")].map(
-							(e) => e.textContent ?? "",
-						),
-					};
-				},
-				{ view: values.view, line: fence.line },
-			);
 		await page.mouse.move(-10, -10);
-		await page.waitForTimeout(250);
-		const held = await look();
-		await page.waitForTimeout(1300);
-		const reverted = await look();
-		const heldFaults = [
-			held.copied ? "" : "is-copied gone 0.5s after the click",
-			held.opacity === "1"
+		const keyDoc = await park();
+		const keyed = await press(0, "key");
+		await unpark(keyDoc);
+		const keyFaults = [
+			keyed.target === "focused" ? "" : keyed.target,
+			wrote(0, keyed),
+			keyDoc === null || keyed.held?.doc === keyDoc
 				? ""
-				: `opacity ${held.opacity} once the pointer left`,
-			held.live.length === 1 && held.live[0] === held.label
-				? ""
-				: `live regions ${JSON.stringify(held.live)} for label ${JSON.stringify(held.label)}`,
-			!reverted.copied && reverted.label === restLabel
-				? ""
-				: `1.8s after the click: is-copied ${reverted.copied}, label ${JSON.stringify(reverted.label)}`,
+				: "Enter changed the note",
 		].filter(Boolean);
-		checks["copy-held"] = {
+		checks["badge-key"] = {
+			pass: keyFaults.length === 0,
+			reason:
+				keyFaults.join("; ") ||
+				"Enter on the focused badge copied its record's text",
+		};
+		await page.waitForTimeout(1100);
+		const holdDoc = await park();
+		const held = await press(0, "hold");
+		await unpark(holdDoc);
+		checks["badge-repeat"] = {
+			pass:
+				held.writes.length === 1 &&
+				(holdDoc === null || held.held?.doc === holdDoc),
+			reason:
+				held.writes.length === 1
+					? holdDoc === null || held.held?.doc === holdDoc
+						? "Enter held down for three repeats copied once"
+						: "the held Enter changed the note"
+					: `Enter held down for three repeats called writeText ${held.writes.length} time(s) (${held.target})`,
+		};
+		await page.waitForTimeout(1100);
+		const copyFaults: string[] = [];
+		const heldFaults: string[] = [];
+		const sourceFaults: string[] = [];
+		for (let i = 0; i < records.length; i++) {
+			const doc = await park();
+			const r = await press(i, "click");
+			await unpark(doc);
+			copyFaults.push(wrote(i, r));
+			const h = r.held;
+			const faults = h
+				? [
+						h.copied ? "" : "no is-copied",
+						h.fill === h.rule ? "" : `fill ${h.fill}, want ${h.rule}`,
+						h.text === h.paper ? "" : `text ${h.text}, want ${h.paper}`,
+						h.divider === null || h.divider === h.paper
+							? ""
+							: `divider ${h.divider}, want ${h.paper}`,
+						h.live.length === 1 && h.live[0] === copiedLabels[i]
+							? ""
+							: `live regions ${JSON.stringify(h.live)}`,
+						r.notices.length === 1 && r.notices[0] === copiedLabels[i]
+							? ""
+							: `notices ${JSON.stringify(r.notices)}, want ${JSON.stringify(copiedLabels[i])}`,
+					]
+				: ["badge gone after the click"];
+			if (live)
+				sourceFaults.push(
+					...(h === null
+						? [`badge ${i}: the block left the editor after the click`]
+						: [
+								h.cursor === proseLine
+									? ""
+									: `badge ${i}: cursor moved from line ${proseLine + 1} to line ${(h.cursor ?? -1) + 1}`,
+								h.doc === doc ? "" : `badge ${i}: the note changed`,
+								h.editorFocus
+									? ""
+									: `badge ${i}: the editor lost focus to ${h.focused ? "the badge" : "another element"}`,
+							]),
+				);
+			await page.mouse.move(-10, -10);
+			await page.waitForTimeout(1000);
+			const back = await look(i);
+			faults.push(
+				back && !back.copied && back.live.every((t) => t === "")
+					? ""
+					: `1.25s after the click: is-copied ${back?.copied}, live ${JSON.stringify(back?.live)}`,
+			);
+			const shown = faults.filter(Boolean);
+			if (shown.length > 0) heldFaults.push(`badge ${i}: ${shown.join(", ")}`);
+		}
+		checks["badge-copy"] = {
+			pass: copyFaults.every((f) => f === ""),
+			reason:
+				copyFaults.filter(Boolean).join("; ") ||
+				`${records.length} badge(s) copied ${records.length === 1 ? "the fence's text" : "their records' text"}`,
+		};
+		checks["badge-held"] = {
 			pass: heldFaults.length === 0,
 			reason:
 				heldFaults.join("; ") ||
-				`shown and announced as ${JSON.stringify(held.label)} after the pointer left, back to ${JSON.stringify(reverted.label)}`,
+				`filled and announced ${copiedLabels.map((l) => JSON.stringify(l)).join(", ")}, then back`,
+		};
+		if (live)
+			checks["live-source"] = {
+				pass: sourceFaults.every((f) => f === ""),
+				reason:
+					sourceFaults.filter(Boolean).join("; ") ||
+					`the block stayed rendered, the editor kept focus, and the cursor stayed on line ${proseLine + 1}`,
+			};
+		if (records.length > 1) {
+			const doc = await park();
+			await press(0, "click");
+			await page.waitForTimeout(350);
+			const second = await press(1, "click");
+			await page.waitForTimeout(500);
+			const later = await look(1);
+			const first = await look(0);
+			await unpark(doc);
+			await page.mouse.move(-10, -10);
+			const overlapFaults = [
+				second.held?.copied ? "" : "badge 1 not copied after its click",
+				later?.copied ? "" : "badge 1 lost is-copied 0.75s after its click",
+				later?.live.length === 1 && later.live[0] === copiedLabels[1]
+					? ""
+					: `0.75s after badge 1's click, 1.35s after badge 0's, live ${JSON.stringify(later?.live)}, want ${JSON.stringify(copiedLabels[1])}`,
+				first?.copied ? "badge 0 still has is-copied" : "",
+			].filter(Boolean);
+			checks["badge-overlap"] = {
+				pass: overlapFaults.length === 0,
+				reason:
+					overlapFaults.join("; ") ||
+					`badge 1 clicked 0.6s after badge 0 still announces ${JSON.stringify(copiedLabels[1])} 0.75s later, and badge 0 is back`,
+			};
+			await page.waitForTimeout(1100);
+		}
+		if (!live) continue;
+		const residueLine =
+			fence.line +
+			1 +
+			fence.source
+				.split("\n")
+				.findIndex((l) => !/^\s*(>|ORIGIN|\/\/|$)/.test(l));
+		const runCommand = async (line: number) => {
+			const available: boolean | null = await page.evaluate((line) => {
+				const w = window as any;
+				const id = "sequence-blocks:copy-sequence-block";
+				w.app.workspace.activeLeaf.view.editor.setCursor({ line, ch: 0 });
+				const available = w.app.commands.findCommand(id)?.checkCallback?.(true);
+				w.__seqRecord(false);
+				w.app.commands.executeCommandById(id);
+				return typeof available === "boolean" ? available : null;
+			}, line);
+			await page.waitForTimeout(250);
+			const recorded: { writes: string[]; notices: string[] } =
+				await page.evaluate(() => (window as any).__seqRestore());
+			return { line: line + 1, available, ...recorded };
+		};
+		const inside = await runCommand(residueLine);
+		const outside = await runCommand(proseLine);
+		(entry.facts as Record<string, unknown>).copyCommand = { inside, outside };
+		const commandFaults = [
+			inside.available === true
+				? ""
+				: `command unavailable on line ${inside.line}`,
+			inside.writes.length === 1 && inside.writes[0] === fence.source
+				? ""
+				: `writeText got ${JSON.stringify(inside.writes.map((w) => w.slice(0, 40)))}`,
+			inside.notices.length === 1 && inside.notices[0].startsWith("Copied ")
+				? ""
+				: `notices ${JSON.stringify(inside.notices)}`,
+			outside.available === false && outside.writes.length === 0
+				? ""
+				: `on prose line ${outside.line} the command was available ${outside.available} and wrote ${outside.writes.length} time(s)`,
+		].filter(Boolean);
+		checks["copy-command"] = {
+			pass: commandFaults.length === 0,
+			reason:
+				commandFaults.join("; ") ||
+				`line ${inside.line} copied the fence's text, notice ${JSON.stringify(inside.notices[0])}; unavailable on prose line ${outside.line}`,
 		};
 	}
 	await page.keyboard.press("Escape");

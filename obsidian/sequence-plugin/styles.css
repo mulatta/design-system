@@ -1,6 +1,7 @@
 .seq-block {
 	--seq-pos-gap: 2ch;
 	--seq-group-gap: 1ch;
+	position: relative;
 	overflow-x: auto;
 	padding: var(--size-4-2) var(--size-4-3);
 	border-radius: var(--radius-s);
@@ -21,11 +22,17 @@
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--size-4-1) 1ch;
-	padding-inline-end: var(--seq-head-end, 0px);
 }
 
-.markdown-source-view.mod-cm6 .cm-embed-block .seq-block {
-	--seq-head-end: calc(var(--size-4-9) - var(--size-4-3));
+.markdown-source-view.mod-cm6
+	.cm-embed-block:is(
+		.cm-lang-fasta,
+		.cm-lang-dna,
+		.cm-lang-rna,
+		.cm-lang-protein
+	)
+	.embed-actions {
+	inset-inline: var(--size-2-2) auto;
 }
 
 .seq-header {
@@ -55,6 +62,7 @@
 }
 
 .seq-badge {
+	position: relative;
 	display: inline-flex;
 	gap: 1ch;
 	flex: none;
@@ -64,14 +72,43 @@
 	border-radius: var(--radius-s);
 	color: var(--text-muted);
 	font-size: var(--font-smallest);
+	cursor: pointer;
 	user-select: none;
 	-webkit-user-select: none;
+}
+
+.seq-badge::before {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: max(100% + 2px, 24px);
+	height: max(100% + 2px, 24px);
+	translate: -50% -50%;
+}
+
+.seq-badge:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.seq-badge:focus-visible {
+	box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.seq-badge.is-copied {
+	color: var(--text-on-accent);
+	background-color: var(--interactive-accent);
+	border-color: var(--interactive-accent);
 }
 
 .seq-badge-kind {
 	margin-inline: -0.6ch -0.4ch;
 	padding-inline: 0.6ch;
 	border-inline-end: 1px solid var(--background-modifier-border);
+}
+
+.seq-badge.is-copied .seq-badge-kind {
+	border-inline-end-color: var(--text-on-accent);
 }
 
 .seq-badge-len {
@@ -81,24 +118,6 @@
 
 .seq-badge-unit {
 	width: var(--seq-unit-width, 5ch);
-}
-
-.seq-copy {
-	flex: none;
-	padding: var(--size-4-1);
-	color: var(--text-muted);
-	opacity: 0;
-}
-
-.seq-copy.is-copied {
-	color: var(--text-accent);
-}
-
-.seq-block:hover .seq-copy,
-.seq-copy:focus-visible,
-.seq-copy.is-copied,
-.is-mobile .seq-copy {
-	opacity: 1;
 }
 
 .seq-status {

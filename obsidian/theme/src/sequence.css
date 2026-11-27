@@ -26,8 +26,6 @@ body
 body .seq-block {
 	--wg-s: clamp(12px, calc((100cqi - 32px) / 70), 14px);
 	--wg-row: calc(var(--wg-s) * 1.7);
-	--seq-copy: calc(var(--wg-s) + 2px);
-	--seq-copy-top: calc(var(--wg-s) + (var(--wg-row) - var(--seq-copy)) / 2);
 	position: relative;
 	box-sizing: border-box;
 	padding: var(--wg-s);
@@ -69,13 +67,6 @@ body .seq-head {
 	gap: calc(var(--wg-s) * 0.35) 1ch;
 	min-height: var(--wg-row);
 	margin-bottom: calc(var(--wg-s) * 0.35);
-	padding-right: calc(var(--seq-head-end, 0px) + var(--seq-copy) + 1ch);
-}
-
-/* Obsidian's edit button: padding --size-2-3, an --icon-size icon; editor.css insets it by --wg-cut. */
-body .markdown-source-view.mod-cm6 .cm-embed-block .seq-block {
-	--seq-edit: calc(var(--wg-cut) + var(--size-2-3) * 2 + var(--icon-size));
-	--seq-head-end: calc(var(--seq-edit) - var(--wg-s) / 2);
 }
 
 body .seq-header {
@@ -109,10 +100,30 @@ body .seq-badge {
 	-webkit-user-select: none;
 }
 
+body .seq-badge:hover {
+	background: color-mix(in srgb, var(--wg-rule) 12%, transparent);
+}
+
+body .seq-badge:focus-visible {
+	outline: 2px solid var(--wg-rule);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+body .seq-badge.is-copied {
+	color: var(--wg-paper);
+	background: var(--wg-rule);
+	border-color: var(--wg-rule);
+}
+
 body .seq-badge-kind {
 	margin: 0 -0.4ch 0 -0.6ch;
 	padding: 0 0.6ch;
 	border-right: 1px solid var(--wg-rule);
+}
+
+body .seq-badge.is-copied .seq-badge-kind {
+	border-right-color: var(--wg-paper);
 }
 
 body .seq-line {
@@ -164,51 +175,4 @@ body .seq-group + .seq-group {
 
 body .seq-pos + .seq-group {
 	margin-left: calc(var(--wg-s) / 2);
-}
-
-/* Obsidian pads buttons through .is-tablet button:not(.clickable-icon). */
-body .seq-block .seq-copy {
-	position: absolute;
-	top: var(--seq-copy-top);
-	right: calc(var(--wg-s) + var(--seq-head-end, 0px));
-	width: var(--seq-copy);
-	min-width: 0;
-	height: var(--seq-copy);
-	padding: 0;
-}
-
-body .seq-copy {
-	display: grid;
-	place-items: center;
-	color: var(--wg-mute);
-	background: none;
-	border: 0;
-	border-radius: 0;
-	box-shadow: none;
-	opacity: 0;
-	transition:
-		opacity 160ms cubic-bezier(0.16, 1, 0.3, 1),
-		color 160ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-body .seq-copy svg {
-	width: var(--seq-copy);
-	height: var(--seq-copy);
-}
-
-body .seq-block:hover .seq-copy,
-body .seq-copy:focus-visible,
-body .seq-copy.is-copied {
-	opacity: 1;
-}
-
-body .seq-copy:hover,
-body .seq-copy:focus-visible,
-body .seq-copy.is-copied {
-	color: var(--wg-rule);
-}
-
-body .seq-copy:focus-visible {
-	outline: 1px solid var(--wg-rule);
-	outline-offset: 1px;
 }

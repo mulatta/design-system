@@ -21,6 +21,7 @@ export const languages = Object.keys(fences) as Language[];
 
 export type SequenceRecord = {
 	header: string | null;
+	source: string;
 	lines: SequenceLine[];
 	sequence: string;
 	length: number;
@@ -75,12 +76,30 @@ export function formatSequences(
 	language: Language,
 ): SequenceRecord[] {
 	const { rule, molecule }: Declaration = fences[language];
-	const parsed: { header: string | null; parts: string[] }[] = [];
-	for (const raw of source.split(/\r?\n/)) {
-		const line = raw.trimStart();
+	const parsed: {
+		header: string | null;
+		parts: string[];
+		start: number;
+		end: number;
+	}[] = [];
+	let first: number | null = null;
+	let offset = 0;
+	for (const raw of source.split(/(?<=\n)/)) {
+		const at = offset;
+		offset += raw.length;
+		const text = raw.replace(/\r?\n$/, "");
+		const end = at + text.length;
+		const line = text.trimStart();
 		if (line.startsWith(">")) {
-			parsed.push({ header: line.slice(1), parts: [] });
+			parsed.push({ header: line.slice(1), parts: [], start: at, end });
 			continue;
+		}
+		if (line.trimEnd() !== "") {
+			first ??= at;
+			const current = parsed.at(-1);
+			if (current !== undefined) {
+				current.end = end;
+			}
 		}
 		if (line.startsWith("ORIGIN") || line.trimEnd() === "//") {
 			continue;
@@ -91,15 +110,16 @@ export function formatSequences(
 		}
 		let current = parsed.at(-1);
 		if (current === undefined) {
-			current = { header: null, parts: [] };
+			current = { header: null, parts: [], start: first ?? at, end };
 			parsed.push(current);
 		}
 		current.parts.push(residues);
 	}
-	return parsed.map(({ header, parts }) => {
+	return parsed.map(({ header, parts, start, end }) => {
 		const sequence = parts.join("");
 		return {
 			header,
+			source: source.slice(start, end),
 			sequence,
 			length: sequence.length,
 			unit: rule === "infer" ? inferUnit(sequence) : rule,
@@ -107,12 +127,6 @@ export function formatSequences(
 			lines: sequenceLines(sequence, lineLength),
 		};
 	});
-}
-
-export function copyLabel(records: SequenceRecord[]): string {
-	return records.length > 1
-		? `Copy ${records.length} records`
-		: "Copy sequence";
 }
 
 export function copiedLabel(records: SequenceRecord[]): string {
@@ -157,4 +171,98 @@ export function badgeLabel({ length, unit, molecule }: SequenceRecord): string {
 	const { one, many, read } = unitNames[unit];
 	const count = `${length} ${length === 1 ? one : many}`;
 	return molecule === null ? `${count}${read}` : `${molecule}, ${count}`;
+}
+
+export type PlatformKind = "macos" | "desktop" | "mobile";
+
+const copyActions: Record<PlatformKind, string> = {
+	macos: "press ⌘C",
+	desktop: "press Ctrl+C",
+	mobile: "choose Copy",
+};
+
+export function copyFailedLabel(platform: PlatformKind): string {
+	return `Could not copy the sequence. Select the block and ${copyActions[platform]}.`;
+}
+
+export type Fence<L extends string = string> = { language: L; source: string };
+
+type FenceLine = { indent: number; mark: string; info: string };
+
+function fenceLine(line: string, maxIndent = 3): FenceLine | null {
+	const match = /^( *)(`{3,}|~{3,})(.*)$/.exec(line);
+	if (match === null) {
+		return null;
+	}
+	const [, indent = "", mark = "", info = ""] = match;
+	return indent.length > maxIndent
+		? null
+		: { indent: indent.length, mark, info };
+}
+
+function outdent(lines: string[], indent: number): string {
+	const leading = new RegExp(`^ {0,${indent}}`);
+	return lines.map((line) => line.replace(leading, "")).join("\n");
+}
+
+function closes(line: string, open: FenceLine): boolean {
+	const close = fenceLine(line);
+	return (
+		close !== null &&
+		close.mark[0] === open.mark[0] &&
+		close.mark.length >= open.mark.length &&
+		close.info.trim() === ""
+	);
+}
+
+export function fenceAt<L extends string>(
+	text: string,
+	line: number,
+	languages: readonly L[],
+): Fence<L> | null {
+	const lines = text.split(/\r?\n/);
+	let start = 0;
+	while (start <= line && start < lines.length) {
+		const open = fenceLine(lines[start] ?? "");
+		if (open === null || (open.mark[0] === "`" && open.info.includes("`"))) {
+			start += 1;
+			continue;
+		}
+		let end = start + 1;
+		while (end < lines.length && !closes(lines[end] ?? "", open)) {
+			end += 1;
+		}
+		if (line <= end) {
+			const word = open.info.trim().split(/\s/)[0];
+			const language = languages.find((name) => name === word);
+			if (language === undefined) {
+				return null;
+			}
+			return {
+				language,
+				source: outdent(lines.slice(start + 1, end), open.indent),
+			};
+		}
+		start = end + 1;
+	}
+	return null;
+}
+
+export type Section = { text: string; lineStart: number };
+
+export function blockSource<L extends string>(
+	section: Section | null,
+	source: string,
+	language: L,
+): string {
+	if (section === null) {
+		return source;
+	}
+	const fence = fenceAt(section.text, section.lineStart, [language]);
+	if (fence !== null) {
+		return fence.source;
+	}
+	const first = section.text.split(/\r?\n/)[section.lineStart] ?? "";
+	const open = fenceLine(first, Infinity);
+	return open === null ? source : outdent(source.split("\n"), open.indent);
 }

@@ -467,13 +467,7 @@
 			},
 			"purpose": "Set through Obsidian's --icon-{size}-stroke-width variables; the large size is 1.25px."
 		},
-		"motion": [
-			{
-				"name": "ease-out-expo",
-				"value": "cubic-bezier(0.16, 1, 0.3, 1)",
-				"purpose": "The sequence block's copy button fading in."
-			}
-		],
+		"motion": [],
 		"breakpoints": [
 			{
 				"name": "phone",
