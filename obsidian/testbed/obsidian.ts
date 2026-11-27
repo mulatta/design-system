@@ -2534,6 +2534,86 @@ const editChecks: EditCheck[] = [
 		run: selectRows,
 	},
 	{
+		id: "raised-surfaces",
+		view: "live",
+		on: everywhere,
+		open: "palette",
+		shot: ".prompt",
+		run: async (page) => {
+			const found = await page.evaluate(() => {
+				const probe = document.createElement("div");
+				probe.style.cssText =
+					"position:absolute;visibility:hidden;background:var(--wg-paper);box-shadow:var(--wg-shadow);border:1px solid var(--wg-rule)";
+				document.body.append(probe);
+				const want = getComputedStyle(probe);
+				const expected = {
+					background: want.backgroundColor,
+					shadow: want.boxShadow,
+					border: `${want.borderTopWidth} ${want.borderTopColor}`,
+				};
+				const surfaces = [
+					...document.querySelectorAll(
+						".prompt, .modal, .menu, .suggestion-container, .popover",
+					),
+				]
+					.filter((el) => el.checkVisibility())
+					.map((el) => {
+						const cs = getComputedStyle(el);
+						const round = [el, ...el.querySelectorAll("*")]
+							.filter((e) => {
+								const s = getComputedStyle(e);
+								const drawn =
+									s.borderTopStyle !== "none" ||
+									!/, 0\)$|transparent/.test(s.backgroundColor);
+								return (
+									e.checkVisibility() &&
+									drawn &&
+									[
+										s.borderTopLeftRadius,
+										s.borderTopRightRadius,
+										s.borderBottomLeftRadius,
+										s.borderBottomRightRadius,
+									].some((r) => Number.parseFloat(r) > 0)
+								);
+							})
+							.map(
+								(e) =>
+									`${e.tagName.toLowerCase()}.${[...e.classList].slice(0, 2).join(".")} ${getComputedStyle(e).borderRadius}`,
+							);
+						return {
+							el: `${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join(".")}`,
+							background: cs.backgroundColor,
+							shadow: cs.boxShadow,
+							border: `${cs.borderTopWidth} ${cs.borderTopColor}`,
+							round,
+						};
+					});
+				probe.remove();
+				return { expected, surfaces };
+			});
+			const problems = found.surfaces.flatMap((s) => [
+				...(["background", "shadow", "border"] as const)
+					.filter((k) => s[k] !== found.expected[k])
+					.map((k) => `${s.el} ${k} ${s[k]}, theme ${found.expected[k]}`),
+				...s.round.map((r) => `${s.el} has a rounded corner: ${r}`),
+			]);
+			if (found.surfaces.length === 0)
+				return {
+					pass: false,
+					reason: "no raised surface on screen",
+					facts: found,
+				};
+			return {
+				pass: problems.length === 0,
+				reason:
+					problems.length === 0
+						? `${found.surfaces.map((s) => s.el).join(", ")} paint the theme's paper, shadow, and rule, with square corners`
+						: problems.join(" | "),
+				facts: found,
+			};
+		},
+	},
+	{
 		id: "control-focus",
 		view: "live",
 		shot: ":focus",
