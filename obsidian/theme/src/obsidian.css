@@ -111,7 +111,7 @@ body,
 	--background-secondary: var(--wg-paper-alt);
 	--background-secondary-alt: var(--wg-paper-alt);
 	--background-modifier-border: var(--wg-pale);
-	--background-modifier-border-hover: var(--wg-rule-soft);
+	--background-modifier-border-hover: var(--wg-pale);
 	--background-modifier-border-focus: var(--wg-rule);
 	--background-modifier-hover: var(--wg-tint);
 	--background-modifier-active-hover: var(--wg-tint);
@@ -168,6 +168,7 @@ body,
 	--ribbon-background-collapsed: var(--wg-ribbon);
 	--status-bar-background: var(--wg-paper);
 	--status-bar-border-color: var(--wg-rule);
+	--toggle-thumb-color: var(--wg-paper);
 	--checkbox-color: var(--wg-paper);
 	--checkbox-border-color: var(--wg-ink);
 	--checkbox-marker-color: var(--wg-proof);
