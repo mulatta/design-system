@@ -44,3 +44,7 @@
 	border-right: 1px solid var(--wg-rule);
 	padding-right: 0.3em;
 }
+
+.markdown-source-view.mod-cm6 .cm-table-widget:not(.is-loading) {
+	margin-inline: calc(-1 * var(--table-drag-handle-size)) !important;
+}

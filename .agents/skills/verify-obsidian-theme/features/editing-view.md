@@ -41,6 +41,7 @@ Preconditions:
 ## Gotchas
 
 - Live Preview H2 has no trailing rule: drawing one inside a CodeMirror line means painting the text spans over it, which hides the editor's selection.
+- Live Preview's table widget pads itself by the drag-handle size and pulls itself out by the same amount, so a table starts on the column edge. Obsidian makes the handles 24px on the phone but pulls only 16px; the theme pulls by the handle size, or a column-wide table comes up 16px short.
 - The rule above the opening fence is a plain 2px border with no 45° cut, unlike reading view's code block; the `code-top` part shows it.
 - CodeMirror renders only the lines near the viewport, so a block far down the note is not in the DOM until the editor scrolls to it. `compare` and `layers` scroll from the top until a part or region appears.
 - Live Preview reveals markers only on the active line; without a focused line, markers mostly stay hidden.
