@@ -152,7 +152,10 @@
 }
 
 .markdown-rendered a.internal-link,
-.markdown-rendered a.external-link {
+.markdown-rendered a.external-link,
+.markdown-source-view.mod-cm6
+	:is(.cm-hmd-internal-link, .cm-link)
+	.cm-underline {
 	color: var(--link-color);
 	text-decoration: underline;
 	text-decoration-color: var(--wg-pale);
@@ -161,11 +164,15 @@
 }
 
 .markdown-rendered a.internal-link:hover,
-.markdown-rendered a.external-link:hover {
+.markdown-rendered a.external-link:hover,
+.markdown-source-view.mod-cm6
+	:is(.cm-hmd-internal-link, .cm-link)
+	.cm-underline:hover {
 	text-decoration-color: currentColor;
 }
 
-.markdown-rendered a.internal-link.is-unresolved {
+.markdown-rendered a.internal-link.is-unresolved,
+.markdown-source-view.mod-cm6 .is-unresolved .cm-underline {
 	color: var(--link-unresolved-color);
 	text-decoration-style: dotted;
 	text-decoration-color: var(--wg-mute);
