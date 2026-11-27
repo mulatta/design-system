@@ -1306,12 +1306,36 @@ const selectRows = async (page: Page): Promise<Outcome> => {
 			s.ring === rest.ring &&
 			s.background === rest.background &&
 			s.labelBackground === rest.labelBackground;
+		const reaches = async (pseudo: ":hover" | ":active") =>
+			row.evaluate(
+				(el, pseudo) =>
+					new Promise<boolean>((done) => {
+						const start = performance.now();
+						const poll = () =>
+							el.matches(pseudo)
+								? done(true)
+								: performance.now() - start > 2000
+									? done(false)
+									: setTimeout(poll, 25);
+						poll();
+					}),
+				pseudo,
+			);
 		const hovers: Record<string, Awaited<ReturnType<typeof state>>> = {};
 		for (const [part, x, y] of [
 			["name", rest.labelX, rest.labelY],
 			["value", rest.x, rest.y],
 		] as const) {
 			await page.mouse.move(x, y);
+			if (!(await reaches(":hover"))) {
+				await page.mouse.move(x + 1, y);
+				if (!(await reaches(":hover"))) {
+					problems.push(
+						`the window never marked ${rest.key}'s ${part} as hovered, so nothing was measured`,
+					);
+					continue;
+				}
+			}
 			await page.waitForTimeout(250);
 			hovers[part] = await state();
 			if (!unchanged(hovers[part]))
@@ -1320,6 +1344,10 @@ const selectRows = async (page: Page): Promise<Outcome> => {
 				);
 		}
 		await page.mouse.down();
+		if (!(await reaches(":active")))
+			problems.push(
+				`the window never marked ${rest.key}'s row as pressed, so the press was not measured`,
+			);
 		await page.waitForTimeout(150);
 		const pressed = await state();
 		await page.mouse.up();
