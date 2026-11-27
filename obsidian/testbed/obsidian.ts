@@ -779,8 +779,10 @@ const parts: Part[] = [
 		measure: {
 			key: ".metadata-property-key",
 			icon: ".metadata-property-icon",
-			tagPill: ".metadata-property:nth-child(2) .multi-select-pill",
-			aliasPill: ".metadata-property:nth-child(3) .multi-select-pill",
+			tagPill:
+				'.metadata-property[data-property-key="tags"] .multi-select-pill',
+			aliasPill:
+				'.metadata-property[data-property-key="aliases"] .multi-select-pill',
 		},
 	},
 	{
