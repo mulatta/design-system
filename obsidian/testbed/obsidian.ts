@@ -465,7 +465,13 @@ async function prepare(
 				: files[0];
 			if (!file) return { error: `note not found: ${o.note}` };
 			const explorer = app.workspace.getLeavesOfType("file-explorer")[0];
-			if (explorer && !app.isMobile) await app.workspace.revealLeaf(explorer);
+			if (app.isMobile) {
+				for (const split of [app.workspace.leftSplit, app.workspace.rightSplit])
+					if (split && !split.collapsed) {
+						split.collapse();
+						await new Promise((r) => setTimeout(r, 400));
+					}
+			} else if (explorer) await app.workspace.revealLeaf(explorer);
 			const leaf = app.workspace.getLeaf(false);
 			const mode = o.view === "reading" ? "preview" : "source";
 			await leaf.openFile(file, {
@@ -497,9 +503,12 @@ async function prepare(
 
 const panels = {
 	none: null,
-	palette: "command-palette:open",
-	settings: "app:open-settings",
-	search: "global-search:open",
+	palette: { command: "command-palette:open", shown: ".prompt" },
+	settings: { command: "app:open-settings", shown: null },
+	search: {
+		command: "global-search:open",
+		shown: '.workspace-leaf-content[data-type="search"] input',
+	},
 } as const;
 
 type Panel = keyof typeof panels;
@@ -511,12 +520,29 @@ function isPanel(value: string): value is Panel {
 async function openPanel(page: Page, open: string): Promise<void> {
 	if (!isPanel(open))
 		fail(`unknown --open ${open} (${Object.keys(panels).join("|")})`);
-	const id = panels[open];
-	if (id)
+	const panel = panels[open];
+	if (!panel) return;
+	const shown = () =>
+		page.evaluate(
+			(s) => !!document.querySelector(s)?.checkVisibility(),
+			panel.shown ?? "",
+		);
+	for (let attempt = 0; attempt < 3; attempt++) {
 		await page.evaluate(
 			(id) => (window as any).app.commands.executeCommandById(id),
-			id,
+			panel.command,
 		);
+		if (!panel.shown) return;
+		for (let i = 0; i < 10; i++) {
+			if (await shown()) {
+				await page.waitForTimeout(500);
+				if (await shown()) return;
+				break;
+			}
+			await page.waitForTimeout(100);
+		}
+	}
+	fail(`--open ${open} did not show ${panel.shown}`);
 }
 
 function checkShotOptions(v: {
