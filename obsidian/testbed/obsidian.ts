@@ -2673,6 +2673,205 @@ const toggleStates = async (page: Page): Promise<Outcome> => {
 	};
 };
 
+const embedHover = async (page: Page): Promise<Outcome> => {
+	await installRing(page);
+	const cdp = await page.context().newCDPSession(page);
+	await cdp.send("DOM.enable");
+	await cdp.send("CSS.enable");
+	await page.evaluate(() => {
+		const w = window as any;
+		w.__embedAt = (pos: number) =>
+			[
+				...document.querySelectorAll(
+					".workspace-leaf.mod-active .cm-content > .cm-embed-block",
+				),
+			].find(
+				(el) => w.app.workspace.activeLeaf.view.editor.cm.posAtDOM(el) === pos,
+			) ?? null;
+	});
+	const hover = async (expression: string, on: boolean) => {
+		const { result } = await cdp.send("Runtime.evaluate", { expression });
+		if (!result.objectId) return;
+		const { nodeId } = await cdp.send("DOM.requestNode", {
+			objectId: result.objectId,
+		});
+		await cdp.send("CSS.forcePseudoState", {
+			nodeId,
+			forcedPseudoClasses: on ? ["hover"] : [],
+		});
+	};
+	const hoverAll = async (pos: number, on: boolean) => {
+		await cdp.send("DOM.getDocument", { depth: 0 });
+		await hover(`__embedAt(${pos})`, on);
+		await hover(`__embedAt(${pos})?.querySelector(".embed-action")`, on);
+	};
+	const measure = (pos: number) =>
+		page.evaluate(async (pos) => {
+			const w = window as any;
+			const el = w.__embedAt(pos) as HTMLElement | null;
+			if (!el) return null;
+			const r1 = (n: number) => Math.round(n * 10) / 10;
+			const name = (e: Element) =>
+				e.tagName.toLowerCase() +
+				[...e.classList]
+					.slice(0, 2)
+					.map((c) => `.${c}`)
+					.join("");
+			const clear = (c: string) => c === "transparent" || /, 0\)$/.test(c);
+			const paints = (e: Element) => {
+				const s = getComputedStyle(e);
+				return (
+					s.backgroundImage !== "none" ||
+					!clear(s.backgroundColor) ||
+					(Number.parseFloat(s.borderTopWidth) > 0 &&
+						s.borderTopStyle !== "none" &&
+						!clear(s.borderTopColor))
+				);
+			};
+			const frame =
+				[el, ...el.querySelectorAll("*")].find(
+					(e) => !e.closest(".embed-actions") && paints(e),
+				) ?? el;
+			const chain: Element[] = [];
+			for (
+				let e: Element | null = frame;
+				e && e !== el.parentElement;
+				e = e.parentElement
+			)
+				chain.push(e);
+			const rings = chain
+				.map((e) => [name(e), w.__ring(e) as string])
+				.filter(([, ring]) => ring)
+				.map(([e, ring]) => `${e} ${ring}`);
+			const f = frame.getBoundingClientRect();
+			const fs = getComputedStyle(frame);
+			const rule =
+				fs.borderTopStyle === "none" ? 0 : Number.parseFloat(fs.borderTopWidth);
+			const cut =
+				fs.clipPath === "none"
+					? 0
+					: Number.parseFloat(fs.getPropertyValue("--wg-cut")) || 0;
+			const action = el.querySelector(".embed-action");
+			const t = action?.getBoundingClientRect();
+			const tile =
+				t && t.width > 0
+					? {
+							top: r1(t.top - f.top),
+							right: r1(f.right - t.right),
+							bottom: r1(f.bottom - t.bottom),
+							left: r1(t.left - f.left),
+						}
+					: null;
+			const cm = w.app.workspace.activeLeaf.view.editor.cm;
+			return {
+				line: cm.state.doc.lineAt(pos).number,
+				kind: [...el.classList].filter((c) => c !== "cm-embed-block").join("."),
+				frame: name(frame),
+				rule,
+				cut,
+				rings,
+				tile,
+			};
+		}, pos);
+	const seen = new Set<number>();
+	const found: (NonNullable<Awaited<ReturnType<typeof measure>>> & {
+		pos: number;
+	})[] = [];
+	const problems: string[] = [];
+	const failed = new Set<number>();
+	for (let y = 0; ; ) {
+		const view = await page.evaluate(async (y) => {
+			const w = window as any;
+			const sc = document.querySelector(
+				".workspace-leaf.mod-active .cm-scroller",
+			) as HTMLElement;
+			sc.scrollTop = y;
+			await new Promise((r) => setTimeout(r, 250));
+			const box = sc.getBoundingClientRect();
+			const cm = w.app.workspace.activeLeaf.view.editor.cm;
+			return {
+				shown: [
+					...document.querySelectorAll(
+						".workspace-leaf.mod-active .cm-content > .cm-embed-block",
+					),
+				]
+					.filter((el) => {
+						const r = el.getBoundingClientRect();
+						return r.height > 0 && r.bottom > box.top && r.top < box.bottom;
+					})
+					.map((el) => cm.posAtDOM(el) as number),
+				next: y + sc.clientHeight * 0.7,
+				end: y >= sc.scrollHeight - sc.clientHeight,
+			};
+		}, y);
+		for (const pos of view.shown) {
+			if (seen.has(pos)) continue;
+			seen.add(pos);
+			await page.evaluate(async (pos) => {
+				(window as any).__embedAt(pos)?.scrollIntoView({ block: "center" });
+				await new Promise((r) => setTimeout(r, 250));
+			}, pos);
+			await hoverAll(pos, true);
+			await page.waitForTimeout(150);
+			const m = await measure(pos);
+			await hoverAll(pos, false);
+			if (!m) continue;
+			found.push({ ...m, pos });
+			const at = `${m.kind} at line ${m.line}`;
+			const wrong = m.rings.map((ring) => `hover draws ${ring}`);
+			if (m.tile) {
+				const { top, right, bottom, left } = m.tile;
+				if (left < -0.5 || right < -0.5 || bottom < -0.5)
+					wrong.push(`edit button leaves ${m.frame}`);
+				if (top < m.rule - 0.5)
+					wrong.push(
+						`edit button top ${top}px from ${m.frame}'s top, over its ${m.rule}px top rule`,
+					);
+				if (m.cut > 0 && top + right < m.cut - 0.5)
+					wrong.push(
+						`edit button ${right}px from the right and ${top}px from the top reaches into the ${m.cut}px cut`,
+					);
+			}
+			if (wrong.length > 0) failed.add(pos);
+			for (const w of wrong) problems.push(`${at}: ${w}`);
+		}
+		if (view.end) break;
+		y = view.next;
+	}
+	const shotPos = (
+		found.find((m) => failed.has(m.pos)) ??
+		found.find((m) => m.tile) ??
+		found[0]
+	)?.pos;
+	if (shotPos !== undefined) {
+		await page.evaluate(async (pos) => {
+			for (const el of document.querySelectorAll("[data-embed-hover-shot]"))
+				el.removeAttribute("data-embed-hover-shot");
+			const el = (window as any).__embedAt(pos) as HTMLElement | null;
+			el?.setAttribute("data-embed-hover-shot", "");
+			el?.scrollIntoView({ block: "center" });
+			await new Promise((r) => setTimeout(r, 250));
+		}, shotPos);
+		await hoverAll(shotPos, true);
+	}
+	const kinds = [...new Set(found.map((m) => m.kind))];
+	const buttons = found.filter((m) => m.tile).length;
+	if (found.length === 0)
+		return {
+			pass: false,
+			reason: "no Live Preview embed widget in the note",
+			facts: {},
+		};
+	return {
+		pass: problems.length === 0,
+		reason:
+			problems.length === 0
+				? `${found.length} hovered widgets (${kinds.join(", ")}) draw no ring, and ${buttons} edit buttons sit inside their frame, below its top rule and clear of its cut`
+				: problems.join(" | "),
+		facts: { widgets: found },
+	};
+};
+
 const editChecks: EditCheck[] = [
 	{
 		id: "text-focus",
@@ -2909,6 +3108,13 @@ const editChecks: EditCheck[] = [
 				facts: m,
 			};
 		},
+	},
+	{
+		id: "embed-hover",
+		view: "live",
+		on: everywhere,
+		shot: "[data-embed-hover-shot]",
+		run: embedHover,
 	},
 ];
 

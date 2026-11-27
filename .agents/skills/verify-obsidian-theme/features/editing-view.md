@@ -16,6 +16,7 @@ Editing view is where the note is written: Live Preview renders most markdown in
 - `edit-table` sizes a Live Preview table to its content, up to the note column, as reading view does; a table wider than the column scrolls inside its widget.
 - `edit-code-active` keeps a code line on the code block's tint while the caret is on it.
 - `edit-column` keeps everything Live Preview paints, task checkboxes and the properties block included, at or right of the note column's left edge.
+- `edit-embed-hover` leaves an embedded block's frame as it is under the pointer: hovering a callout or a math block draws no ring around it, and its edit button sits inside the frame, below the top rule and clear of the 45° cut.
 
 ## How to get to it (user POV)
 
@@ -35,7 +36,7 @@ Preconditions:
 - **Geometry.** Run `obs compare --base stock --run agent --view live --scheme light`, then `--scheme dark`, against a stock run. The `title-rule`, `properties`, `heading`, `code-top`, `callout`, `table`, and `task-line` parts measure the Live Preview counterparts of the reading parts (see [Geometry against stock Obsidian](./stock-geometry.md)).
 - **Tones.** Run `obs layers --run agent --view live --scheme light`, then `--scheme dark`. `note | code`, `note | inline-code`, and `note | property-key` prove the tint of `edit-code-lines` and `edit-inline`.
 - **Joins.** Run `obs joins --run agent --view live`, and with `--mobile`. `delete-loop` proves the loop of `edit-inline` meets its strike.
-- **States.** Run `obs editcheck --run agent --scheme light`, then `--scheme dark`. `text-focus` proves `edit-title-focus` and `edit-property-focus`, `property-select` proves `edit-property-select`, `live-table` proves `edit-table`, `live-column` proves `edit-column`, and `code-active-line` proves `edit-code-active`.
+- **States.** Run `obs editcheck --run agent --scheme light`, then `--scheme dark`. `text-focus` proves `edit-title-focus` and `edit-property-focus`, `property-select` proves `edit-property-select`, `live-table` proves `edit-table`, `live-column` proves `edit-column`, `code-active-line` proves `edit-code-active`, and `embed-hover` proves `edit-embed-hover`; add `--note elements-ko` to hover every callout kind and a math block.
 - **Phone.** Add `--mobile` to `compare --view live`, `layers --view live`, and `editcheck` to repeat them under phone emulation (see [Mobile](./mobile.md)).
 - **Proof.** Report each sub-feature with its capture path.
 
