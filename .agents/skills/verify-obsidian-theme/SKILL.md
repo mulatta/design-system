@@ -10,7 +10,7 @@ The surface is Obsidian's desktop app, an Electron window. The thing under test 
 Every command runs from the repository root inside the devshell, so `obsidian`, `node`, and `playwright-core` are the flake's own:
 
 ```sh
-nix develop -c node obsidian/testbed/obsidian.ts <launch|doctor|shot|drive|compare|layers|joins|editcheck|seqcheck|sync|stop> [options]
+nix develop -c node obsidian/testbed/obsidian.ts <launch|doctor|shot|drive|compare|layers|joins|editcheck|pairs|seqcheck|sync|stop> [options]
 ```
 
 Below, `obs` stands for that whole command. The same harness backs the owner's npm scripts (`npm run obsidian`, `obsidian:doctor`, `obsidian:shot`, `obsidian:compare`, `obsidian:layers`, `obsidian:sync`, `obsidian:stop`), so a run the owner started by hand is the same kind of run. `npm run obsidian` is `launch --foreground`: it stays in the terminal, streams Obsidian's log there and into `obsidian.log`, and tears the run down on Ctrl+C, hangup, or when Obsidian quits. Agents use plain `launch`, which detaches and returns after `READY`, and keep the owner's run for the owner: launch your own run name (for example `--run agent`) instead of driving `main` while the owner looks at it.
@@ -38,7 +38,7 @@ obs launch --run agent
 - The disposable Obsidian config sets `updateDisabled`, so the app makes no update request.
 - Runs are isolated by name. `--run a` and `--run b` can be live side by side. `launch` refuses a name whose recorded process is still alive.
 - Teardown is `obs stop --run <run>`.
-- Always pass `--run`. `doctor`, `shot`, and `sync` default to `main` and `compare`, `layers`, and `joins` to `agent`; `stop` and `seqcheck` refuse to run without `--run`, so they never touch the owner's run by omission. `editcheck` refuses too, since it clicks into the window and moves its focus, and so does `drive`, whose probe may do anything.
+- Always pass `--run`. `doctor`, `shot`, and `sync` default to `main` and `compare`, `layers`, `joins`, and `pairs` to `agent`; `stop` and `seqcheck` refuse to run without `--run`, so they never touch the owner's run by omission. `editcheck` refuses too, since it clicks into the window and moves its focus, and so does `drive`, whose probe may do anything.
 - The owner may have run `main` live from `npm run obsidian`, on screen. Leave it alone: do not drive or stop it. Run `obs doctor --run agent` first; if it reports ok, reuse that invisible run instead of launching again, and leave it live for the next proof unless the task is over. Stop only runs you launched.
 
 ## Doctor
@@ -84,6 +84,7 @@ Each `shot` call does the following, in order:
 Fixture notes, in `obsidian/testbed/notes/`. The lab and element notes come in a Korean (`-ko`) and an English (`-en`) version with the same structure, so a change to Latin text or to Hangul can be checked on its own:
 - `lab-note-ko`, `lab-note-en`: a mixed lab note with prose, gene names in italics, an inline primer, math, a `dna` block of two primers, a table, a warning callout, a python block, tasks, and a quote.
 - `elements-ko`, `elements-en`: headings 1 to 4, inline marks, an editing note (`%%`), a strikethrough long enough to wrap, resolved and unresolved links, a tag, a footnote, nested lists, tasks including a two-line one, note, tip, danger, quote, summary, todo, and important callouts, a blockquote, a horizontal rule, block math, nix/typescript/bash/yaml code, and three tables: a short right-aligned one, one of long sentences that fills the column, and one with a primer sequence too wide for any column, which scrolls.
+- `pairs`: one or more of every device `pairs` compares, among them headings 1 to 6, a quote nested in a blockquote, an embedded note, and code in typescript, python, bash, yaml, and nix. Its last line is empty, so the caret has a place outside every mark.
 - `long-note`: 30 H2 sections of plain paragraphs, for anything that must still hold after Obsidian unloads off-screen sections.
 - `protocols/pcr-protocol`: a note inside a folder, so the file tree shows a folder row and a nested file.
 - `sequences`: one sequence block per input shape the sequence plugin accepts: a `fasta` record on one 174 nt line, `fasta` wrapped at 70 and at 80, a multi-FASTA block of 42, 60, and 132 nt records, a `dna` block without a header, a 214 aa `protein` block, a 60 nt guide in an `rna` block, a 96 aa protein and a 24-residue degenerate primer in `fasta` blocks, a GenBank `ORIGIN` paste of 150 nt with its position numbers and `//` line in a `dna` block, and an inline primer in prose. It renders as plain code unless the run has `--plugin obsidian-sequence-plugin`. All sequences are synthetic.
@@ -144,6 +145,26 @@ obs editcheck --run agent [--scheme light|dark] [--mobile] [--note lab-note-ko]
 A row with `open: "settings"` runs against the settings window, Obsidian's separate page on desktop or its modal under phone emulation, and `editcheck` closes that window after the row.
 
 It prints one `ok` or `FAIL` line per check with its measurement, `REPORT <path>`, and last `EDITCHECK ok` or `EDITCHECK fail <count>`; it exits 1 on any failure. The report goes to `build/verify/<run>/editcheck-<scheme>[-mobile].json`, and a 2x capture of each check's element to `build/verify/<run>/shots/editcheck-<scheme>[-mobile]-<check>.png`.
+
+### Check that the two views match
+
+```sh
+obs pairs --run agent [--scheme light|dark] [--mobile] [--note pairs]
+```
+
+`pairs` holds the theme to one rule: a device looks the same in reading view and in Live Preview while the caret is outside it. It opens the note in reading view and then in Live Preview, puts the caret on the note's empty last line, makes the window tall enough that each view renders the whole note, and reads every device's computed style in both. It runs at 1440 px wide on desktop, or at 390 px under phone emulation with `--mobile`, with the right sidebar hidden.
+
+The rows are the `pairs` table in `obsidian/testbed/obsidian.ts`. A row names one part of a device, a selector for it in each view, and the properties that carry its design: the text colour and font, the background, each border side, the text decoration, the clip path, and offsets measured from the note column: `x` and `right` for a box, `text-x` for where its text starts, and `wrap-x` for where a wrapped line starts. A row finds every instance of its kind in the DOM and pairs the instances of the two views in document order. It fails when the counts differ or the note has no instance. CodeMirror splits some devices into several elements: a tag is two spans and a block is a run of lines. A row's `more` joins those elements into one instance, whose left edge comes from the first element and whose right edge comes from the last. A computed length must match within 0.01 px and a measured one within 0.5 px.
+
+The rows cover the paragraph, headings 1 to 6 and the H2 marker, bold, italic, strikethrough and its delete loop, highlight, inline code, internal, unresolved, and external links, the tag, the footnote reference, list items, bullets, and numbers, open and done tasks, the blockquote and a quote nested in it, the divider, the code block and its text, the table with its head and cells, the callout, and the embed.
+
+Code tokens are compared character by character. The check pairs the code blocks of the two views in order and, for each character, takes the colour, weight, and slant of the token that holds it. It prints one line per pair of token classes, such as `typescript keyword as keyword "export"`, so a class that one highlighter has and the other lacks shows up by name.
+
+A difference the editor needs is declared in the `pairDiffs` table with its reason. It prints as a `diff` line with both values and the reason, so no difference passes without a line.
+
+The fixture is `pairs`, which holds every kind once or more and ends with an empty line for the caret. `pairs` records the vault's files before it opens the note and puts them back after, as `editcheck` does, and prints a `VAULT` line for each change.
+
+It prints one `ok`, `diff`, or `FAIL` line for each group of instances with the same outcome, with the group's size and its first instance's text, then `REPORT <path>`, and last `PAIRS ok` or `PAIRS fail <count>`; it exits 1 on any failure. The report goes to `build/verify/<run>/pairs-<scheme>[-mobile].json`.
 
 ### Check sequence blocks
 

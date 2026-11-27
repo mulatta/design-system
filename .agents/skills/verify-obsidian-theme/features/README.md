@@ -5,7 +5,7 @@ This directory is the maintained source for verifying what the Wongoji theme doe
 ## Baseline preconditions
 
 - `obs launch --run <run>` has printed `READY`, and `obs doctor --run <run>` reports `"ok": true` with `cssTheme: "Wongoji"`.
-- The vault holds only the fixture notes in `obsidian/testbed/notes/`: `lab-note-ko`, `lab-note-en`, `elements-ko`, `elements-en`, `long-note` (30 sections, for anything that must hold after scrolling), `protocols/pcr-protocol` (a folder row and a nested file), and `sequences` (one sequence block per input shape, for runs launched with `--plugin obsidian-sequence-plugin`). `launch` copies the folder tree as is.
+- The vault holds only the fixture notes in `obsidian/testbed/notes/`: `lab-note-ko`, `lab-note-en`, `elements-ko`, `elements-en`, `pairs` (every device `obs pairs` compares between reading view and Live Preview), `long-note` (30 sections, for anything that must hold after scrolling), `protocols/pcr-protocol` (a folder row and a nested file), and `sequences` (one sequence block per input shape, for runs launched with `--plugin obsidian-sequence-plugin`). `launch` copies the folder tree as is.
 - The run shows the working tree you want to prove. After an edit to `DESIGN.md`, `obsidian/theme/src/`, a snippet, `nix/fonts/`, or a `--plugin` source such as `obsidian/sequence-plugin/`, run `obs sync --run <run>`.
 - Never drive an Obsidian that this run did not start; `doctor`'s `vaultPath` must be under `build/verify/<run>/`.
 

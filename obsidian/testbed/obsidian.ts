@@ -4646,6 +4646,1070 @@ async function seqcheck(args: string[]): Promise<void> {
 	if (failures.length > 0) process.exit(1);
 }
 
+type PairProbe = {
+	at: string;
+	more?: string;
+	on?: string;
+	pseudo?: "::before" | "::after" | "::marker";
+};
+
+type Pair = {
+	id: string;
+	reading: PairProbe;
+	live: PairProbe;
+	props: string[];
+	nested?: true;
+};
+
+type PairDiff = { pair: string; prop: string; reason: string };
+
+const textProps = [
+	"color",
+	"font-family",
+	"font-size",
+	"font-weight",
+	"font-style",
+];
+const borderProps = [
+	"border-top",
+	"border-right",
+	"border-bottom",
+	"border-left",
+];
+const frameProps = [
+	...borderProps,
+	"background-color",
+	"background-image",
+	"border-radius",
+	"clip-path",
+	"x",
+	"right",
+];
+const inBoth = (at: string): Pick<Pair, "reading" | "live"> => ({
+	reading: { at },
+	live: { at },
+});
+const quoteStart = ".cm-line:not(.HyperMD-quote) + .HyperMD-quote";
+const codeStart = ".HyperMD-codeblock-begin";
+const codeLine = ".HyperMD-codeblock:not(.HyperMD-codeblock-end)";
+
+const pairs: Pair[] = [
+	{
+		id: "paragraph",
+		reading: { at: ".el-p > p:not(:has(.internal-embed))" },
+		live: {
+			at: '.cm-line:not([class*="HyperMD-"], .hr, :has(> br:only-child))',
+		},
+		props: [
+			...textProps,
+			"line-height",
+			"word-break",
+			"overflow-wrap",
+			"text-x",
+		],
+	},
+	...[1, 2, 3, 4, 5, 6].map(
+		(n): Pair => ({
+			id: `h${n}`,
+			reading: { at: `h${n}` },
+			live: { at: `.HyperMD-header-${n}`, on: ".cm-header" },
+			props: [...textProps, "line-height", "letter-spacing", "text-x"],
+		}),
+	),
+	{
+		id: "h2-marker",
+		reading: { at: "h2", pseudo: "::before" },
+		live: { at: ".HyperMD-header-2", pseudo: "::before" },
+		props: ["content", "width", "height", "background-color"],
+	},
+	{
+		id: "h2-rule",
+		reading: { at: "h2", pseudo: "::after" },
+		live: { at: ".HyperMD-header-2", pseudo: "::after" },
+		props: ["content"],
+	},
+	{
+		id: "bold",
+		reading: { at: "strong" },
+		live: { at: ".cm-strong:not(.cm-formatting)" },
+		props: textProps,
+	},
+	{
+		id: "italic",
+		reading: { at: "em" },
+		live: { at: ".cm-em:not(.cm-formatting)" },
+		props: textProps,
+	},
+	{
+		id: "strikethrough",
+		reading: { at: "del" },
+		live: { at: ".cm-strikethrough:not(.cm-formatting)" },
+		props: [...textProps, "strike"],
+	},
+	{
+		id: "delete-loop",
+		reading: { at: "del", pseudo: "::after" },
+		live: { at: ".cm-strikethrough:not(.cm-formatting)", pseudo: "::after" },
+		props: ["content", "width", "height", "background-color"],
+	},
+	{
+		id: "highlight",
+		reading: { at: "mark" },
+		live: { at: ".cm-highlight:not(.cm-formatting)" },
+		props: [...textProps, "background-color", "decoration"],
+	},
+	{
+		id: "inline-code",
+		reading: { at: ":not(pre) > code" },
+		live: { at: ".cm-inline-code:not(.cm-formatting)" },
+		props: [
+			...textProps,
+			...borderProps,
+			"background-color",
+			"border-radius",
+			"padding-left",
+			"padding-right",
+			"height",
+		],
+	},
+	{
+		id: "internal-link",
+		reading: { at: "a.internal-link:not(.is-unresolved)" },
+		live: {
+			at: ".cm-hmd-internal-link:not(:has(.is-unresolved))",
+			on: ".cm-underline",
+		},
+		props: [...textProps, "decoration"],
+	},
+	{
+		id: "unresolved-link",
+		reading: { at: "a.internal-link.is-unresolved" },
+		live: { at: ".cm-hmd-internal-link .is-unresolved", on: ".cm-underline" },
+		props: [...textProps, "opacity", "decoration"],
+	},
+	{
+		id: "external-link",
+		reading: { at: "a.external-link" },
+		live: { at: ".cm-link:not(.cm-hmd-footnote)", on: ".cm-underline" },
+		props: [...textProps, "decoration"],
+	},
+	{
+		id: "external-link-icon",
+		reading: { at: "a.external-link" },
+		live: { at: ".cm-url.external-link" },
+		props: [
+			"background-image",
+			"background-size",
+			"background-position",
+			"padding-right",
+		],
+	},
+	{
+		id: "tag",
+		reading: { at: "a.tag" },
+		live: { at: ".cm-hashtag-begin", more: ".cm-hashtag-end" },
+		props: [
+			...textProps,
+			...borderProps,
+			"background-color",
+			"border-radius",
+			"padding-left",
+			"padding-right",
+			"height",
+			"decoration",
+		],
+	},
+	{
+		id: "footnote-ref",
+		reading: { at: "sup.footnote-ref", on: "a" },
+		live: { at: ".cm-footref.cm-formatting-link-start", more: ".cm-footref" },
+		props: [...textProps, "decoration", "text"],
+	},
+	{
+		id: "footnote-ref-raise",
+		reading: { at: "sup.footnote-ref" },
+		live: { at: ".cm-footref.cm-formatting-link-start", more: ".cm-footref" },
+		props: ["vertical-align", "line-height", "position"],
+	},
+	{
+		id: "list-item",
+		reading: { at: "ul > li:not(.task-list-item), ol > li" },
+		live: {
+			at: ".HyperMD-list-line:not(.HyperMD-task-line)",
+			on: '[class*="cm-list-"]:not(.cm-formatting)',
+		},
+		props: ["color", "text-x"],
+	},
+	{
+		id: "list-bullet",
+		reading: {
+			at: "li:not(.task-list-item) > .list-bullet",
+			pseudo: "::after",
+		},
+		live: { at: ".cm-formatting-list-ul .list-bullet", pseudo: "::after" },
+		props: ["width", "height", "background-color", "border-radius"],
+	},
+	{
+		id: "list-number",
+		reading: { at: "ol > li", pseudo: "::marker" },
+		live: { at: ".list-number" },
+		props: [...textProps, "font-variant-numeric"],
+	},
+	{
+		id: "task-open",
+		...inBoth("input.task-list-item-checkbox:not(:checked)"),
+		props: [
+			...borderProps,
+			"background-color",
+			"border-radius",
+			"width",
+			"height",
+			"x",
+		],
+	},
+	{
+		id: "task-done",
+		...inBoth("input.task-list-item-checkbox:checked"),
+		props: [
+			...borderProps,
+			"background-color",
+			"border-radius",
+			"width",
+			"height",
+			"x",
+		],
+	},
+	{
+		id: "task-done-mark",
+		reading: { at: "input.task-list-item-checkbox:checked", pseudo: "::after" },
+		live: { at: "input.task-list-item-checkbox:checked", pseudo: "::after" },
+		props: ["background-color", "mask-image", "width", "height"],
+	},
+	{
+		id: "task-done-text",
+		reading: { at: "li.task-list-item.is-checked" },
+		live: {
+			at: '.HyperMD-task-line:is([data-task="x"], [data-task="X"])',
+			on: '[class*="cm-list-"]',
+		},
+		props: ["color", "decoration", "text-x"],
+	},
+	{
+		id: "blockquote",
+		reading: { at: ":not(blockquote) > blockquote" },
+		live: { at: quoteStart, more: ".HyperMD-quote" },
+		props: [
+			"border-top",
+			"border-right",
+			"border-bottom",
+			"background-color",
+			"background-image",
+			"border-radius",
+		],
+	},
+	{
+		id: "blockquote-rule",
+		reading: { at: ":not(blockquote) > blockquote" },
+		live: { at: quoteStart, more: ".HyperMD-quote", pseudo: "::before" },
+		props: ["border-left", "x"],
+	},
+	{
+		id: "blockquote-text",
+		reading: { at: ":not(blockquote) > blockquote > p" },
+		live: { at: ".HyperMD-quote-1 > .cm-quote:not(.cm-formatting)" },
+		props: [...textProps, "line-height", "text-x", "wrap-x"],
+	},
+	{
+		id: "nested-quote-rule",
+		reading: { at: "blockquote blockquote" },
+		live: { at: ".cm-blockquote-border", pseudo: "::before" },
+		props: ["border-left", "x"],
+	},
+	{
+		id: "nested-quote-text",
+		reading: { at: "blockquote blockquote > p" },
+		live: { at: ".HyperMD-quote-2 > .cm-quote-2:not(.cm-formatting)" },
+		props: [...textProps, "line-height", "text-x", "wrap-x"],
+	},
+	{
+		id: "divider",
+		reading: { at: "hr:not(.footnotes hr)" },
+		live: { at: ".cm-line.hr > hr" },
+		props: [
+			...borderProps,
+			"background-color",
+			"background-image",
+			"background-size",
+			"background-position",
+			"background-repeat",
+			"width",
+			"height",
+			"x",
+		],
+	},
+	{
+		id: "footnote-separator",
+		...inBoth(".footnotes hr"),
+		nested: true,
+		props: [],
+	},
+	{
+		id: "code-block",
+		reading: { at: "pre:not(.frontmatter)" },
+		live: { at: codeStart, more: ".HyperMD-codeblock" },
+		props: [...frameProps, "height"],
+	},
+	{
+		id: "code-text",
+		reading: { at: "pre:not(.frontmatter) > code" },
+		live: { at: `${codeStart} + ${codeLine}`, more: codeLine },
+		props: [...textProps, "line-height", "tab-size", "text-x"],
+	},
+	{
+		id: "code-label",
+		...inBoth(".code-block-flair"),
+		props: [],
+	},
+	{
+		id: "table",
+		reading: { at: "table" },
+		live: { at: ".cm-table-widget table" },
+		props: [
+			"font-size",
+			"font-variant-numeric",
+			"border-collapse",
+			"width",
+			"x",
+			"right",
+		],
+	},
+	{
+		id: "table-head",
+		reading: { at: "th" },
+		live: { at: ".cm-table-widget th" },
+		props: [
+			...textProps,
+			...borderProps,
+			"background-color",
+			"text-align",
+			"text-inset",
+			"height",
+		],
+	},
+	{
+		id: "table-cell",
+		reading: { at: "td" },
+		live: { at: ".cm-table-widget td" },
+		props: [
+			...textProps,
+			...borderProps,
+			"background-color",
+			"text-align",
+			"text-inset",
+			"height",
+		],
+	},
+	{
+		id: "callout",
+		reading: { at: ".callout" },
+		live: { at: ".cm-callout .callout" },
+		props: [
+			...frameProps,
+			"padding-top",
+			"padding-right",
+			"padding-bottom",
+			"padding-left",
+		],
+	},
+	{
+		id: "callout-title",
+		...inBoth(".callout > .callout-title"),
+		nested: true,
+		props: [...textProps, "letter-spacing", "text-x"],
+	},
+	{
+		id: "callout-text",
+		...inBoth(".callout > .callout-content > p"),
+		nested: true,
+		props: [...textProps, "line-height", "text-x"],
+	},
+	{
+		id: "embed",
+		...inBoth(".internal-embed.markdown-embed"),
+		props: [...frameProps, "padding-left", "padding-right"],
+	},
+	{
+		id: "embed-title",
+		...inBoth(".internal-embed > .markdown-embed-title"),
+		nested: true,
+		props: [...textProps, "text-align", "text-x"],
+	},
+];
+
+const pairDiffs: PairDiff[] = [
+	{
+		pair: "h2-rule",
+		prop: "content",
+		reason:
+			"the rule needs the heading to be a flex row, and an editor line cannot be one",
+	},
+	{
+		pair: "footnote-ref",
+		prop: "text",
+		reason: "the editor shows the reference as it was typed",
+	},
+	...[
+		["list-item", "text-x"],
+		["task-open", "x"],
+		["task-done", "x"],
+		["task-done-text", "text-x"],
+	].map(([pair, prop]) => ({
+		pair,
+		prop,
+		reason:
+			"the editor sets an item after its marker and the spaces typed before it, at Obsidian's own offsets",
+	})),
+	{
+		pair: "code-label",
+		prop: "count",
+		reason:
+			"the editor names a block's language where reading view shows only the code",
+	},
+	{
+		pair: "footnote-separator",
+		prop: "count",
+		reason:
+			"the editor keeps a footnote where it was written, so it draws no footnote section",
+	},
+	{
+		pair: "code-token",
+		prop: "no-mode",
+		reason: "CodeMirror has no mode for the language",
+	},
+	{
+		pair: "code-token",
+		prop: "punctuation|plain",
+		reason:
+			"CodeMirror gives brackets and separators no class, so they take the code colour",
+	},
+	{
+		pair: "code-token",
+		prop: "operator|plain",
+		reason:
+			"CodeMirror gives this operator no class, so it takes the code colour",
+	},
+	{
+		pair: "code-token",
+		prop: "plain|def",
+		reason:
+			"CodeMirror marks every name a statement defines, Prism only a function's",
+	},
+	{
+		pair: "code-token",
+		prop: "function|property",
+		reason:
+			"Prism reads a called member as a function, CodeMirror as a property",
+	},
+	{
+		pair: "code-token",
+		prop: "boolean|atom",
+		reason:
+			"CodeMirror gives a literal the class of a yaml key, which is set in the key's ink",
+	},
+];
+
+type PairItem = { label: string; values: Record<string, string> };
+type CodeSpan = { to: number; kind: string; style: string };
+type CodeBlock = { language: string; text: string; spans: CodeSpan[] };
+
+const installPairs = (page: Page) =>
+	page.evaluate(() => {
+		const w = window as any;
+		const parse = w.__wgParse as (css: string) => number[];
+		const leaf = ".workspace-leaf.mod-active";
+		const rootOf = (view: string) =>
+			document.querySelector(
+				view === "live"
+					? `${leaf} .markdown-source-view.is-live-preview`
+					: `${leaf} .markdown-reading-view`,
+			) as HTMLElement;
+		const px = (n: number) => `${Math.round(n * 100) / 100 || 0}px`;
+		const colour = (css: string) => {
+			const [r, g, b, a] = parse(css);
+			if (a === 0) return "transparent";
+			const hex = `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+			return a === 1 ? hex : `${hex} ${Math.round(a * 100)}%`;
+		};
+		const tidy = (value: string) =>
+			value.replace(/(rgba?|color|oklch|hsl)\([^()]*\)/g, (c) => colour(c));
+		const side = (cs: CSSStyleDeclaration, name: string) => {
+			const width = Number.parseFloat(cs.getPropertyValue(`${name}-width`));
+			const style = cs.getPropertyValue(`${name}-style`);
+			const c = colour(cs.getPropertyValue(`${name}-color`));
+			return !width ||
+				style === "none" ||
+				style === "hidden" ||
+				c === "transparent"
+				? "none"
+				: `${px(width)} ${style} ${c}`;
+		};
+		const firstText = (el: Element): DOMRect | null => {
+			const walk = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+			for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+				const at = (n.textContent ?? "").search(/\S/);
+				if (at < 0 || !n.parentElement?.checkVisibility()) continue;
+				const range = document.createRange();
+				range.setStart(n, at);
+				range.setEnd(n, at + 1);
+				const rect = range.getClientRects()[0];
+				if (rect && rect.width > 0) return rect;
+			}
+			return null;
+		};
+		const decoration = (el: Element, root: Element) => {
+			for (let e: Element | null = el; e && e !== root; e = e.parentElement) {
+				const cs = getComputedStyle(e);
+				if (cs.textDecorationLine === "none") continue;
+				const under = cs.textDecorationLine.includes("underline");
+				return [
+					cs.textDecorationLine,
+					cs.textDecorationStyle,
+					colour(cs.textDecorationColor),
+					cs.textDecorationThickness,
+					...(under ? [`offset ${cs.textUnderlineOffset}`] : []),
+				].join(" ");
+			}
+			return "none";
+		};
+		const strike = (el: Element, root: Element) => {
+			const cs = getComputedStyle(el);
+			const drawn = /^linear-gradient\((.+?\)), /.exec(cs.backgroundImage);
+			if (drawn)
+				return `${colour(drawn[1])} ${cs.backgroundSize.split(" ")[1] ?? ""}`;
+			const line = decoration(el, root).split(" ");
+			return line[0] === "line-through" ? `${line[2]} ${line[3]}` : "none";
+		};
+		const visible = (el: Element, root: Element) => {
+			const r = el.getBoundingClientRect();
+			let left = r.left;
+			let right = r.right;
+			for (let e = el.parentElement; e && e !== root; e = e.parentElement) {
+				const cs = getComputedStyle(e);
+				const cut = /^inset\(([^)]+)\)/.exec(cs.clipPath);
+				if (cs.overflowX === "visible" && !cut) continue;
+				const [, end = "0", , start = end] = (cut?.[1] ?? "0").split(" ");
+				const box = e.getBoundingClientRect();
+				left = Math.max(left, box.left + Number.parseFloat(start));
+				right = Math.min(right, box.right - Number.parseFloat(end));
+			}
+			return { left, right };
+		};
+		const first = [
+			"border-left",
+			"padding-left",
+			"x",
+			"text-x",
+			"wrap-x",
+			"text-inset",
+		];
+		const last = ["border-right", "padding-right", "right"];
+		const top = ["border-top", "padding-top"];
+		const bottom = ["border-bottom", "padding-bottom"];
+		w.__wgPairs = (
+			view: string,
+			rows: {
+				id: string;
+				probe: {
+					at: string;
+					more?: string;
+					on?: string;
+					pseudo?: string;
+				};
+				props: string[];
+				nested?: true;
+			}[],
+		) => {
+			const root = rootOf(view);
+			const column = root.querySelector(
+				view === "live" ? ".cm-content" : ".markdown-preview-sizer",
+			) as HTMLElement;
+			const cc = getComputedStyle(column);
+			const edge = column.getBoundingClientRect();
+			const colLeft = edge.left + Number.parseFloat(cc.paddingLeft);
+			const colRight = edge.right - Number.parseFloat(cc.paddingRight);
+			const read = (el: Element, pseudo: string | undefined, prop: string) => {
+				const cs = getComputedStyle(el, pseudo);
+				if (/^border-(top|right|bottom|left)$/.test(prop))
+					return side(cs, prop);
+				if (prop === "decoration") return decoration(el, root);
+				if (prop === "strike") return strike(el, root);
+				if (prop === "x") {
+					if (!pseudo) return px(visible(el, root).left - colLeft);
+					if (cs.position !== "absolute") return "in flow";
+					let block = el;
+					while (getComputedStyle(block).position === "static")
+						block = block.parentElement as Element;
+					return px(
+						block.getBoundingClientRect().left +
+							Number.parseFloat(cs.left) -
+							colLeft,
+					);
+				}
+				if (prop === "right") return px(visible(el, root).right - colRight);
+				if (prop === "wrap-x") {
+					const range = document.createRange();
+					range.selectNodeContents(el);
+					const rects = [...range.getClientRects()].filter((r) => r.width > 0);
+					const lowest = Math.max(...rects.map((r) => r.top));
+					const line = rects.filter((r) => r.top > lowest - 2);
+					return rects.length === 0
+						? "no text"
+						: px(Math.min(...line.map((r) => r.left)) - colLeft);
+				}
+				if (prop === "text-x" || prop === "text-inset") {
+					const rect = firstText(el);
+					if (!rect) return "no text";
+					return px(
+						rect.left -
+							(prop === "text-x" ? colLeft : el.getBoundingClientRect().left),
+					);
+				}
+				if (pseudo && (prop === "width" || prop === "height"))
+					return cs.content === "none"
+						? "none"
+						: tidy(cs.getPropertyValue(prop));
+				return tidy(cs.getPropertyValue(prop));
+			};
+			const out: Record<
+				string,
+				{ label: string; values: Record<string, string> }[]
+			> = {};
+			for (const row of rows) {
+				const { at, more, on, pseudo } = row.probe;
+				const heads = [...root.querySelectorAll(at)].filter(
+					(el) =>
+						el.checkVisibility() &&
+						(row.nested ||
+							!el.parentElement?.closest(
+								".internal-embed, .callout, .footnotes, .mod-header, .mod-footer, .metadata-container",
+							)),
+				);
+				out[row.id] = heads.map((head) => {
+					const pieces = [head];
+					if (more)
+						for (
+							let e = head.nextElementSibling;
+							e && (e.matches(more) || e.matches("img.cm-widgetBuffer"));
+							e = e.nextElementSibling
+						)
+							if (e.matches(more)) pieces.push(e);
+					const carriers = pieces.flatMap((p) => {
+						const c = on ? p.querySelector(on) : p;
+						return c ? [c] : [];
+					});
+					const stacked =
+						carriers.length > 1 &&
+						carriers[1].getBoundingClientRect().top >=
+							carriers[0].getBoundingClientRect().bottom - 1;
+					const values: Record<string, string> = {};
+					for (const prop of row.props) {
+						if (carriers.length === 0) {
+							values[prop] = `no ${on}`;
+							continue;
+						}
+						if (prop === "text") {
+							values[prop] = carriers.map((c) => c.textContent).join("");
+							continue;
+						}
+						if (!pseudo && (prop === "width" || prop === "height")) {
+							const boxes = carriers.map((c) => c.getBoundingClientRect());
+							const span = (a: "left" | "top", b: "right" | "bottom") =>
+								Math.max(...boxes.map((r) => r[b])) -
+								Math.min(...boxes.map((r) => r[a]));
+							values[prop] = px(
+								prop === "width"
+									? span("left", "right")
+									: span("top", "bottom"),
+							);
+							continue;
+						}
+						const picked = first.includes(prop)
+							? [carriers[0]]
+							: last.includes(prop)
+								? [carriers[carriers.length - 1]]
+								: stacked && top.includes(prop)
+									? [carriers[0]]
+									: stacked && bottom.includes(prop)
+										? [carriers[carriers.length - 1]]
+										: carriers;
+						values[prop] = [
+							...new Set(picked.map((c) => read(c, pseudo, prop))),
+						].join(" / ");
+					}
+					const label = pieces
+						.map((p) => p.textContent ?? "")
+						.join("")
+						.replace(/\s+/g, " ")
+						.trim()
+						.slice(0, 24);
+					return { label, values };
+				});
+			}
+			return out;
+		};
+		w.__wgCode = (view: string) => {
+			const root = rootOf(view);
+			const ignored = [
+				"token",
+				"cm-hmd-codeblock",
+				"cm-indent",
+				"cm-indent-spacing",
+			];
+			const blocks: Element[][] =
+				view === "live"
+					? [
+							...root.querySelectorAll(
+								".cm-content > .HyperMD-codeblock-begin",
+							),
+						].map((begin) => {
+							const lines: Element[] = [];
+							for (
+								let e = begin.nextElementSibling;
+								e && !e.matches(".HyperMD-codeblock-end");
+								e = e.nextElementSibling
+							)
+								lines.push(e);
+							return lines;
+						})
+					: [...root.querySelectorAll("pre:not(.frontmatter) > code")]
+							.filter(
+								(c) =>
+									c.checkVisibility() &&
+									!c.closest(".internal-embed, .callout"),
+							)
+							.map((c) => [c]);
+			return blocks.map((lines) => {
+				let text = "";
+				const spans: { to: number; kind: string; style: string }[] = [];
+				lines.forEach((line, i) => {
+					if (i > 0) text += "\n";
+					const walk = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+					for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+						const holder = n.parentElement as Element;
+						if (holder.closest("button, .cm-fold-indicator, .code-block-flair"))
+							continue;
+						let kinds: string[] = [];
+						for (
+							let e: Element = holder;
+							e !== line && kinds.length === 0;
+							e = e.parentElement as Element
+						)
+							kinds = [...e.classList].filter((c) => !ignored.includes(c));
+						const cs = getComputedStyle(holder);
+						text += n.textContent ?? "";
+						spans.push({
+							to: text.length,
+							kind:
+								kinds
+									.map((c) => c.replace(/^cm-/, ""))
+									.sort()
+									.join(".") || "plain",
+							style: [colour(cs.color), cs.fontWeight, cs.fontStyle].join(" "),
+						});
+					}
+				});
+				const code = lines[0]?.closest("code");
+				const language =
+					[...(code?.classList ?? [])]
+						.find((c) => c.startsWith("language-"))
+						?.slice(9) ?? "";
+				return { language, text: text.replace(/\n+$/, ""), spans };
+			});
+		};
+	});
+
+async function showWhole(
+	page: Page,
+	view: View,
+	width: number,
+	height: number,
+): Promise<void> {
+	const whole = () =>
+		page.evaluate((view) => {
+			const active = (window as any).app.workspace.activeLeaf.view;
+			if (view === "live") {
+				const cm = active.editor.cm;
+				cm.scrollDOM.scrollTop = 0;
+				return cm.viewport.from === 0 && cm.viewport.to === cm.state.doc.length;
+			}
+			const renderer = active.previewMode.renderer;
+			renderer.previewEl.scrollTop = 0;
+			return (renderer.sections as { el: Element }[]).every(
+				(section) => section.el.isConnected,
+			);
+		}, view);
+	for (let tall = height; ; tall *= 2) {
+		if (await whole()) {
+			await page.waitForTimeout(400);
+			if (await whole()) return;
+		}
+		if (tall > 40000) fail(`the note is too long to show whole in ${view}`);
+		await page.setViewportSize({ width, height: tall * 2 });
+		await page.waitForTimeout(400);
+	}
+}
+
+const pxValue = /^-?[\d.]+px$/;
+const measuredProps = [
+	"x",
+	"right",
+	"text-x",
+	"wrap-x",
+	"text-inset",
+	"width",
+	"height",
+];
+const sameValue = (prop: string, a: string, b: string) =>
+	a === b ||
+	(pxValue.test(a) &&
+		pxValue.test(b) &&
+		Math.abs(Number.parseFloat(a) - Number.parseFloat(b)) <=
+			(measuredProps.includes(prop) ? 0.5 : 0.01));
+
+type PairFault = { prop: string; reading: string; live: string };
+type PairResult = {
+	pair: string;
+	label: string;
+	count: number;
+	props: number;
+	faults: PairFault[];
+};
+
+function codeFaults(reading: CodeBlock[], live: CodeBlock[]): PairResult[] {
+	const results: PairResult[] = [];
+	const result = (label: string, props: number, faults: PairFault[]) =>
+		results.push({ pair: "code-token", label, count: 1, props, faults });
+	if (reading.length !== live.length)
+		result("", 0, [
+			{
+				prop: "count",
+				reading: String(reading.length),
+				live: String(live.length),
+			},
+		]);
+	reading.slice(0, live.length).forEach((r, index) => {
+		const l = live[index];
+		if (r.text !== l.text) {
+			result(r.language, 0, [
+				{
+					prop: "text",
+					reading: JSON.stringify(r.text),
+					live: JSON.stringify(l.text),
+				},
+			]);
+			return;
+		}
+		if (
+			l.spans.every((s) => s.kind === "plain") &&
+			r.spans.some((s) => s.kind !== "plain")
+		) {
+			result(r.language, 0, [
+				{ prop: "no-mode", reading: "highlighted", live: "plain" },
+			]);
+			return;
+		}
+		const seen = new Map<string, { sample: string; fault: PairFault | null }>();
+		let ri = 0;
+		let li = 0;
+		let open = "";
+		for (let i = 0; i < r.text.length; i++) {
+			while (r.spans[ri].to <= i) ri++;
+			while (l.spans[li].to <= i) li++;
+			const [a, b] = [r.spans[ri], l.spans[li]];
+			const key = [a.kind, b.kind, a.style, b.style].join("|");
+			const entry = seen.get(key);
+			if (/\s/.test(r.text[i])) open = "";
+			else if (!entry) {
+				seen.set(key, {
+					sample: r.text[i],
+					fault:
+						a.style === b.style
+							? null
+							: {
+									prop: `${a.kind}|${b.kind}`,
+									reading: a.style,
+									live: b.style,
+								},
+				});
+				open = key;
+			} else if (open === key) entry.sample += r.text[i];
+			else open = "";
+		}
+		for (const [key, { sample, fault }] of seen) {
+			const [a, b] = key.split("|");
+			result(
+				`${r.language} ${a} as ${b} ${JSON.stringify(sample)}`,
+				1,
+				fault ? [fault] : [],
+			);
+		}
+	});
+	return results;
+}
+
+async function checkPairs(args: string[]): Promise<void> {
+	const { values } = parseArgs({
+		args,
+		options: {
+			run: { type: "string", default: "agent" },
+			scheme: { type: "string", default: "light" },
+			note: { type: "string", default: "pairs" },
+			mobile: { type: "boolean", default: false },
+		},
+	});
+	if (values.scheme !== "light" && values.scheme !== "dark")
+		fail(`--scheme must be light or dark, not ${values.scheme}`);
+	const { mobile, width, height } = screenFor(values.mobile);
+	const suffix = mobile ? `${values.scheme}-mobile` : values.scheme;
+	const state = readState(values.run);
+	if (!alive(state.pid))
+		fail(`run "${values.run}" is not live; launch it again`);
+	const before = vaultFiles(state.vault);
+	const { browser, page } = await connect(state);
+	const found = {} as Record<View, Record<string, PairItem[]>>;
+	const code = {} as Record<View, CodeBlock[]>;
+	let undone: string[] = [];
+	try {
+		for (const view of ["reading", "live"] as const) {
+			const prepared = await prepare(page, {
+				width,
+				height,
+				mobile,
+				note: values.note,
+				view,
+				scheme: values.scheme,
+				open: "none",
+				hideRight: true,
+			});
+			if ("error" in prepared) fail(prepared.error);
+			if (view === "live") {
+				const parked = await page.evaluate(() => {
+					const editor = (window as any).app.workspace.activeLeaf.view.editor;
+					const line = editor.lastLine();
+					editor.setCursor({ line, ch: 0 });
+					return editor.getLine(line) as string;
+				});
+				if (parked.trim() !== "")
+					fail(
+						"the note's last line is not empty, so the caret has no place outside its marks",
+					);
+			}
+			await page.waitForTimeout(400);
+			await showWhole(page, view, width, height);
+			await page.mouse.move(0, 0);
+			await page.evaluate(() => document.fonts.ready);
+			await page.waitForTimeout(800);
+			await installPaint(page);
+			await installPairs(page);
+			found[view] = (await page.evaluate(
+				([view, rows]) => (window as any).__wgPairs(view, rows),
+				[
+					view,
+					pairs.map((p) => ({
+						id: p.id,
+						probe: p[view],
+						props: p.props,
+						nested: p.nested,
+					})),
+				] as const,
+			)) as Record<string, PairItem[]>;
+			code[view] = (await page.evaluate(
+				(view) => (window as any).__wgCode(view),
+				view,
+			)) as CodeBlock[];
+		}
+	} finally {
+		await page.evaluate(async () => {
+			const app = (window as any).app;
+			for (const leaf of app.workspace.getLeavesOfType("markdown"))
+				await leaf.view.save?.();
+		});
+		undone = restoreVault(state.vault, before);
+	}
+	await page.setViewportSize({ width, height });
+	await page.keyboard.press("Escape");
+	if (state.hidden) await conceal(page);
+	await browser.close();
+
+	const results: PairResult[] = [];
+	for (const row of pairs) {
+		const r = found.reading[row.id];
+		const l = found.live[row.id];
+		if (r.length !== l.length || r.length === 0)
+			results.push({
+				pair: row.id,
+				label: "",
+				count: 1,
+				props: 0,
+				faults: [
+					{ prop: "count", reading: String(r.length), live: String(l.length) },
+				],
+			});
+		const merged = new Map<string, PairResult>();
+		r.slice(0, l.length).forEach((item, i) => {
+			const faults = row.props.flatMap((prop) =>
+				sameValue(prop, item.values[prop], l[i].values[prop])
+					? []
+					: [{ prop, reading: item.values[prop], live: l[i].values[prop] }],
+			);
+			const key = JSON.stringify(faults);
+			const group = merged.get(key);
+			if (group) group.count++;
+			else
+				merged.set(key, {
+					pair: row.id,
+					label: item.label ? JSON.stringify(item.label) : "",
+					count: 1,
+					props: row.props.length,
+					faults,
+				});
+		});
+		results.push(...merged.values());
+	}
+	results.push(...codeFaults(code.reading, code.live));
+
+	const lines: string[] = [];
+	let failed = 0;
+	for (const result of results) {
+		const name = [
+			result.pair,
+			...(result.count > 1 ? [`x${result.count}`] : []),
+			...(result.label ? [result.label] : []),
+		].join(" ");
+		const say = (f: PairFault) =>
+			`${f.prop} reading ${f.reading}, live ${f.live}`;
+		const reasonFor = (f: PairFault) =>
+			pairDiffs.find((d) => d.pair === result.pair && d.prop === f.prop)
+				?.reason;
+		const declared = result.faults.filter((f) => reasonFor(f) !== undefined);
+		const faults = result.faults.filter((f) => reasonFor(f) === undefined);
+		for (const f of declared)
+			lines.push(`diff ${name}: ${say(f)} (${reasonFor(f)})`);
+		if (faults.length > 0) {
+			failed++;
+			lines.push(`FAIL ${name}: ${faults.map(say).join("; ")}`);
+		} else if (declared.length === 0)
+			lines.push(`ok   ${name}: ${result.props} properties`);
+	}
+	for (const line of undone) console.log(`VAULT ${line}`);
+	const path = join(state.runDir, `pairs-${suffix}.json`);
+	writeFileSync(path, JSON.stringify({ found, code, results }, null, 2));
+	console.log(lines.join("\n"));
+	console.log(`REPORT ${path}`);
+	console.log(failed === 0 ? "PAIRS ok" : `PAIRS fail ${failed}`);
+	if (failed > 0) process.exit(1);
+}
+
 function stop(args: string[]): void {
 	const { values } = parseArgs({
 		args,
@@ -4794,6 +5858,9 @@ switch (command) {
 	case "editcheck":
 		await editcheck(rest);
 		break;
+	case "pairs":
+		await checkPairs(rest);
+		break;
 	case "compare":
 		await compare(rest);
 		break;
@@ -4811,6 +5878,6 @@ switch (command) {
 		break;
 	default:
 		fail(
-			"usage: obsidian.ts <launch|doctor|shot|drive|compare|layers|joins|editcheck|seqcheck|sync|stop> [options]",
+			"usage: obsidian.ts <launch|doctor|shot|drive|compare|layers|joins|editcheck|pairs|seqcheck|sync|stop> [options]",
 		);
 }
