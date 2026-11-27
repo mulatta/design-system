@@ -3578,6 +3578,11 @@ async function seqcheck(args: string[]): Promise<void> {
 	const note = readFileSync(join(state.vault, prepared.note), "utf8");
 	const fences = sequenceFences(note);
 	const blocks: Record<string, unknown>[] = [];
+	const edges: {
+		index: number;
+		ends: number[];
+		lines: { full: boolean; residues: number; end: number }[];
+	}[] = [];
 	const badgeWidths: {
 		index: number;
 		digits: number;
@@ -3762,6 +3767,36 @@ async function seqcheck(args: string[]): Promise<void> {
 						box: box(range.getBoundingClientRect()),
 					};
 				});
+				const lineEnds = [...block.querySelectorAll(".seq-record")]
+					.flatMap((rec) =>
+						[...rec.querySelectorAll(":scope > .seq-line")].map(
+							(l, i, all) => ({
+								l,
+								full: i < all.length - 1,
+							}),
+						),
+					)
+					.flatMap(({ l, full }) => {
+						const groups = [...l.querySelectorAll(":scope > .seq-group")];
+						const last = groups.at(-1);
+						if (!last) return [];
+						const inset = /^inset\(([^)]*)\)/.exec(
+							getComputedStyle(last).clipPath,
+						);
+						const sides = inset ? inset[1].split(/\s+/).map(parseFloat) : [0];
+						return [
+							{
+								full,
+								residues: groups.reduce(
+									(n, g) => n + (g.textContent ?? "").length,
+									0,
+								),
+								end: r1(
+									last.getBoundingClientRect().right - (sides[1] ?? sides[0]),
+								),
+							},
+						];
+					});
 				const selection = getSelection() as Selection;
 				selection.removeAllRanges();
 				const range = document.createRange();
@@ -3795,6 +3830,7 @@ async function seqcheck(args: string[]): Promise<void> {
 						box(g.getBoundingClientRect()),
 					),
 					records: block.querySelectorAll(".seq-record").length,
+					lineEnds,
 					selectionText: data.getData("text/plain"),
 				};
 			},
@@ -3959,6 +3995,7 @@ async function seqcheck(args: string[]): Promise<void> {
 				shown.every((b) => Math.abs(b.h - cell - 2) <= 0.5),
 			reason: `heights ${shown.map((b) => b.h).join(", ")}, cell ${cell}`,
 		};
+		edges.push({ index, ends, lines: m.lineEnds });
 		const own = declared[fence.language];
 		const kindFaults = own
 			? m.kinds.flatMap((k, i) => {
@@ -4407,6 +4444,34 @@ async function seqcheck(args: string[]): Promise<void> {
 	await page.mouse.move(-10, -10);
 	if (state.hidden) await conceal(page);
 	await browser.close();
+
+	const fullLines = edges.flatMap((e) => e.lines.filter((l) => l.full));
+	const fullResidues = [...new Set(fullLines.map((l) => l.residues))];
+	const fullEnds = fullLines.map((l) => l.end);
+	const edge = fullEnds[0];
+	const edgeSpread =
+		fullEnds.length > 0 ? Math.max(...fullEnds) - Math.min(...fullEnds) : 0;
+	const fullFaults = [
+		fullLines.length === 0
+			? "no record in the note runs past one line, so no line is known to be full"
+			: "",
+		fullResidues.length > 1
+			? `full lines hold ${fullResidues.join(", ")} residues`
+			: "",
+		edgeSpread > 1
+			? `full lines spread ${Math.round(edgeSpread * 10) / 10}px`
+			: "",
+	].filter(Boolean);
+	for (const e of edges) {
+		(blocks[e.index].checks as Record<string, Check>)["badge-edge"] = {
+			pass:
+				edge !== undefined &&
+				fullFaults.length === 0 &&
+				e.ends.length > 0 &&
+				e.ends.every((x) => Math.abs(x - edge) <= 1),
+			reason: `badge right edges ${e.ends.join(", ")}; ${fullFaults.length > 0 ? fullFaults.join("; ") : `a full ${fullResidues[0]}-residue line's last cell ends at ${edge}`}`,
+		};
+	}
 
 	for (const own of badgeWidths) {
 		const peer = badgeWidths.find(

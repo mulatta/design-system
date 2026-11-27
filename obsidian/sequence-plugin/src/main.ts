@@ -19,7 +19,9 @@ import {
 	type LineMeasure,
 	languages,
 	lineLengthFor,
+	lineWidth,
 	type PlatformKind,
+	positionDigits,
 	type SequenceLine,
 	type SequenceRecord,
 	sequenceLines,
@@ -78,19 +80,13 @@ function selectionText(range: Range): string {
 		.join("\n");
 }
 
-function lastStart(lines: SequenceLine[][]): number {
-	return Math.max(1, ...lines.map((record) => record.at(-1)?.start ?? 1));
-}
-
 class SequenceBlock extends MarkdownRenderChild {
 	private readonly records: SequenceRecord[];
 	private readonly block: HTMLElement;
 	private readonly status: HTMLElement;
 	private readonly recordEls: HTMLElement[] = [];
-	private readonly widestDigits: number;
 	private readonly fence: Fence<Language>;
 	private lineLength: LineLength = 60;
-	private digits = 1;
 	private frame: number | null = null;
 	private copied: { badge: HTMLElement; timer: number } | null = null;
 
@@ -102,11 +98,6 @@ class SequenceBlock extends MarkdownRenderChild {
 			this.lineLength,
 			fence.language,
 		);
-		this.widestDigits = String(
-			lastStart(
-				this.records.map((record) => sequenceLines(record.sequence, 10)),
-			),
-		).length;
 		this.block = containerEl.createDiv({
 			cls: "seq-block",
 			attr: { "data-records": this.records.length },
@@ -119,6 +110,7 @@ class SequenceBlock extends MarkdownRenderChild {
 		this.block.setCssProps({
 			"--seq-len-width": `${String(longest).length}ch`,
 			"--seq-unit-width": `${widestUnit}ch`,
+			"--seq-pos-width": `${positionDigits(this.records)}ch`,
 		});
 		for (const record of this.records) {
 			const recordEl = this.block.createDiv({ cls: "seq-record" });
@@ -142,8 +134,12 @@ class SequenceBlock extends MarkdownRenderChild {
 	override onload(): void {
 		const observer = new ResizeObserver(() => this.reflow());
 		observer.observe(this.containerEl);
+		const fonts = this.block.doc.fonts;
+		const reflow = () => this.reflow();
+		fonts.addEventListener("loadingdone", reflow);
 		this.register(() => {
 			observer.disconnect();
+			fonts.removeEventListener("loadingdone", reflow);
 			if (this.frame !== null) {
 				this.block.win.cancelAnimationFrame(this.frame);
 			}
@@ -202,8 +198,6 @@ class SequenceBlock extends MarkdownRenderChild {
 	}
 
 	private renderLines(lines: SequenceLine[][]): void {
-		this.digits = String(lastStart(lines)).length;
-		this.block.setCssProps({ "--seq-pos-width": `${this.digits}ch` });
 		for (const [index, recordEl] of this.recordEls.entries()) {
 			for (const old of Array.from(recordEl.querySelectorAll(".seq-line"))) {
 				old.remove();
@@ -220,15 +214,18 @@ class SequenceBlock extends MarkdownRenderChild {
 
 	private reflow(): void {
 		const first = this.recordEls[0];
-		if (
-			first === undefined ||
-			this.block.clientWidth === 0 ||
-			this.records.every((record) => record.length <= GROUP_LENGTH)
-		) {
+		if (first === undefined || this.block.clientWidth === 0) {
 			return;
 		}
-		const lineLength = lineLengthFor(this.measure(first));
-		if (lineLength === this.lineLength) {
+		const measure = this.measure(first);
+		const lineLength = lineLengthFor(measure);
+		this.block.setCssProps({
+			"--seq-grid": `${lineWidth(measure, lineLength)}px`,
+		});
+		if (
+			lineLength === this.lineLength ||
+			this.records.every((record) => record.length <= GROUP_LENGTH)
+		) {
 			return;
 		}
 		this.lineLength = lineLength;
@@ -244,7 +241,7 @@ class SequenceBlock extends MarkdownRenderChild {
 
 	private measure(recordEl: HTMLElement): LineMeasure {
 		const probe = recordEl.createDiv({ cls: "seq-line" });
-		const pos = probe.createSpan({ cls: "seq-pos", text: "1" });
+		probe.createSpan({ cls: "seq-pos", text: "1" });
 		const residues = "N".repeat(GROUP_LENGTH);
 		const firstEl = probe.createSpan({ cls: "seq-group", text: residues });
 		const secondEl = probe.createSpan({ cls: "seq-group", text: residues });
@@ -253,7 +250,6 @@ class SequenceBlock extends MarkdownRenderChild {
 		const second = secondEl.getBoundingClientRect();
 		const group =
 			first.width + parseFloat(getComputedStyle(firstEl).marginRight);
-		const digit = parseFloat(getComputedStyle(pos).width) / this.digits;
 		probe.remove();
 		const style = getComputedStyle(this.block);
 		return {
@@ -263,9 +259,7 @@ class SequenceBlock extends MarkdownRenderChild {
 				parseFloat(style.paddingRight),
 			group,
 			gap: second.left - first.left - group,
-			digit,
-			digits: this.widestDigits,
-			positionGap: first.left - line.left - this.digits * digit,
+			position: first.left - line.left,
 		};
 	}
 

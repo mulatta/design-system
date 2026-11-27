@@ -11,6 +11,8 @@ import {
 	type LineLength,
 	languages,
 	lineLengthFor,
+	lineWidth,
+	positionDigits,
 } from "./format.ts";
 
 const alphabet = "ACGT";
@@ -484,15 +486,8 @@ describe("record source", () => {
 });
 
 describe("lineLengthFor", () => {
-	const measure = {
-		group: 100,
-		gap: 10,
-		digit: 8,
-		digits: 3,
-		positionGap: 10,
-	};
-	const need = (groups: number, digits = 3) =>
-		Math.max(3, digits) * 8 + 10 + groups * 100 + (groups - 1) * 10;
+	const measure = { group: 100, gap: 10, position: 34 };
+	const need = (groups: number) => 34 + groups * 100 + (groups - 1) * 10;
 
 	it("picks 60 when six groups fit exactly", () => {
 		assert.equal(lineLengthFor({ ...measure, available: need(6) }), 60);
@@ -524,28 +519,60 @@ describe("lineLengthFor", () => {
 		assert.equal(lineLengthFor({ ...measure, available: 0 }), 10);
 	});
 
-	it("sizes the position column at no less than three digits", () => {
-		for (const digits of [1, 2, 3]) {
-			assert.equal(
-				lineLengthFor({ ...measure, digits, available: need(6) }),
-				60,
-			);
-			assert.equal(
-				lineLengthFor({ ...measure, digits, available: need(6) - 1 }),
-				50,
-			);
-		}
+	it("gives a 1-digit block and a 3-digit block the same line at the same width", () => {
+		const digit = 8;
+		const measureOf = (source: string) => ({
+			...measure,
+			position: positionDigits(formatSequences(source, 60, "dna")) * digit + 10,
+			available: 600,
+		});
+		const short = measureOf(residues(24));
+		const long = measureOf(residues(174));
+		assert.equal(lineLengthFor(short), lineLengthFor(long));
+		assert.equal(
+			lineWidth(short, lineLengthFor(short)),
+			lineWidth(long, lineLengthFor(long)),
+		);
+	});
+});
+
+describe("lineWidth", () => {
+	const measure = { available: 0, group: 100, gap: 10, position: 34 };
+
+	it("ends at the last cell of a full line", () => {
+		assert.equal(lineWidth(measure, 10), 134);
+		assert.equal(lineWidth(measure, 60), 34 + 6 * 100 + 5 * 10);
 	});
 
-	it("widens the position column for four or more digits", () => {
-		assert.equal(
-			lineLengthFor({ ...measure, digits: 4, available: need(6) }),
-			50,
+	it("is the widest line that fits the width lineLengthFor was given", () => {
+		const available = 34 + 4 * 100 + 3 * 10 + 50;
+		const length = lineLengthFor({ ...measure, available });
+		assert.equal(length, 40);
+		assert.equal(lineWidth(measure, length), available - 50);
+	});
+});
+
+describe("positionDigits", () => {
+	const digits = (...lengths: number[]) =>
+		positionDigits(
+			formatSequences(
+				lengths.map((n, i) => `>r${i}\n${residues(n)}`).join("\n"),
+				60,
+				"dna",
+			),
 		);
-		assert.equal(
-			lineLengthFor({ ...measure, digits: 4, available: need(6, 4) }),
-			60,
-		);
+
+	it("draws at least three digits", () => {
+		assert.equal(digits(1), 3);
+		assert.equal(digits(24), 3);
+		assert.equal(digits(174), 3);
+		assert.equal(digits(), 3);
+	});
+
+	it("widens for a line that could start at 1001", () => {
+		assert.equal(digits(1000), 3);
+		assert.equal(digits(1001), 4);
+		assert.equal(digits(42, 1001, 60), 4);
 	});
 });
 

@@ -118,7 +118,7 @@ A cool neutral paper with one printed blue and one correcting red; each scheme, 
 
 ## Layout
 
-The note column is 700px (`line-width`). `cell` (14px) is the grid unit for padding in the app chrome. Sequence blocks stay inside the column and set as many GenBank groups of ten per line as fit, up to 60 residues, with the start position on each line. On a phone the column takes the full width and blocks fit it without scrolling sideways.
+The note column is 700px (`line-width`). `cell` (14px) is the grid unit for padding in the app chrome. Sequence blocks stay inside the column and set as many GenBank groups of ten per line as fit, up to 60 residues, with the start position on each line. The position column is at least three digits wide. Every length badge ends where the last cell of a full line ends at the block's line length, so the badges of a note stand on one edge, a short primer's included. On a phone the column takes the full width and blocks fit it without scrolling sideways.
 
 ## Elevation & Depth
 
@@ -163,7 +163,7 @@ Every component looks printed on the sheet or marked on it afterwards. Obsidian 
 - **Corner Style:** square, with the one 45° cut.
 - **Background:** the `tint` layer, or the callout colour at low strength.
 - **Border:** a Manuscript Rule Blue top rule for code; warning and danger callouts take Proofreader's Red. Neither takes a side or bottom line: the tint already sets the block apart as its own layer.
-- **Live Preview hover:** a hovered block draws no ring around its frame, and its edit button sits `cut` in from the right edge, clear of the diagonal. A sequence block is the exception: its edit button sits at the top left, over the empty position column, because the length badge, its copy control, ends at the block's right edge, under the stock spot.
+- **Live Preview hover:** a hovered block draws no ring around its frame, and its edit button sits `cut` in from the right edge, clear of the diagonal. A sequence block is the exception: its edit button sits at the top left, over the empty position column, because the length badge, its copy control, ends on the grid edge, and the space left of the cut changes with the window width.
 
 ### Navigation (file tree)
 - **Style:** plain rows on the `paper-alt` layer under a bold ink pane header with a fine `pale` underline.

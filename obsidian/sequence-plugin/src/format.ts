@@ -35,9 +35,7 @@ export type LineMeasure = {
 	available: number;
 	group: number;
 	gap: number;
-	digit: number;
-	digits: number;
-	positionGap: number;
+	position: number;
 };
 
 export const GROUP_LENGTH = 10;
@@ -136,17 +134,26 @@ export function copiedLabel(records: SequenceRecord[]): string {
 		: `Copied ${records.length} records`;
 }
 
+export function lineWidth(
+	measure: LineMeasure,
+	lineLength: LineLength,
+): number {
+	const groups = lineLength / GROUP_LENGTH;
+	return measure.position + groups * measure.group + (groups - 1) * measure.gap;
+}
+
 export function lineLengthFor(measure: LineMeasure): LineLength {
-	const position =
-		Math.max(3, measure.digits) * measure.digit + measure.positionGap;
-	const fits = (lineLength: LineLength) => {
-		const groups = lineLength / GROUP_LENGTH;
-		return (
-			position + groups * measure.group + (groups - 1) * measure.gap <=
-			measure.available
-		);
-	};
-	return LINE_LENGTHS.find(fits) ?? 10;
+	return (
+		LINE_LENGTHS.find(
+			(lineLength) => lineWidth(measure, lineLength) <= measure.available,
+		) ?? 10
+	);
+}
+
+export function positionDigits(records: SequenceRecord[]): number {
+	const longest = Math.max(1, ...records.map((record) => record.length));
+	const lastStart = Math.floor((longest - 1) / GROUP_LENGTH) * GROUP_LENGTH + 1;
+	return Math.max(3, String(lastStart).length);
 }
 
 const unitNames: Record<Unit, { one: string; many: string; read: string }> = {
