@@ -4,11 +4,11 @@ Obsidian's mobile app uses its own layout: no ribbon or side panes on screen, a 
 
 ## Sub-features
 
-- `mobile-column` keeps the title, properties, prose, and headings inside the phone width with no horizontal overflow; the properties card ends at the column edges, where the title rule and code blocks end.
+- `mobile-column` keeps the title, properties, prose, and headings inside the phone width with no horizontal overflow; the properties card ends at the column edges, where the title rule and code blocks end; no task checkbox or other block starts left of the column edge.
 - `mobile-shrink` sets the inline title at 1.8em and the cell module at 12px below 600px, and moves the H2 marker from the margin into the heading line.
 - `mobile-fonts` renders MaruBuri, Source Serif 4, and D2Coding from the embedded fonts, not system fallbacks.
 - `mobile-blocks` keeps code blocks, tables, and callouts inside the width or scrollable inside their own box.
-- `mobile-raised` draws the floating navbar and the top sidebar, edit, and more buttons square, framed by a 1px accent ring on paper with the theme's shadow and no blur.
+- `mobile-raised` draws the floating navbar and the top sidebar, edit, and more buttons square, framed by a 1px accent ring on paper with the theme's shadow and no blur. The floating view header behind the top buttons draws no underline, as in stock.
 - `mobile-settings` opens settings as a square modal over the note.
 - `mobile-editing` keeps Live Preview at phone width like desktop Live Preview: the title rule, properties, the H2 marker, the code top rule, callouts, task boxes, and a table sized to its content within the column.
 
@@ -29,7 +29,7 @@ Preconditions:
 - **Stock reference.** The same `shot` options against a stock run (`--run stock`) give the stock mobile layout.
 - **Geometry.** Run `obs compare --base stock --run agent --mobile --scheme light` and `--view live --mobile`, then both with `--scheme dark`. The note parts prove `mobile-column`, `mobile-blocks`, and `mobile-editing`; `navbar` and `top-buttons` prove `mobile-raised` (see [Geometry against stock Obsidian](./stock-geometry.md)).
 - **Tones.** Run `obs layers --run agent --mobile --scheme light` and `--view live --mobile`, then dark.
-- **States.** Run `obs editcheck --run agent --mobile --scheme light`, then dark. It runs the rows marked for the phone at 390x844.
+- **States.** Run `obs editcheck --run agent --mobile --scheme light`, then dark. It runs the rows marked for the phone at 390x844. `reading-column` and `live-column` prove the column-edge part of `mobile-column`, and `floating-header` proves the header part of `mobile-raised`.
 - **Back to desktop.** The next `shot` without `--mobile` switches emulation off again.
 - **Proof.** Report each sub-feature with its capture path, and state that it was proven under emulation.
 
@@ -41,5 +41,6 @@ Preconditions:
 - `shot` cannot open the mobile drawers (`.workspace-drawer`) apart from search; prove a drawer change with a custom CDP drive. Each step of the harness closes both drawers first, so a drawer from an earlier step does not cover the note.
 - Obsidian hides the navbar and the top buttons while the editor has focus, so `compare` and `layers` measure them only in reading view.
 - The search drawer covers the note, so `editcheck --mobile` reaches only the search field in `text-focus` and the note's editing roots in `note-text-focus`.
-- On 2026-11-27 (Obsidian 1.15.1) two phone defects were measured and not fixed: the reading-view task checkbox sits 3.6px left of the column edge (desktop: on it); the view header's 1px underline runs across the floating header, where stock draws none (`build/verify/compare/reading-mobile/<scheme>/top-buttons.*.png`).
+- On the phone Obsidian sizes the task checkbox at 1.15 times the font size, 18.4px, and hangs it 1.5 box widths, 27.6px, into the list item's indent. The theme widens the indent to that hang, so list items start 27.6px in on the phone and 24px (3ch) on desktop, and the box sits on the column edge in both.
+- With floating navigation the phone's view header is fixed over the note with a transparent background. The theme's desktop underline is transparent there; it keeps its width so no box moves.
 - Emulation is a stand-in. It does not prove behaviour on a real iOS or Android WebView: safe-area insets, real font loading from a synced vault, and touch states stay unverified until checked on a device.

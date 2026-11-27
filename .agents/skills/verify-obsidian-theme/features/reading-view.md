@@ -4,7 +4,7 @@ Reading view shows a rendered note in a calm reading column: the title in MaruBu
 
 ## Sub-features
 
-- `read-title-props` shows the inline title over a rule that runs into its 45° cut, and the properties block with ruled rows, Obsidian's own property icons, and square tags of one height. Geometry: `geo-title-rule`, `geo-properties`.
+- `read-title-props` shows the inline title over a rule that runs into its 45° cut, and the properties block with ruled rows, Obsidian's own property icons, and square tags of one height, starting at the column edge where the title rule starts. Geometry: `geo-title-rule`, `geo-properties`.
 - `read-title-bare` draws the same title rule and cut on a note without properties (`long-note`).
 - `read-headings` marks each H2 with a small filled blue square hung in the left margin, so the heading text starts at the body's left edge, and ends it with a fine trailing rule; H3 and H4 stay plain. Geometry: `geo-heading`.
 - `read-prose` sets Korean in MaruBuri and Latin in Source Serif 4; `*gfp*`, `*Escherichia coli*` render italic; α and µ render in the Latin face.
@@ -14,7 +14,7 @@ Reading view shows a rendered note in a calm reading column: the title in MaruBu
 - `read-table` shows a table as wide as its content, up to the note column, with Hangul wrapping between words, never inside one, and a table wider than the column scrolling sideways in its own box; it has a fine rule above the header, a heavy rule under it, fine row rules, and tabular lining numerals; the header row stays on the page tone.
 - `read-callouts` shows every callout type in the accent except warning, fail, danger, error, and bug in proof red and quote in grey, each on its tint under a top rule that turns down a cut corner, with no side or bottom line. `elements-ko` holds note, tip, danger, quote, summary, todo, and important. Geometry: `geo-callout`.
 - `read-quote-hr` shows a plain blockquote between fine rules in the muted colour, and a horizontal rule drawn as a strip of cells.
-- `read-tasks` shows square checkboxes at stock size and position; a done task has a red cross that fills its box and a red strike; the checkbox never touches its label, and a wrapped second line starts under the first line's text. Geometry: `geo-tasks`.
+- `read-tasks` shows square checkboxes at stock size and position; a done task has a red cross that fills its box and a red strike; the checkbox never touches its label and never starts left of the column edge, and a wrapped second line starts under the first line's text. Geometry: `geo-tasks`.
 
 ## How to get to it (user POV)
 
@@ -35,6 +35,7 @@ Preconditions:
 - **Dark.** Repeat each capture with `--scheme dark`. The same elements keep their roles with the dark palette.
 - **Geometry.** For `read-title-props`, `read-headings`, `read-code`, `read-callouts`, and `read-tasks`, also run their parts with `obs compare` against a stock run: `--part title-rule --part properties --part heading --part code-top --part callout --part tasks`.
 - **Table width.** `obs editcheck --run agent` measures `read-table`'s width against its content and the column as `reading-table`.
+- **Column edge.** The same `editcheck` run measures everything the note column paints against its left edge as `reading-column`, which proves the column-edge parts of `read-title-props` and `read-tasks`. Add `--mobile` for the phone and `--note elements-ko` for the nested lists and the two-line task.
 - **Proof.** Look at every capture against the sub-feature list and report each sub-feature as holding or not, with the capture path.
 
 ## Gotchas
@@ -42,4 +43,5 @@ Preconditions:
 - The `fasta` block renders as a plain code block.
 - `--scroll` values depend on the window height; check that the capture shows the intended part before reporting.
 - Math is MathJax's own font; the theme does not style it.
+- On desktop Obsidian shifts the properties block 4px left with a `transform`, so its unpainted rows' text lines up with the column. The theme paints the rows, the key cells, and the rule under the block, so it removes the shift; the phone has none.
 - Obsidian unloads sections scrolled far out of view, in reading view and in the editor, so CSS counters restart partway through a long note. `long-note` (30 sections) shows it: with a counter, "Section 29" read 3. Do not number headings with CSS.
