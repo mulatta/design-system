@@ -13,12 +13,12 @@ Every command runs from the repository root inside the devshell, so `obsidian`, 
 nix develop -c node obsidian/testbed/obsidian.ts <launch|doctor|shot|drive|compare|layers|joins|editcheck|pairs|seqcheck|sync|stop> [options]
 ```
 
-Below, `obs` stands for that whole command. The same harness backs the owner's npm scripts (`npm run obsidian`, `obsidian:doctor`, `obsidian:shot`, `obsidian:compare`, `obsidian:layers`, `obsidian:sync`, `obsidian:stop`), so a run the owner started by hand is the same kind of run. `npm run obsidian` is `launch --foreground`: it stays in the terminal, streams Obsidian's log there and into `obsidian.log`, and tears the run down on Ctrl+C, hangup, or when Obsidian quits. Agents use plain `launch`, which detaches and returns after `READY`, and keep the owner's run for the owner: launch your own run name (for example `--run agent`) instead of driving `main` while the owner looks at it.
+Below, `obs` stands for that whole command. The same harness backs the owner's npm scripts (`npm run obsidian`, `obsidian:doctor`, `obsidian:shot`, `obsidian:compare`, `obsidian:layers`, `obsidian:sync`, `obsidian:stop`), so a run the owner started by hand is the same kind of run. `npm run obsidian` is `launch --run main --foreground`: it stays in the terminal, streams Obsidian's log there and into `obsidian.log`, and tears the run down on Ctrl+C, hangup, or when Obsidian quits. Agents use plain `launch`, which detaches and returns after `READY`, and leave the run `main` to the owner.
 
 ## Launch
 
 ```sh
-obs launch --run agent
+obs launch
 ```
 
 - Writes a fresh vault and Electron user-data directory under `build/verify/<run>/`, copies the notes from `obsidian/testbed/notes/` with their folders, and, unless `--theme none`, builds `.#fonts` into `build/fonts` and installs the theme as `Wongoji`. Then it starts `obsidian --remote-debugging-port=<free port> --user-data-dir=build/verify/<run>/data`.
@@ -34,17 +34,17 @@ obs launch --run agent
   - `--cssclass <class>`: added to every note's `cssclasses`.
   - `--scheme light|dark`: the scheme at start.
   - `--notes <dir>`: replaces the fixture notes.
-- After editing `DESIGN.md`, a file in `obsidian/theme/src/`, a `--snippet` file, `nix/fonts/`, or the source of a `--plugin` (for the sequence plugin, `obsidian/sequence-plugin/`), run `obs sync --run <run>`. It rewrites the theme and snippets into the live vault, waits until Obsidian has loaded the new CSS, rebuilds and recopies each plugin, disables and re-enables it, waits until it has loaded again, and prints `SYNCED`. A run with only a theme, only snippets, or only plugins syncs what it has. No relaunch is needed. Notes are not synced; relaunch to pick up edited fixture notes.
+- After editing `DESIGN.md`, a file in `obsidian/theme/src/`, a `--snippet` file, `nix/fonts/`, or the source of a `--plugin` (for the sequence plugin, `obsidian/sequence-plugin/`), run `obs sync`. It rewrites the theme and snippets into the live vault, waits until Obsidian has loaded the new CSS, rebuilds and recopies each plugin, disables and re-enables it, waits until it has loaded again, and prints `SYNCED`. A run with only a theme, only snippets, or only plugins syncs what it has. No relaunch is needed. Notes are not synced; relaunch to pick up edited fixture notes.
 - The disposable Obsidian config sets `updateDisabled`, so the app makes no update request.
 - Runs are isolated by name. `--run a` and `--run b` can be live side by side. `launch` refuses a name whose recorded process is still alive.
-- Teardown is `obs stop --run <run>`.
-- Always pass `--run`. `doctor`, `shot`, and `sync` default to `main` and `compare`, `layers`, `joins`, and `pairs` to `agent`; `stop` and `seqcheck` refuse to run without `--run`, so they never touch the owner's run by omission. `editcheck` refuses too, since it clicks into the window and moves its focus, and so does `drive`, whose probe may do anything.
-- The owner may have run `main` live from `npm run obsidian`, on screen. Leave it alone: do not drive or stop it. Run `obs doctor --run agent` first; if it reports ok, reuse that invisible run instead of launching again, and leave it live for the next proof unless the task is over. Stop only runs you launched.
+- Teardown is `obs stop`.
+- Every command defaults to `--run agent`, `stop` included. Pass `--run` only for a second run, which needs its own name.
+- The owner may have run `main` live from `npm run obsidian`, on screen. Leave it alone: do not drive or stop it. Run `obs doctor` first; if it reports ok, reuse that invisible run instead of launching again, and leave it live for the next proof unless the task is over. Stop only runs you launched.
 
 ## Doctor
 
 ```sh
-obs doctor --run agent
+obs doctor
 ```
 
 This changes nothing in the run and prints JSON. For a run with plugins it runs `nix build` for each, which is quick when the plugin source has not changed. `"ok": true` requires all of these:
@@ -55,18 +55,18 @@ This changes nothing in the run and prints JSON. For a run with plugins it runs 
 - `cssTheme` is `Wongoji` when launched with the theme. A stock run reports `""`.
 - Every `--plugin` id is in `enabledPlugins`, the plugins Obsidian has loaded.
 - `installCurrent` is true: the theme in the live vault contains what `buildTheme()` makes from the working tree now, each snippet starts with its source file, and each plugin's files in the vault equal what `nix build .#<attr>` makes from the working tree now. False means an edit has not been synced; run `obs sync`.
-- `pageErrors` is empty. The harness records, in the page, every uncaught exception, unhandled promise rejection, and `console.error` call since `launch` or the last `sync`, each with its stack, and keeps the record across the reload that phone emulation makes. Obsidian catches an error a plugin throws while rendering and logs it this way, so a block can look right in a capture while its code failed. The record starts when a command first connects, so an error thrown before `launch` connects is missed, and so is one in the settings window, which is a second page.
+- `pageErrors` is empty. The harness records, in the page, every uncaught exception, unhandled promise rejection, and `console.error` call since `launch` or the last `sync`, each with its stack, and keeps the record across the reload that phone emulation makes. Obsidian catches an error a plugin throws while rendering and logs it this way, so a block can look right in a capture while its code failed. The record starts when a command first connects, so an error thrown before `launch` connects is missed, and so is one in the settings window, which is a second page. `shot`, `compare`, `layers`, `joins`, `editcheck`, `pairs`, `seqcheck`, and `drive` each print a `PAGE ERROR <first line>` for every error the page recorded while the command ran, and then exit 1.
 
 It also lists the open vault's notes, the enabled snippets, and the loaded plugins. Run it first whenever a shot looks wrong, and after the last drive of a proof.
 
 ## Drive
 
 ```sh
-obs shot --run agent --note "<basename or path>" --view reading|live|source --scheme light|dark \
-  [--size 1440x900] [--scroll <px>] [--open none|palette|settings|search] [--mobile] [--hide-right] [--out <file.png>]
+obs shot --note "<basename or path>" --view reading|live|source --scheme light|dark \
+  [--size <width>x<height>] [--scroll <px>] [--open none|palette|settings|search] [--mobile] [--hide-right] [--out <file.png>]
 ```
 
-Defaults: `--view reading`, `--scheme light` (this overrides the scheme `launch` started with), `--size 1440x900`, `--scroll 0`, `--open none`. A value outside these lists, or a malformed size or scroll, fails before anything is captured.
+Defaults: `--view reading`, `--scheme light` (this overrides the scheme `launch` started with), `--size 1440x900`, or `390x844` with `--mobile`, `--scroll 0`, `--open none`. A value outside these lists, or a malformed size or scroll, fails before anything is captured.
 
 Each `shot` call does the following, in order:
 1. Connects over CDP and sets the viewport.
@@ -93,7 +93,7 @@ Fixture notes, in `obsidian/testbed/notes/`. The lab and element notes come in a
 
 ```sh
 obs launch --run stock --theme none
-obs compare --base stock --run agent --scheme light|dark [--view reading|live] [--mobile] [--part <id>]... [--size 1440x900]
+obs compare --base stock --scheme light|dark [--view reading|live] [--mobile] [--part <id>]... [--size <width>x<height>]
 ```
 
 `compare` puts both runs in the same state, captures named parts of the window at 2x, and prints each part's box differences in CSS px against the base run. `--view` opens each part's note in reading view (the default) or Live Preview; `--mobile` switches on phone emulation, where `--size` defaults to 390x844 instead of 1440x900. Each run of `compare` empties `build/verify/compare/<view>[-mobile]/<scheme>/` and writes `<part>.<run>.png`, `metrics.json`, and `index.html` there, plus `compare.png`, one sheet with every pair, when `IMPECCABLE_BROWSER` is set (the devshell sets it). Copy the directory away before a second `compare` in the same place and scheme if you need both. The parts and what each must show are in `features/stock-geometry.md`; the part list lives in the `parts` table in `obsidian/testbed/obsidian.ts`. A row's `root` is one selector for app chrome, measured in any view, or a selector per view (`inNote` builds the same selector for both); `on` lists the layouts it runs on, desktop when absent. A view or layout a row does not name skips that row. Add a row there when a new component needs a geometry check.
@@ -101,7 +101,7 @@ obs compare --base stock --run agent --scheme light|dark [--view reading|live] [
 ### Measure tonal layers
 
 ```sh
-obs layers --run agent --scheme light|dark [--view reading|live] [--mobile] [--note lab-note-ko] [--threshold 0.025]
+obs layers --scheme light|dark [--view reading|live] [--mobile] [--note lab-note-ko] [--threshold 0.025]
 ```
 
 `layers` measures at 1440x900 on desktop, or at 390x844 under phone emulation with `--mobile`, in reading view or, with `--view live`, Live Preview, with the right sidebar hidden. It reads each named region's painted background, its OKLCH lightness, and its visible borders and shadow, then prints the lightness difference at each boundary and flags those below the threshold. The regions and boundaries are the `regions` and `boundaries` tables in `obsidian/testbed/obsidian.ts`; a region names its selector and layouts the way a `compare` part does, and a boundary prints only where both of its regions apply. What each must show is in `features/tonal-layers.md`. Output JSON goes to `build/verify/layers/<run>-<view>[-mobile]-<scheme>.json`.
@@ -109,7 +109,7 @@ obs layers --run agent --scheme light|dark [--view reading|live] [--mobile] [--n
 ### Check joins
 
 ```sh
-obs joins --run agent --scheme light|dark [--view reading|live] [--mobile]
+obs joins --scheme light|dark [--view reading|live] [--mobile]
 ```
 
 `joins` measures where two pieces the theme paints apart must meet: a stroke and the mark it runs into. These marks are pseudo-elements, gradients, and masks with no box, so `joins` reads painted pixels. For every instance of each row in each of the row's notes, it captures a crop around the join at scale 2, decodes it in the page with a canvas, and finds the pixel rows painted in the instance's colour at a sample before the join and one after it. A `mark` row names its colour, a CSS colour such as `var(--wg-proof)` resolved on the element in the current scheme. A `cut` row reads it from the frame. A `mark` row compares the whole band, so the strike line and the loop's foot must share both edges. A `cut` row, a straight rule running into the 45° cut, compares only the top edge, after shifting the diagonal back by its slope. Bands more than 0.5 CSS px apart fail. The rows are the `joins` table in `obsidian/testbed/obsidian.ts`; a row names its notes, its selector per view, and its layouts the way a `compare` part does. A `mark` row's selector names its instances. A `cut` row's selector is only the scope: it finds its frames by kind, as every element in the scope, or its `::before` or `::after`, whose computed `background-image` has a `linear-gradient(225deg, …)` layer, the way the theme draws every cut. The colour is that gradient's first opaque stop and the cut's size its layer's `background-size`, so a new frame cut at 45° is measured without a new row. A hand list of frames named the title, callouts, code blocks, and the tab, and missed the sequence block. A row finds every instance in its notes by scrolling through each note, not only the first instance. It runs at 1440x900 on desktop, or at 390x844 under phone emulation with `--mobile`, with the right sidebar hidden.
@@ -122,7 +122,7 @@ It prints one `ok` or `FAIL` line per instance, with both bands in CSS px from t
 ### Check editing states
 
 ```sh
-obs editcheck --run agent [--scheme light|dark] [--mobile] [--note lab-note-ko]
+obs editcheck [--scheme light|dark] [--mobile] [--note lab-note-ko]
 ```
 
 `editcheck` puts the window in states a plain `shot` never reaches, because `shot` clears focus and never places the cursor, and measures one invariant in each. It runs at 1440x900 on desktop with the right sidebar hidden, or at 390x844 under phone emulation with `--mobile`. The checks are the `editChecks` table in `obsidian/testbed/obsidian.ts`; a row's `on` lists the layouts it runs on, desktop when absent. Add a row there when a bug shows up in a state no check reaches. A row finds its targets in the DOM by kind, as `text-focus` takes every editing root, never from a list of selectors for the instances already seen: a hand list proved only the instance a user had reported, and the next instance of the same kind was found by the user again.
@@ -133,7 +133,7 @@ obs editcheck --run agent [--scheme light|dark] [--mobile] [--note lab-note-ko]
 - `note-text-focus` (phone only): the same check with no panel open, so it reaches the inline title, each property's name and value, and the editor under phone emulation.
 - `property-select`: for every property row, it hovers the name and the empty part of the value cell, then presses and releases there, which selects the row itself. Before each measurement it waits until the window marks the row hovered or pressed. The invisible window sits on top of the screen, so the owner's real pointer moving over it sends the page its own mouse events and clears the row's hover and press; the check waits for the pointer to rest, measures again when a mouse event it did not send arrives, and after five disturbed tries fails the row as unmeasured, never as a tint. Hovering may change neither the row's ring nor the background of the row or its name; the row stays untinted while the button is held, and after release it is selected, has no ring, and has a changed background.
 - `raised-surfaces`: with the command palette open, every visible prompt, modal, menu, suggestion list, and popover paints the theme's paper, shadow, and 1px rule, and it and everything inside it that draws a border or background has square corners. On the phone Obsidian makes the palette translucent, gives it its own shadow, and rounds its input; this row catches each.
-- `control-focus`: the first control that `Tab` reaches outside a text field shows an outline, so keyboard focus stays visible.
+- `control-focus` (desktop only): the first control that `Tab` reaches outside a text field shows an outline, so keyboard focus stays visible.
 - `pane-rules` (desktop only): it shows the right sidebar while it measures and finds every horizontal rule a pane draws outside its scrolling content, a border or an unblurred shadow on an element at least nine tenths as wide as its tab group. Two rules of different panes that end within 4px of each other must end at the same height, within 0.1px, so the rule under the note's view header continues the one under the sidebar's pane header. A rule painted as a background is not measured.
 - `reading-table`, `live-table`: every table in the note is as wide as its content needs, up to the note column, and wider only when a word cannot break, within 1px, in reading view and in Live Preview's table widget; a table wider than the column scrolls inside a box no wider than the column. The check scrolls through the note, measures each table it meets on a hidden copy at max-content and min-content, and keeps the column width from the last paragraph it saw, since a short phone screen near the note's end may show none.
 - `reading-column`, `live-column`: it scrolls the note from top to bottom, in reading view and in Live Preview, and measures every element in the note column that paints (a background, a border, a shadow, or a replaced element such as a task checkbox or an image) and every run of text, clipped by any ancestor that clips overflow. None may start more than 0.5px left of the column's content edge. A mark drawn by a pseudo-element has no box, so the H2 square, which hangs in the margin on desktop by design, is outside this check, and so is Obsidian's fold handle, which shows in the margin while the pointer is over a heading or list item. It names each element left of the edge with its offset, and its capture is the worst one, or the first task checkbox when none is.
@@ -149,7 +149,7 @@ It prints one `ok` or `FAIL` line per check with its measurement, `REPORT <path>
 ### Check that the two views match
 
 ```sh
-obs pairs --run agent [--scheme light|dark] [--mobile] [--note pairs]
+obs pairs [--scheme light|dark] [--mobile] [--note pairs]
 ```
 
 `pairs` holds the theme to one rule: a device looks the same in reading view and in Live Preview while the caret is outside it. It opens the note in reading view and then in Live Preview, puts the caret on the note's empty last line, makes the window tall enough that each view renders the whole note, and reads every device's computed style in both. It runs at 1440 px wide on desktop, or at 390 px under phone emulation with `--mobile`, with the right sidebar hidden.
@@ -169,8 +169,8 @@ It prints one `ok`, `diff`, or `FAIL` line for each group of instances with the 
 ### Check sequence blocks
 
 ```sh
-obs seqcheck --run agent [--note sequences] [--view reading|live] [--scheme light|dark] \
-  [--size 1440x900] [--mobile] [--hide-right]
+obs seqcheck [--note sequences] [--view reading|live] [--scheme light|dark] \
+  [--size <width>x<height>] [--mobile] [--hide-right]
 ```
 
 `seqcheck` needs a run launched with `--plugin obsidian-sequence-plugin`. It prepares the window as `shot` does, reads the note from the run's vault, and finds each `fasta`, `dna`, `rna`, and `protein` fence in it. For each fence it scrolls the rendered block into view, because reading view and CodeMirror drop off-screen blocks from the DOM. Then it forces the block and each of its ancestors up to the view's scroller into the hover state with CDP `CSS.forcePseudoState`, as a pointer over the block would, measures it, and checks nineteen invariants, plus `badge-overlap` in a block of two or more records and `live-source` and `copy-command` in Live Preview. A real mouse hover is not reliable here: macOS still sends the owner's cursor to the click-through window, so moving the mouse anywhere on screen can take the hover away. The run emulates `prefers-reduced-motion: reduce`. The copy control is each record's length badge, in both views. Every press goes through a `writeText` recorder that the check puts in place for the press and removes afterwards, so the system clipboard is never written, and the check removes the notices the press shows.
@@ -203,7 +203,7 @@ It prints the report as JSON, one `FAIL block <n> <language>: <invariant>: <reas
 ### Run a probe
 
 ```sh
-obs drive --run agent [--note <note> --view reading|live|source --scheme light|dark --mobile --size 1440x900 --hide-right] <probe.ts> [args]...
+obs drive [--note <note> --view reading|live|source --scheme light|dark --mobile --size <width>x<height> --hide-right] <probe.ts> [args]...
 ```
 
 `drive` is the way to ask the live app a question no check answers yet: a measurement, a state reached by typing, hovering or scrolling, a capture of one part. It imports the probe file, which may sit anywhere, such as a scratch directory, and calls its default export. With `--note` it first puts the window in that note, view, scheme and layout as `shot` does; without it the window is left as the last command left it.
@@ -231,17 +231,17 @@ A probe that answers a question a second time is a check: give it a row in `edit
 
 - Shots land in `build/verify/<run>/shots/`. The name encodes the note, view, scheme, mobile, open panel, and scroll, unless `--out` is given. `seqcheck` writes its reports to `build/verify/<run>/`. Obsidian's own log is `build/verify/<run>/obsidian.log`; each `launch` of the same run name appends to it after a `--- launch <time> ---` line. `build/` is gitignored.
 - A proof captures the state a user sees after doing the action. Pick the note, view, and scheme the changed CSS affects. For hover or focus states, force the pseudo-class with CDP `CSS.forcePseudoState` rather than moving the mouse, for the reason `seqcheck` gives, in a probe run by `obs drive`. Do not inject CSS: the theme must come from the launched files.
-- Prove both schemes for any colour change, and add `--mobile --size 390x844` for anything inside the note column.
+- Prove both schemes for any colour change, and add `--mobile` for anything inside the note column.
 - Judge size, position, and joins of components with `compare` against stock, not from a full-window capture: at 1x a broken corner or a box a few pixels short is too small to see.
 - Look at every capture before reporting it. A capture of the wrong note, a half-loaded window, or the default theme (`doctor` would show `cssTheme: ""`) proves nothing.
 
 ## Cleanup
 
 ```sh
-obs stop --run agent
+obs stop
 ```
 
-This sends SIGTERM to the process group `launch` started, from the pid in `run.json`, and sends SIGKILL to the same group after 10 s. Then it deletes the run's `vault/`, `data/`, and `run.json`. It keeps `shots/` and `obsidian.log`. It never kills by process name, so the user's own Obsidian is untouched. Delete `build/verify/<run>/` by hand when the evidence is no longer needed.
+This sends SIGTERM to the process group `launch` started, from the pid in `run.json`, and sends SIGKILL to the same group after 10 s. Then it deletes the run's `vault/`, `data/`, and `run.json`. It keeps `shots/`, the report JSON files, and `obsidian.log`. It never kills by process name, so the user's own Obsidian is untouched. Delete `build/verify/<run>/` by hand when the evidence is no longer needed.
 
 ## Helpers
 

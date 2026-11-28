@@ -38,9 +38,9 @@ Preconditions:
 - **Every input shape, light.** Run `obs shot --run agent --note sequences --view reading --scheme light` and again with `--scroll 600` and `--scroll 1200`. Together they show `seq-lines`, `seq-groups`, `seq-pos`, `seq-header`, `seq-records`, `seq-cells`, `seq-column`, `seq-reflow`, and `seq-inline` on the last capture.
 - **Live Preview.** Run `obs shot --run agent --note sequences --view live --scheme light`. The capture shows `seq-live`.
 - **Dark.** Repeat the three reading captures with `--scheme dark` for `seq-dark`.
-- **Phone width.** Run `obs shot --run agent --note sequences --view reading --scheme light --mobile --size 390x844`, and again with `--scroll 700`, for `seq-phone`.
+- **Phone width.** Run `obs shot --run agent --note sequences --view reading --scheme light --mobile`, and again with `--scroll 700`, for `seq-phone`.
 - **Lab notes.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light` for a sequence block among prose.
-- **Layout and copy.** Run `obs seqcheck --run agent --view reading --scheme light`, again with `--size 1100x800`, again with `--view live --size 1100x800`, and again with `--view reading --mobile --size 390x844`. Each prints `SEQCHECK ok` or `SEQCHECK fail <count>` and writes `build/verify/agent/seqcheck-<view>-<scheme>-<size>[-mobile].json`. The skill's [Check sequence blocks](../SKILL.md#check-sequence-blocks) section defines each invariant. Each invariant proves these sub-features:
+- **Layout and copy.** Run `obs seqcheck --run agent --view reading --scheme light`, again with `--size 1100x800`, again with `--view live --size 1100x800`, and again with `--view reading --mobile`. Each prints `SEQCHECK ok` or `SEQCHECK fail <count>` and writes `build/verify/agent/seqcheck-<view>-<scheme>-<size>[-mobile].json`. The skill's [Check sequence blocks](../SKILL.md#check-sequence-blocks) section defines each invariant. Each invariant proves these sub-features:
   - `not-clipped` proves `seq-column` in reading view, `seq-live` with `--view live`, and `seq-phone` with `--mobile`.
   - `fits` proves `seq-lines`: the chosen line length fits without scrolling, at every size and with `--mobile`.
   - `in-column` proves `seq-column`, and `seq-phone` with `--mobile`.

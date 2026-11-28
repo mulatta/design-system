@@ -27,7 +27,7 @@ Preconditions:
 
 ## Gotchas
 
-- `compare` empties and rewrites `build/verify/compare/<scheme>/` every time; copy a stock-versus-theme result aside before comparing against the snippet run.
+- `compare` empties and rewrites `build/verify/compare/<view>[-mobile]/<scheme>/` every time; copy a stock-versus-theme result aside before comparing against the snippet run.
 - Two snippets with the same file name overwrite each other in the disposable vault.
 - A snippet that names host fonts (for example Pretendard) renders with whatever this machine has installed; say so when the comparison depends on those fonts.
 - `--cssclass` is added to every fixture note; a snippet that keys on a class shows nothing without it.

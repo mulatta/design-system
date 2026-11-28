@@ -46,4 +46,4 @@ Preconditions:
 - Obsidian 1.15 opens settings in its own window (a second CDP page at `about:blank`, title `설정 - vault - …`), not as a modal over the note. `shot` finds that page, clears its search box (Obsidian keeps the last query), sets `--size` on it, and captures it.
 - Obsidian's UI language follows the system locale; command names in the palette may be Korean.
 - The fixture vault has one folder, `protocols/`, collapsed in a fresh run. `shot` with a note inside a folder runs Obsidian's "reveal active file", which expands the folder and draws Obsidian's focus box around the revealed row; the folder stays expanded for later shots in that run.
-- The tree's file tags and counts, menus, and popovers are not reached by `shot`; prove them with a custom CDP drive when a change touches them. The keyboard focus ring is reached only by `editcheck`'s `control-focus`.
+- The tree's file tags and counts, menus, and popovers are not reached by `shot`; prove them with a probe run by `obs drive` when a change touches them. The keyboard focus ring is reached only by `editcheck`'s `control-focus`.

@@ -12,7 +12,7 @@ This directory is the maintained source for verifying what the Wongoji theme doe
 ## Driving conventions
 
 - Start each recipe from a fresh `launch`, or from a run `doctor` reports ok. `shot` presses Escape before and after capturing and brings the file explorer back, so a palette, settings window, or search pane from an earlier shot does not carry over.
-- Name notes by basename or vault path, quoted, and always pass `--run`. Use Obsidian's own commands and views through `shot` options rather than clicking coordinates.
+- Name notes by basename or vault path, quoted. Every command defaults to the run `agent`. Use Obsidian's own commands and views through `shot` options rather than clicking coordinates.
 - One capture per state: change one of view, scheme, size, mobile, or open panel at a time.
 
 ## Proof and skip reporting
