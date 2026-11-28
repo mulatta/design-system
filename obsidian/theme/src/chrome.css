@@ -108,7 +108,7 @@ body :is(input, textarea):read-write:focus {
 	clip-path: polygon(0 0, 18% 0, 50% 64%, 82% 0, 100% 0, 50% 100%);
 }
 
-.theme-dark .mod-root .workspace-tab-header-container {
+.mod-root .workspace-tab-header-container {
 	--tab-divider-color: var(--wg-cell-line);
 }
 

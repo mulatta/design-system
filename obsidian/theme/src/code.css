@@ -22,7 +22,7 @@
 
 .markdown-rendered .copy-code-button {
 	border-radius: 0;
-	border: 1px solid var(--wg-pale);
+	border: 1px solid var(--wg-cell-line);
 	background: var(--wg-paper);
 	color: var(--wg-mute);
 	font-family: var(--wg-code-family);

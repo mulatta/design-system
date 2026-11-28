@@ -17,19 +17,19 @@
 
 .markdown-rendered td {
 	border: 0;
-	border-bottom: 1px solid var(--wg-pale);
+	border-bottom: 1px solid var(--wg-cell-line);
 	padding: 0.35em 0.75em;
 }
 
 .markdown-rendered thead tr {
-	border-top: 1px solid var(--wg-pale);
+	border-top: 1px solid var(--wg-cell-line);
 }
 
 .callout {
 	--callout-title-weight: 700;
 	padding: 0.55em 0 0.45em;
 	background: none;
-	border: solid var(--wg-pale);
+	border: solid var(--wg-cell-line);
 	border-width: 1px 0;
 }
 
@@ -52,7 +52,27 @@
 	padding-block: 0;
 	padding-inline-start: 2ch;
 	border-width: 0;
-	border-inline-start: 2px solid var(--wg-pale);
+	border-inline-start: 2px solid var(--wg-cell-line);
+}
+
+.markdown-rendered
+	div:has(> .callout:not([data-callout="quote"], [data-callout="cite"])):has(
+		+ div > .callout:not([data-callout="quote"], [data-callout="cite"])
+	)
+	> .callout,
+.markdown-source-view.mod-cm6
+	.cm-callout:has(
+		> .markdown-rendered
+			> .callout:not([data-callout="quote"], [data-callout="cite"])
+	):has(
+		+ .cm-line
+			+ .cm-callout
+			> .markdown-rendered
+			> .callout:not([data-callout="quote"], [data-callout="cite"])
+	)
+	> .markdown-rendered
+	> .callout {
+	border-bottom-width: 0;
 }
 
 .callout-title {
@@ -103,7 +123,7 @@ ul > li.task-list-item:is([data-task="x"], [data-task="X"]),
 	margin: 1.4em 0;
 	padding: 0 0 0 2ch;
 	border: 0;
-	border-left: 2px solid var(--wg-pale);
+	border-left: 2px solid var(--wg-cell-line);
 	color: var(--wg-ink);
 }
 
@@ -118,11 +138,14 @@ ul > li.task-list-item:is([data-task="x"], [data-task="X"]),
 	width: 100%;
 	height: var(--wg-cell);
 	background:
-		linear-gradient(90deg, var(--wg-pale) 1px, transparent 1px) 0 0 /
+		linear-gradient(90deg, var(--wg-cell-line) 1px, transparent 1px) 0 0 /
 		var(--wg-cell) 100% round no-repeat,
-		linear-gradient(var(--wg-pale), var(--wg-pale)) right / 1px 100% no-repeat,
-		linear-gradient(var(--wg-pale), var(--wg-pale)) top / 100% 1px no-repeat,
-		linear-gradient(var(--wg-pale), var(--wg-pale)) bottom / 100% 1px no-repeat;
+		linear-gradient(var(--wg-cell-line), var(--wg-cell-line)) right / 1px 100%
+		no-repeat,
+		linear-gradient(var(--wg-cell-line), var(--wg-cell-line)) top / 100% 1px
+		no-repeat,
+		linear-gradient(var(--wg-cell-line), var(--wg-cell-line)) bottom / 100% 1px
+		no-repeat;
 }
 
 .markdown-rendered hr {
@@ -132,6 +155,6 @@ ul > li.task-list-item:is([data-task="x"], [data-task="X"]),
 .markdown-rendered .footnotes > hr {
 	width: auto;
 	height: 0;
-	border-top: 1px solid var(--wg-pale);
+	border-top: 1px solid var(--wg-cell-line);
 	background: none;
 }

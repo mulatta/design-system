@@ -22,16 +22,16 @@
 			"light.paper-alt": {
 				"role": "neutral",
 				"displayName": "Paper Alt",
-				"canonical": "oklch(95.8% 0.003 264)",
+				"canonical": "oklch(95.7% 0.007 261)",
 				"tonalRamp": [
-					"#0b0b0b",
-					"#252526",
-					"#414243",
-					"#606163",
-					"#818284",
-					"#a4a5a6",
-					"#c9c9ca",
-					"#eeeeef"
+					"#0b0b0c",
+					"#242527",
+					"#404245",
+					"#5f6165",
+					"#808286",
+					"#a3a5a8",
+					"#c8c9cb",
+					"#eeeef0"
 				]
 			},
 			"light.ink": {
@@ -52,31 +52,31 @@
 			"light.mute": {
 				"role": "neutral",
 				"displayName": "Mute",
-				"canonical": "oklch(47.5% 0.000 89)",
+				"canonical": "oklch(46.4% 0.028 256)",
 				"tonalRamp": [
-					"#0b0b0b",
-					"#252525",
-					"#424242",
-					"#616161",
-					"#828282",
-					"#a5a5a5",
-					"#c9c9c9",
-					"#eeeeee"
+					"#090b0e",
+					"#21252c",
+					"#3b434c",
+					"#586270",
+					"#798392",
+					"#9da6b1",
+					"#c4cad2",
+					"#ebeff4"
 				]
 			},
 			"light.faint": {
 				"role": "neutral",
 				"displayName": "Faint",
-				"canonical": "oklch(52.8% 0.000 89)",
+				"canonical": "oklch(52.4% 0.029 256)",
 				"tonalRamp": [
-					"#0b0b0b",
-					"#252525",
-					"#424242",
-					"#616161",
-					"#828282",
-					"#a5a5a5",
-					"#c9c9c9",
-					"#eeeeee"
+					"#090b0f",
+					"#21252c",
+					"#3b434d",
+					"#586270",
+					"#788392",
+					"#9da6b2",
+					"#c3cad2",
+					"#ebeff4"
 				]
 			},
 			"light.rule": {
@@ -112,31 +112,31 @@
 			"light.pale": {
 				"role": "neutral",
 				"displayName": "Pale",
-				"canonical": "oklch(87.9% 0.009 264)",
+				"canonical": "oklch(84.1% 0.041 254)",
 				"tonalRamp": [
-					"#0b0b0c",
-					"#242527",
-					"#404245",
-					"#5f6166",
-					"#808287",
-					"#a3a5a9",
-					"#c8c9cc",
-					"#eeeef0"
+					"#080b10",
+					"#1e262f",
+					"#384351",
+					"#536376",
+					"#738499",
+					"#99a6b7",
+					"#c1cad6",
+					"#e9eff6"
 				]
 			},
 			"light.tint": {
 				"role": "neutral",
 				"displayName": "Tint",
-				"canonical": "oklch(94.6% 0.003 264)",
+				"canonical": "oklch(94.2% 0.009 258)",
 				"tonalRamp": [
-					"#0b0b0b",
-					"#252526",
-					"#414243",
-					"#606163",
-					"#818284",
-					"#a4a5a6",
-					"#c9c9ca",
-					"#eeeeef"
+					"#0a0b0c",
+					"#242527",
+					"#404245",
+					"#5e6166",
+					"#7f8387",
+					"#a3a5a9",
+					"#c7c9cc",
+					"#edeef0"
 				]
 			},
 			"light.cell-line": {
@@ -172,16 +172,16 @@
 			"light.ribbon": {
 				"role": "neutral",
 				"displayName": "Ribbon",
-				"canonical": "oklch(95.8% 0.003 264)",
+				"canonical": "oklch(95.7% 0.007 261)",
 				"tonalRamp": [
-					"#0b0b0b",
-					"#252526",
-					"#414243",
-					"#606163",
-					"#818284",
-					"#a4a5a6",
-					"#c9c9ca",
-					"#eeeeef"
+					"#0b0b0c",
+					"#242527",
+					"#404245",
+					"#5f6165",
+					"#808286",
+					"#a3a5a8",
+					"#c8c9cb",
+					"#eeeef0"
 				]
 			},
 			"light.on-ribbon": {
@@ -247,31 +247,31 @@
 			"dark.mute": {
 				"role": "neutral",
 				"displayName": "Mute (dark)",
-				"canonical": "oklch(71.5% 0.000 89)",
+				"canonical": "oklch(72.1% 0.026 254)",
 				"tonalRamp": [
-					"#0b0b0b",
-					"#252525",
-					"#424242",
-					"#616161",
-					"#828282",
-					"#a5a5a5",
-					"#c9c9c9",
-					"#eeeeee"
+					"#090b0e",
+					"#21252b",
+					"#3c434b",
+					"#58626e",
+					"#798390",
+					"#9ea6b0",
+					"#c4cad1",
+					"#ebeff3"
 				]
 			},
 			"dark.faint": {
 				"role": "neutral",
 				"displayName": "Faint (dark)",
-				"canonical": "oklch(65.0% 0.000 89)",
+				"canonical": "oklch(65.9% 0.028 256)",
 				"tonalRamp": [
-					"#0b0b0b",
-					"#252525",
-					"#424242",
-					"#616161",
-					"#828282",
-					"#a5a5a5",
-					"#c9c9c9",
-					"#eeeeee"
+					"#090b0e",
+					"#21252c",
+					"#3b434c",
+					"#586270",
+					"#798391",
+					"#9da6b1",
+					"#c4cad2",
+					"#ebeff4"
 				]
 			},
 			"dark.rule": {
@@ -307,16 +307,16 @@
 			"dark.pale": {
 				"role": "neutral",
 				"displayName": "Pale (dark)",
-				"canonical": "oklch(32.5% 0.015 269)",
+				"canonical": "oklch(39.5% 0.047 252)",
 				"tonalRamp": [
-					"#0a0b0d",
-					"#242529",
-					"#404248",
-					"#5e6169",
-					"#7f828b",
-					"#a2a5ac",
-					"#c7c9ce",
-					"#edeef1"
+					"#070c11",
+					"#1d2630",
+					"#364353",
+					"#506379",
+					"#71849b",
+					"#97a7b9",
+					"#bfcad8",
+					"#e8eff7"
 				]
 			},
 			"dark.tint": {
@@ -421,7 +421,7 @@
 			},
 			"heading": {
 				"displayName": "Heading leading",
-				"purpose": "Line height shared by h1 to h4."
+				"purpose": "Line height shared by h1 to h6."
 			},
 			"h1": {
 				"displayName": "Heading 1",
@@ -438,6 +438,14 @@
 			"h4": {
 				"displayName": "Heading 4",
 				"purpose": "Minor heading, plain."
+			},
+			"h5": {
+				"displayName": "Heading 5",
+				"purpose": "Minor heading at h4's size in mute, plain."
+			},
+			"h6": {
+				"displayName": "Heading 6",
+				"purpose": "Smallest heading, below body size, in mute, plain."
 			}
 		},
 		"shadows": [
@@ -481,7 +489,7 @@
 			"kind": "chip",
 			"description": "Square cell outlined in Manuscript Rule Blue, transparent fill, mono text.",
 			"html": "<span class=\"ds-tag\">#cloning</span>",
-			"css": ".ds-tag { display: inline-block; padding: 0 6px; border: 1px solid #0359b0; color: #0359b0; background: transparent; border-radius: 0; font-family: \"D2Coding\", ui-monospace, monospace; font-size: 12px; line-height: 20px; } .ds-tag:hover { background: #ecedef; } .ds-tag:focus-visible { outline: 2px solid #0359b0; outline-offset: 2px; }"
+			"css": ".ds-tag { display: inline-block; padding: 0 6px; border: 1px solid #0359b0; color: #0359b0; background: transparent; border-radius: 0; font-family: \"D2Coding\", ui-monospace, monospace; font-size: 12px; line-height: 20px; } .ds-tag:hover { background: #e8ecf2; } .ds-tag:focus-visible { outline: 2px solid #0359b0; outline-offset: 2px; }"
 		},
 		{
 			"name": "Active tab",
@@ -495,12 +503,12 @@
 			"kind": "custom",
 			"description": "Square checkbox at Obsidian's size; a done task fills it with a red X and sets its text in mute, struck through with a 1.5px red line.",
 			"html": "<label class=\"ds-task\"><span class=\"ds-box is-done\"></span><s>Check the gel</s></label>",
-			"css": ".ds-task { display: inline-flex; align-items: center; gap: 8px; font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #5c5c5c; } .ds-task s { text-decoration-color: #b23a30; text-decoration-thickness: 1.5px; } .ds-box { width: 16px; height: 16px; border: 1px solid #5c5c5c; position: relative; } .ds-box.is-done::after { content: \"\"; position: absolute; inset: 3px; background: #b23a30; clip-path: polygon(14% 0, 50% 36%, 86% 0, 100% 14%, 64% 50%, 100% 86%, 86% 100%, 50% 64%, 14% 100%, 0 86%, 36% 50%, 0 14%); }"
+			"css": ".ds-task { display: inline-flex; align-items: center; gap: 8px; font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #4f5a69; } .ds-task s { text-decoration-color: #b23a30; text-decoration-thickness: 1.5px; } .ds-box { width: 16px; height: 16px; border: 1px solid #4f5a69; position: relative; } .ds-box.is-done::after { content: \"\"; position: absolute; inset: 3px; background: #b23a30; clip-path: polygon(14% 0, 50% 36%, 86% 0, 100% 14%, 64% 50%, 100% 86%, 86% 100%, 50% 64%, 14% 100%, 0 86%, 36% 50%, 0 14%); }"
 		},
 		{
 			"name": "Warning callout",
 			"kind": "card",
-			"description": "No fill and no cut: a 2px red rule above, a 1px red rule below, and a red label in the body family at 0.85em and weight 700. Other callouts take 1px pale rules and a mute label.",
+			"description": "No fill and no cut: a 2px red rule above, a 1px red rule below, and a red label in the body family at 0.85em and weight 700. Other callouts take 1px cell-line rules and a rule-blue label, and two callouts in a row share one rule.",
 			"html": "<div class=\"ds-callout\"><strong>Caution</strong><p>Lane 2 looks like primer dimer.</p></div>",
 			"css": ".ds-callout { padding: 12px 0; border-top: 2px solid #b23a30; border-bottom: 1px solid #b23a30; font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #1a1a1a; } .ds-callout strong { color: #b23a30; font-size: 0.85em; font-weight: 700; }"
 		},
@@ -509,14 +517,14 @@
 			"kind": "card",
 			"description": "Tint layer only, with square corners, no rule, and no cut.",
 			"html": "<pre class=\"ds-code\">&gt;GFP_F pUC19 insert\nATGGTGAGCAAGGGCGAGGAG</pre>",
-			"css": ".ds-code { margin: 0; padding: 14px; background: #ecedef; font-family: \"D2Coding\", ui-monospace, monospace; font-size: 13px; color: #1a1a1a; }"
+			"css": ".ds-code { margin: 0; padding: 14px; background: #e8ecf2; font-family: \"D2Coding\", ui-monospace, monospace; font-size: 13px; color: #1a1a1a; }"
 		},
 		{
 			"name": "Section heading marker",
 			"kind": "custom",
 			"description": "H2 carries a filled 0.36em rule-blue square hung in the left margin 0.6em before the text, so the text keeps the body's left edge; reading view runs a fine rule to the column edge, Live Preview shows the square alone. On a phone the square sits inside the line. No number: Obsidian unloads off-screen sections, so a CSS counter miscounts. Numbered H2 via the companion plugin is open, not shipped.",
 			"html": "<h2 class=\"ds-h2\">Primers</h2>",
-			"css": ".ds-h2 { display: flex; align-items: center; gap: 0.6em; margin: 0; font-family: \"Source Serif 4\", \"MaruBuri\", serif; font-size: 1.35em; font-weight: 700; line-height: 1.3; color: #1a1a1a; } .ds-h2::before { content: \"\"; flex: none; width: 0.36em; height: 0.36em; margin-left: -0.96em; background: #0359b0; } .ds-h2::after { content: \"\"; flex: 1; height: 1px; background: #d4d7dd; }"
+			"css": ".ds-h2 { display: flex; align-items: center; gap: 0.6em; margin: 0; font-family: \"Source Serif 4\", \"MaruBuri\", serif; font-size: 1.35em; font-weight: 700; line-height: 1.3; color: #1a1a1a; } .ds-h2::before { content: \"\"; flex: none; width: 0.36em; height: 0.36em; margin-left: -0.96em; background: #0359b0; } .ds-h2::after { content: \"\"; flex: 1; height: 1px; background: #9fbfe2; }"
 		},
 		{
 			"name": "Title rule",
@@ -528,30 +536,30 @@
 		{
 			"name": "Highlight",
 			"kind": "custom",
-			"description": "==text== keeps ink text on rule blue at 12%, with no underline, which would read as a link.",
+			"description": "==text== keeps ink text on rule blue at 22% (30% in the dark scheme) over a 1px full-blue underline: the wash and underline set it apart from inline code's tinted box, and the ink text from a blue link.",
 			"html": "<p class=\"ds-p\">Band at <mark class=\"ds-mark\">720 bp</mark> as expected.</p>",
-			"css": ".ds-p { font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #1a1a1a; } .ds-mark { color: #1a1a1a; background: rgba(3, 89, 176, 0.12); }"
+			"css": ".ds-p { font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #1a1a1a; } .ds-mark { color: #1a1a1a; background: rgba(3, 89, 176, 0.22); box-shadow: inset 0 -1px #0359b0; }"
 		},
 		{
 			"name": "Proof marks",
 			"kind": "custom",
 			"description": "~~text~~ turns mute under a 1.5px proof-red strike that reading view ends with an upward delete loop; in the editor an editing note shows its %% marks in bold proof red and its text in mute.",
 			"html": "<p class=\"ds-p\">Anneal at <del class=\"ds-del\">58</del> 62 °C. <span class=\"ds-memo\"><b>%%</b>check the gradient run<b>%%</b></span></p>",
-			"css": ".ds-p { font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #1a1a1a; } .ds-del { color: #5c5c5c; text-decoration: line-through #b23a30 1.5px; } .ds-memo { color: #5c5c5c; } .ds-memo b { color: #b23a30; }"
+			"css": ".ds-p { font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #1a1a1a; } .ds-del { color: #4f5a69; text-decoration: line-through #b23a30 1.5px; } .ds-memo { color: #4f5a69; } .ds-memo b { color: #b23a30; }"
 		},
 		{
 			"name": "File tree",
 			"kind": "nav",
 			"description": "Plain rows on the paper-alt layer under a bold ink header with a fine pale underline. Folders show an 11px rule-blue cell in the collapse-icon gutter, with a plus when collapsed and a minus when open; the active file is bold ink with a red proof caret in the same gutter.",
 			"html": "<div class=\"ds-nav\"><div class=\"ds-nav-header\">Files</div><div class=\"ds-nav-row ds-folder\">protocols</div><div class=\"ds-nav-row ds-folder is-open\">experiments</div><div class=\"ds-nav-row\">elements-ko</div><div class=\"ds-nav-row is-active\">lab-note-ko</div></div>",
-			"css": ".ds-nav { background: #f0f1f3; padding: 0 12px 8px; font-family: \"Source Serif 4\", \"MaruBuri\", serif; font-size: 13px; } .ds-nav-header { padding: 8px 0; box-shadow: inset 0 -1px #d4d7dd; color: #1a1a1a; font-weight: 700; } .ds-nav-row { position: relative; min-height: 28px; display: flex; align-items: center; padding-left: 24px; color: #5c5c5c; } .ds-nav-row:hover { color: #1a1a1a; background: #ecedef; } .ds-folder { color: #1a1a1a; } .ds-folder::before { content: \"\"; position: absolute; left: 6px; top: 50%; width: 11px; height: 11px; margin-top: -5px; background: #0359b0; -webkit-mask: url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11'><path d='M.5.5h10v10H.5zM3 5.5h5M5.5 3v5' fill='none' stroke='black'/></svg>\") center / 11px 11px no-repeat; } .ds-folder.is-open::before { -webkit-mask-image: url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11'><path d='M.5.5h10v10H.5zM3 5.5h5' fill='none' stroke='black'/></svg>\"); } .ds-nav-row.is-active { color: #1a1a1a; font-weight: 700; } .ds-nav-row.is-active::before { content: \"\"; position: absolute; left: 7px; top: 50%; width: 10px; height: 7px; margin-top: -4px; background: #b23a30; clip-path: polygon(0 0, 18% 0, 50% 64%, 82% 0, 100% 0, 50% 100%); }"
+			"css": ".ds-nav { background: #eef1f6; padding: 0 12px 8px; font-family: \"Source Serif 4\", \"MaruBuri\", serif; font-size: 13px; } .ds-nav-header { padding: 8px 0; box-shadow: inset 0 -1px #b9cde6; color: #1a1a1a; font-weight: 700; } .ds-nav-row { position: relative; min-height: 28px; display: flex; align-items: center; padding-left: 24px; color: #4f5a69; } .ds-nav-row:hover { color: #1a1a1a; background: #e8ecf2; } .ds-folder { color: #1a1a1a; } .ds-folder::before { content: \"\"; position: absolute; left: 6px; top: 50%; width: 11px; height: 11px; margin-top: -5px; background: #0359b0; -webkit-mask: url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11'><path d='M.5.5h10v10H.5zM3 5.5h5M5.5 3v5' fill='none' stroke='black'/></svg>\") center / 11px 11px no-repeat; } .ds-folder.is-open::before { -webkit-mask-image: url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 11'><path d='M.5.5h10v10H.5zM3 5.5h5' fill='none' stroke='black'/></svg>\"); } .ds-nav-row.is-active { color: #1a1a1a; font-weight: 700; } .ds-nav-row.is-active::before { content: \"\"; position: absolute; left: 7px; top: 50%; width: 10px; height: 7px; margin-top: -4px; background: #b23a30; clip-path: polygon(0 0, 18% 0, 50% 64%, 82% 0, 100% 0, 50% 100%); }"
 		},
 		{
 			"name": "Raised mobile control",
 			"kind": "button",
 			"description": "Floating navbar and top buttons on mobile: square, paper ground, a 1px rule-blue ring and the float shadow, no backdrop blur.",
 			"html": "<div class=\"ds-raised\"><button class=\"ds-raised-btn\" aria-label=\"Search\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg></button><button class=\"ds-raised-btn\" aria-label=\"New note\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12h14\"/><path d=\"M12 5v14\"/></svg></button></div>",
-			"css": ".ds-raised { display: inline-flex; gap: 4px; padding: 4px; background: #fafafa; border-radius: 0; box-shadow: 0 0 0 1px #0359b0, 0 6px 18px rgba(26, 26, 26, 0.14); } .ds-raised-btn { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 0; background: transparent; color: #1a1a1a; } .ds-raised-btn:hover { background: #ecedef; } .ds-raised-btn:focus-visible { outline: 2px solid #0359b0; outline-offset: 2px; }"
+			"css": ".ds-raised { display: inline-flex; gap: 4px; padding: 4px; background: #fafafa; border-radius: 0; box-shadow: 0 0 0 1px #0359b0, 0 6px 18px rgba(26, 26, 26, 0.14); } .ds-raised-btn { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 0; background: transparent; color: #1a1a1a; } .ds-raised-btn:hover { background: #e8ecf2; } .ds-raised-btn:focus-visible { outline: 2px solid #0359b0; outline-offset: 2px; }"
 		}
 	],
 	"narrative": {
@@ -572,6 +580,11 @@
 			{
 				"name": "The One Blue Rule",
 				"body": "Manuscript Rule Blue is the only accent. A new role gets a tone of paper, ink, or blue, not a new hue.",
+				"section": "colors"
+			},
+			{
+				"name": "The Printed Line Rule",
+				"body": "A fine rule inside the note column is printed on the sheet and takes `cell-line`. A rule of the app around the sheet, the column's edge lines included, takes `pale`. The tab divider is the one exception: `pale` reaches only 1.31:1 against the dark strip, so the divider takes `cell-line` in both schemes.",
 				"section": "colors"
 			},
 			{

@@ -4,7 +4,7 @@ Obsidian's mobile app uses its own layout: no ribbon or side panes on screen, a 
 
 ## Sub-features
 
-- `mobile-column` keeps the title, properties, prose, and headings inside the phone width with no horizontal overflow; the properties card ends at the column edges, where the title rule and code blocks end; no task checkbox or other block starts left of the column edge.
+- `mobile-column` keeps the title, properties, prose, and headings inside the phone width with no horizontal overflow; the properties block ends at the column edges, on the page with no panel behind it, where the title rule and code blocks end; no task checkbox or other block starts left of the column edge.
 - `mobile-shrink` sets the inline title at 1.8em and the cell module at 12px below 600px, and moves the H2 marker from the margin into the heading line.
 - `mobile-fonts` renders MaruBuri, Source Serif 4, and D2Coding from the embedded fonts, not system fallbacks.
 - `mobile-blocks` keeps code blocks, tables, and callouts inside the width or scrollable inside their own box.

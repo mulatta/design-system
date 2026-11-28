@@ -14,6 +14,10 @@ body,
 	overflow: clip;
 }
 
+.is-mobile .metadata-content {
+	background: none;
+}
+
 .is-mobile .prompt {
 	background-color: var(--wg-paper);
 	box-shadow: var(--wg-shadow);

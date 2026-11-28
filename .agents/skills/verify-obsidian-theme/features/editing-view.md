@@ -6,11 +6,11 @@ Editing view is where the note is written: Live Preview renders most markdown in
 
 - `edit-live` renders headings, emphasis, links, and inline code like reading view; H2 carries the same hung square marker, without reading view's trailing rule.
 - `edit-footnote` sets a footnote reference in blue, raised and smaller, as reading view does. The editor shows it as typed, `[^1]`, where reading view prints `[1]`.
-- `edit-links` underlines a link as reading view does: blue text over a 1px pale line set 0.22em below it, in full blue under the pointer; an unresolved link is mute over a dotted line.
+- `edit-links` underlines a link as reading view does: blue text over a 1px cell-line line set 0.22em below it, in full blue under the pointer; an unresolved link is mute over a dotted line.
 - `edit-wrap` breaks a line between words as reading view does, never inside a Hangul word; a string too long for the column still breaks.
 - `edit-markers` shows markdown markers (`#`, `*`, `` ` ``) in the faint colour.
-- `edit-inline` sets inline code in D2Coding on the tint inside a fine box, at reading view's size, with its backticks inside the same box on the line holding the caret, `==highlight==` as a pale blue wash with no underline, and `~~strikethrough~~` in mute under a red strike that ends in the delete loop, as in reading view, once per strikethrough even when bold, code, or a link inside it splits it. The line holding the caret shows the raw `~~` and no loop. The editing note shows its `%%` marks in bold red and its text in mute; a comment inside a code block keeps the code comment colour.
-- `edit-quote` draws a blockquote as reading view does: a 2px pale left rule, the text 2ch in from it, a nested quote behind a second rule, and a wrapped line starting under the first line's text. The line holding the caret shows its `>` marks.
+- `edit-inline` sets inline code in D2Coding on the tint inside a fine box, at reading view's size, with its backticks inside the same box on the line holding the caret, `==highlight==` as a blue wash over a 1px blue underline, and `~~strikethrough~~` in mute under a red strike that ends in the delete loop, as in reading view, once per strikethrough even when bold, code, or a link inside it splits it. The line holding the caret shows the raw `~~` and no loop. The editing note shows its `%%` marks in bold red and its text in mute; a comment inside a code block keeps the code comment colour.
+- `edit-quote` draws a blockquote as reading view does: a 2px cell-line left rule, the text 2ch in from it, a nested quote behind a second rule, and a wrapped line starting under the first line's text. The line holding the caret shows its `>` marks.
 - `edit-hr` draws `---` as the strip of cells reading view draws, the same width and height. The line holding the caret shows the raw `---`.
 - `edit-code-lines` sets fenced code lines in D2Coding on the tint alone, with no rule above the opening fence, at reading view's type size, line height, and inset, in Live Preview and source mode. A token takes reading view's colour and weight wherever CodeMirror's class says what Prism's says; `obs pairs` prints the pairs of classes that do not line up as `diff` lines. Live Preview names the block's language at its top right in mute D2Coding, which reading view does not.
 - `edit-tags` draws `#tag` as the square cell reading view draws, in D2Coding in the accent at the same type size, padding, and height.
@@ -21,6 +21,8 @@ Editing view is where the note is written: Live Preview renders most markdown in
 - `edit-table` sizes a Live Preview table to its content, up to the note column, as reading view does, with reading view's cell padding; a table wider than the column scrolls inside its widget and ends at the column's right edge, and its add-column button comes into the column once the table is scrolled to its end.
 - `edit-code-active` keeps a code line on the code block's tint while the caret is on it.
 - `edit-column` keeps everything Live Preview paints, task checkboxes and the properties block included, at or right of the note column's left edge.
+- `edit-edges` draws reading view's pale lines three cells outside the column, and none where the pane has no room for them.
+- `edit-end` closes the note with reading view's three rows of blank cells after the last line.
 - `edit-embed-hover` leaves an embedded block's frame as it is under the pointer: hovering a callout or a math block draws no ring around it, and its edit button sits inside the frame, below the top rule and clear of the 45° cut.
 
 ## How to get to it (user POV)

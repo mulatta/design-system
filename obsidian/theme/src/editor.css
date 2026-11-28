@@ -30,7 +30,7 @@
 
 .markdown-source-view.mod-cm6 .cm-inline-code {
 	--code-border-width: 1px;
-	--code-border-color: var(--wg-pale);
+	--code-border-color: var(--wg-cell-line);
 	font-family: var(--wg-code-family);
 	font-size: 0.86em;
 	background: var(--wg-tint);

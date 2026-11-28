@@ -9,9 +9,16 @@ body {
 	--h2-size: var(--wg-h2-size);
 	--h3-size: var(--wg-h3-size);
 	--h4-size: var(--wg-h4-size);
+	--h5-size: var(--wg-h5-size);
+	--h6-size: var(--wg-h6-size);
 	--h1-weight: var(--wg-h1-weight);
 	--h2-weight: var(--wg-h2-weight);
 	--h3-weight: var(--wg-h3-weight);
+	--h4-weight: var(--wg-h4-weight);
+	--h5-weight: var(--wg-h5-weight);
+	--h6-weight: var(--wg-h6-weight);
+	--h5-color: var(--wg-mute);
+	--h6-color: var(--wg-mute);
 	--icon-xs-stroke-width: 1.5px;
 	--icon-s-stroke-width: 1.5px;
 	--icon-m-stroke-width: 1.5px;
@@ -69,8 +76,8 @@ body,
 	--metadata-property-box-shadow-hover: none;
 	--metadata-property-box-shadow-focus: none;
 	--metadata-input-background-active: transparent;
-	--metadata-label-background-hover: var(--wg-tint);
-	--metadata-label-background-active: var(--wg-tint);
+	--metadata-label-background-hover: transparent;
+	--metadata-label-background-active: transparent;
 	--mobile-sidebar-radius: var(--wg-radius-none);
 	--modal-radius: var(--wg-radius-none);
 	--nav-item-radius: var(--wg-radius-none);
@@ -137,7 +144,7 @@ body,
 	--interactive-accent: var(--wg-rule);
 	--interactive-accent-hover: var(--wg-rule-soft);
 	--text-selection: color-mix(in srgb, var(--wg-rule) 20%, transparent);
-	--text-highlight-bg: color-mix(in srgb, var(--wg-rule) 12%, transparent);
+	--text-highlight-bg: color-mix(in srgb, var(--wg-rule) 22%, transparent);
 	--caret-color: var(--wg-proof);
 	--link-color: var(--wg-rule);
 	--link-color-hover: var(--wg-rule-soft);
@@ -163,10 +170,10 @@ body,
 	--code-punctuation: var(--wg-mute);
 	--code-tag: var(--wg-rule);
 	--code-important: var(--wg-rule);
-	--table-border-color: var(--wg-pale);
+	--table-border-color: var(--wg-cell-line);
 	--table-header-border-color: var(--wg-ink);
-	--hr-color: var(--wg-pale);
-	--blockquote-border-color: var(--wg-pale);
+	--hr-color: var(--wg-cell-line);
+	--blockquote-border-color: var(--wg-cell-line);
 	--nav-item-color: var(--wg-mute);
 	--nav-item-color-hover: var(--wg-ink);
 	--nav-item-color-active: var(--wg-ink);
@@ -185,16 +192,16 @@ body,
 	--checklist-done-color: var(--wg-mute);
 	--checklist-done-decoration: line-through;
 	--callout-blend-mode: normal;
-	--callout-default: var(--wg-mute);
-	--callout-important: var(--wg-mute);
-	--callout-info: var(--wg-mute);
-	--callout-summary: var(--wg-mute);
-	--callout-todo: var(--wg-mute);
-	--callout-note: var(--wg-mute);
-	--callout-tip: var(--wg-mute);
-	--callout-success: var(--wg-mute);
-	--callout-question: var(--wg-mute);
-	--callout-example: var(--wg-mute);
+	--callout-default: var(--wg-rule);
+	--callout-important: var(--wg-rule);
+	--callout-info: var(--wg-rule);
+	--callout-summary: var(--wg-rule);
+	--callout-todo: var(--wg-rule);
+	--callout-note: var(--wg-rule);
+	--callout-tip: var(--wg-rule);
+	--callout-success: var(--wg-rule);
+	--callout-question: var(--wg-rule);
+	--callout-example: var(--wg-rule);
 	--callout-quote: var(--wg-mute);
 	--callout-warning: var(--wg-proof);
 	--callout-fail: var(--wg-proof);
@@ -203,4 +210,8 @@ body,
 	--scrollbar-thumb-bg: var(--wg-pale);
 	--scrollbar-active-thumb-bg: var(--wg-rule-soft);
 	--scrollbar-bg: transparent;
+}
+
+.theme-dark {
+	--text-highlight-bg: color-mix(in srgb, var(--wg-rule) 30%, transparent);
 }
