@@ -486,7 +486,7 @@
 		{
 			"name": "Active tab",
 			"kind": "nav",
-			"description": "Square tab with a 2px blue top rule that turns down a 45° cut, and a red proof mark before the title.",
+			"description": "The only frame on the tab strip: paper under a 2px blue top rule that turns down a 45° cut, with a bold ink title and a red proof mark before it. An inactive tab is a mute title with no box.",
 			"html": "<div class=\"ds-tab\"><span class=\"ds-tab-mark\"></span>lab-note-ko</div>",
 			"css": ".ds-tab { position: relative; display: inline-flex; align-items: center; gap: 7px; height: 33px; padding: 0 28px 0 12px; background: linear-gradient(225deg, transparent 8px, #0359b0 8px 9.5px, transparent 9.5px) right top / 12px 12px no-repeat border-box, #fafafa; box-shadow: inset 0 2px #0359b0, inset 1px 0 #0359b0, inset -1px 0 #0359b0; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); font-family: \"Source Serif 4\", \"MaruBuri\", serif; font-weight: 700; color: #1a1a1a; } .ds-tab-mark { width: 9px; height: 6px; background: #b23a30; clip-path: polygon(0 0, 18% 0, 50% 64%, 82% 0, 100% 0, 50% 100%); }"
 		},
@@ -500,9 +500,9 @@
 		{
 			"name": "Warning callout",
 			"kind": "card",
-			"description": "Faint red wash under a red top rule that turns down the one 45° cut; no side or bottom line.",
+			"description": "No fill and no cut: a 2px red rule above, a 1px red rule below, and a red label in the body family at 0.85em and weight 700. Other callouts take 1px pale rules and a mute label.",
 			"html": "<div class=\"ds-callout\"><strong>Caution</strong><p>Lane 2 looks like primer dimer.</p></div>",
-			"css": ".ds-callout { padding: 12px 20px; background: linear-gradient(225deg, transparent 8px, #b23a30 8px 9.5px, transparent 9.5px) right top / 12px 12px no-repeat border-box, rgba(178, 58, 48, 0.08); box-shadow: inset 0 2px #b23a30; clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%); font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #1a1a1a; } .ds-callout strong { color: #b23a30; font-size: 13px; }"
+			"css": ".ds-callout { padding: 12px 0; border-top: 2px solid #b23a30; border-bottom: 1px solid #b23a30; font-family: \"Source Serif 4\", \"MaruBuri\", serif; color: #1a1a1a; } .ds-callout strong { color: #b23a30; font-size: 0.85em; font-weight: 700; }"
 		},
 		{
 			"name": "Code block",
@@ -556,7 +556,7 @@
 	],
 	"narrative": {
 		"northStar": "The Manuscript Grid",
-		"overview": "**Creative North Star: \"The Manuscript Grid\"**\n\nWongoji is Korean manuscript paper: a sheet of square cells with fine printed rules, written on by hand and corrected in red. The system treats every component as something printed on that sheet or marked on it afterwards. Tabs, tags, checkboxes, and callouts read as cells and frames stamped onto the page, never as raised buttons or floating cards. The mood is quiet and exact, with the warmth of a page someone wrote on.\n\nIt serves one person's research notes, where long Korean prose, Latin species and gene names, DNA and protein sequences, math, code, and tables share a page and must each read correctly beside the others. Structure carries the identity: a filled blue square opening each section heading, ruled property rows, square tags, and one corner of each frame cut at 45°. Ornament does not.",
+		"overview": "**Creative North Star: \"The Manuscript Grid\"**\n\nWongoji is Korean manuscript paper: a sheet of square cells with fine printed rules, written on by hand and corrected in red. The system treats every component as something printed on that sheet or marked on it afterwards. Tabs, tags, and checkboxes read as cells and frames stamped onto the page, and a callout as a passage ruled off above and below, never as raised buttons, floating cards, or shaded boxes. The mood is quiet and exact, with the warmth of a page someone wrote on.\n\nIt serves one person's research notes, where long Korean prose, Latin species and gene names, DNA and protein sequences, math, code, and tables share a page and must each read correctly beside the others. Structure carries the identity: a filled blue square opening each section heading, ruled property rows, square tags, and a corner cut at 45° at the head of the open note. Ornament does not.",
 		"keyCharacteristics": [
 			"Square cells and fine rules instead of fills and rounded containers.",
 			"Two accents with fixed jobs: a printed-rule blue for structure, a proofreader's red for marks.",
@@ -586,7 +586,7 @@
 			},
 			{
 				"name": "The One Cut Rule",
-				"body": "One cut corner per frame, top right, and the line never breaks at the diagonal.",
+				"body": "The cut and the 2px blue rule mark the head of the open note (the title rule and the active tab) and the sequence block, nothing else. A cut frame has one cut corner, top right, and its line never breaks at the diagonal.",
 				"section": "shapes"
 			},
 			{
@@ -604,13 +604,14 @@
 			"Do keep Obsidian's component sizes and positions, and prove it against stock Obsidian.",
 			"Do separate layers by tone: `paper`, `paper-alt`, `tint`.",
 			"Do set Latin names in true italics.",
-			"Do keep one 45° cut per frame with an unbroken rule."
+			"Do keep the 45° cut and the 2px blue rule for the head of the open note (the title rule and the active tab) and the sequence block, and nothing else."
 		],
 		"donts": [
 			"Don't round a corner.",
 			"Don't use Proofreader's Red for decoration, body text, or code tokens.",
 			"Don't add a second accent hue.",
 			"Don't fill the active row or tab with colour; mark it.",
+			"Don't set a callout or a summary in a tinted, shaded, or gradient box.",
 			"Don't number headings with a CSS counter; Obsidian unloads off-screen sections and the count goes wrong."
 		]
 	}
