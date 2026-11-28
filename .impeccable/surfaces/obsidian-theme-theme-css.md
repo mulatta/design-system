@@ -25,7 +25,7 @@ Anti-goals: no grid, dots, or texture behind running text or in the margins; no 
 
 THESIS: Hangul and sequences both live one character per cell. The frame is ruled like Korean 원고지 so the monospace blocks and the prose share one cell module; it refuses the category default of a neutral grey theme with one purple accent.
 
-OWN-WORLD: cool paper in three tonal layers: page #FAFAFA, side panels and tab strips #F0F1F3, set-in blocks #ECEDEF (dark #1A1A1A, #1E2025, #23262D), at least 0.025 OKLCH lightness apart and never split by a line. Ink #1A1A1A. Manuscript Rule Blue #0359B0 (dark #9ACCFD) for links, tags, heading markers, and frame rules; Proofreader's Red #B23A30 (dark #E2806F) only for edit marks. Fine rule #D4D7DD inside a layer. Zero radius; the active tab, title rule, code, and callouts cut one corner at 45° with an unbroken rule. Square tags; Lucide icons at a 1.5px stroke.
+OWN-WORLD: cool paper in three tonal layers: page #FAFAFA, side panels and tab strips #F0F1F3, set-in blocks #ECEDEF (dark #1A1A1A, #1E2025, #23262D), at least 0.025 OKLCH lightness apart and never split by a line. Ink #1A1A1A. Manuscript Rule Blue #0359B0 (dark #9ACCFD) for links, tags, heading markers, and frame rules; Proofreader's Red #B23A30 (dark #E2806F) only for edit marks. Fine rule #D4D7DD inside a layer. Zero radius; the active tab, title rule, and callouts cut one corner at 45° with an unbroken rule; a code block is the set-in tone alone. Square tags; Lucide icons at a 1.5px stroke.
 
 STORY: the reader opens a mixed lab note, reads the Korean body in a calm column, finds a primer by its position number in a gridded sequence block, and moves between notes through the familiar tree, tabs, and outline.
 

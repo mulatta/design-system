@@ -80,7 +80,7 @@ It serves one person's research notes, where long Korean prose, Latin species an
 A cool neutral paper with one printed blue and one correcting red; each scheme, `light` and `dark`, carries the full set.
 
 ### Primary
-- **Manuscript Rule Blue** (`rule`, `rule-soft`): the colour of the printed grid. Links, tags, the H2 marker, the title rule, the top rule of code blocks and callouts, the active tab's rule, folder markers in the file tree, the ring on raised mobile controls, and focus rings. A highlight is this blue at 12% over the page with a 1px underline in full blue. `rule-soft` is its hover and secondary-string tone.
+- **Manuscript Rule Blue** (`rule`, `rule-soft`): the colour of the printed grid. Links, tags, the H2 marker, the title rule, the top rule of callouts, the active tab's rule, folder markers in the file tree, the ring on raised mobile controls, and focus rings. A highlight is this blue at 12% over the page with a 1px underline in full blue. `rule-soft` is its hover and secondary-string tone.
 
 ### Secondary
 - **Proofreader's Red** (`proof`): only for marks a proofreader would make on the sheet. The text caret, the active-file caret, the active tab's mark, the X and strike line of a done task, the strike and delete loop of deleted text, the marks around an editing note, and warning and danger callouts.
@@ -128,7 +128,7 @@ Depth comes from tonal layers of paper. The note page and the active tab are the
 
 ## Shapes
 
-Every corner is square (`rounded.none`). The theme sets every Obsidian radius variable to it, again on the body classes where Obsidian redefines them (macOS, iOS, mobile, tablet, phone, floating navbar). A framed block (the active tab, the title rule, code blocks, callouts) cuts exactly one corner at 45°, `cut` (12px) on a side, and its rule runs along the diagonal without a break.
+Every corner is square (`rounded.none`). The theme sets every Obsidian radius variable to it, again on the body classes where Obsidian redefines them (macOS, iOS, mobile, tablet, phone, floating navbar). A framed block (the active tab, the title rule, callouts) cuts exactly one corner at 45°, `cut` (12px) on a side, and its rule runs along the diagonal without a break.
 
 **The One Cut Rule.** One cut corner per frame, top right, and the line never breaks at the diagonal.
 
@@ -177,9 +177,8 @@ A device looks the same in reading view and in Live Preview while the caret is o
 - **Style:** `---` is a strip of empty cells in 1px `pale` lines, one `cell` high, in whole cells stretched to span the column, closed at its right end. Only a divider takes the strip: the line above the footnotes is a plain 1px `pale` line.
 
 ### Callouts and code blocks
-- **Corner Style:** square, with the one 45° cut.
-- **Background:** the `tint` layer, or the callout colour at low strength.
-- **Border:** a Manuscript Rule Blue top rule for code; warning and danger callouts take Proofreader's Red. Neither takes a side or bottom line: the tint already sets the block apart as its own layer.
+- **Callout:** square, with the one 45° cut, on its callout colour at low strength under a top rule in that colour: Manuscript Rule Blue, or Proofreader's Red for a warning or danger callout. It takes no side or bottom line.
+- **Code block:** the `tint` layer only, with square corners, no rule, and no cut, the same in reading view and Live Preview. The tint already sets the block apart as its own layer.
 - **Live Preview hover:** a hovered block draws no ring around its frame, and its edit button sits `cut` in from the right edge, clear of the diagonal. A sequence block is the exception: its edit button sits at the top left, over the empty position column, because the length badge, its copy control, ends on the grid edge, and the space left of the cut changes with the window width.
 
 ### Navigation (file tree)
