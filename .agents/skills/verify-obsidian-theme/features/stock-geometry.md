@@ -39,12 +39,12 @@ Preconditions:
 - Baseline preconditions hold for the theme run (`agent`, or your own run name).
 - A stock run is live: `obs launch --run stock --theme none`, then `obs doctor --run stock` reports ok with `cssTheme: ""`.
 
-- **Compare.** Run `obs compare --base stock --run agent --scheme light`, then `--scheme dark`. `--part <id>` (repeatable) limits it to some parts.
+- **Compare.** Run `obs compare --base stock --scheme light`, then `--scheme dark`. `--part <id>` (repeatable) limits it to some parts.
 - **Other places.** Repeat both schemes with `--view live`, with `--mobile`, and with `--view live --mobile`. A change inside the note column needs all four; a change to desktop chrome needs only the first.
 - **Read the output.** Each part prints `same geometry` or the boxes that differ, as `label.x|y|w|h stock -> theme`. Captures land in `build/verify/compare/<view>[-mobile]/<scheme>/`, which each `compare` in that place empties first: `<part>.<run>.png` at 2x, `metrics.json`, `index.html`, and, when `IMPECCABLE_BROWSER` is set as in the devshell, `compare.png`, one sheet with every pair and its differences. `--size` changes the window from 1440x900, or from 390x844 with `--mobile`.
 - **Cuts in pixels.** `obs joins` measures where the top rule meets the 45° cut on every frame that draws one, found by its gradient, from painted pixels: `geo-doc-tab`, `geo-title-rule`, and each sequence block; `compare` shows the boxes around them.
 - **Judge.** Look at each pair at 2x. A number difference is a lead, not a verdict: a part can match in numbers and still break visually (a diagonal that does not meet), or differ on purpose.
-- **After a theme edit.** `obs sync --run agent`, then compare again. Keep an earlier output by copying `build/verify/compare/` aside; the next run in the same place overwrites it.
+- **After a theme edit.** `obs sync`, then compare again. Keep an earlier output by copying `build/verify/compare/` aside; the next run in the same place overwrites it.
 - **Proof.** Report each sub-feature as holding or failing with the part's numbers and capture paths for both schemes.
 
 ## Gotchas

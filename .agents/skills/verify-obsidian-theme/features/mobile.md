@@ -22,15 +22,15 @@ Preconditions:
 
 - Baseline preconditions hold for run `agent`.
 
-- **Phone, light.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light --mobile`. The capture shows `mobile-column`, `mobile-shrink`, `mobile-fonts`, `mobile-raised`.
-- **Blocks.** Run `obs shot --run agent --note elements-ko --view reading --scheme light --mobile --scroll 600`, and again with `--scroll 1200`. The captures show `mobile-blocks`.
-- **Settings.** Run `obs shot --run agent --note lab-note-ko --mobile --open settings`. Under emulation settings is a modal in the main window, and `shot` captures that window. The capture shows `mobile-settings`.
+- **Phone, light.** Run `obs shot --note lab-note-ko --view reading --scheme light --mobile`. The capture shows `mobile-column`, `mobile-shrink`, `mobile-fonts`, `mobile-raised`.
+- **Blocks.** Run `obs shot --note elements-ko --view reading --scheme light --mobile --scroll 600`, and again with `--scroll 1200`. The captures show `mobile-blocks`.
+- **Settings.** Run `obs shot --note lab-note-ko --mobile --open settings`. Under emulation settings is a modal in the main window, and `shot` captures that window. The capture shows `mobile-settings`.
 - **Dark.** Repeat with `--scheme dark`.
 - **Stock reference.** The same `shot` options against a stock run (`--run stock`) give the stock mobile layout.
-- **Geometry.** Run `obs compare --base stock --run agent --mobile --scheme light` and `--view live --mobile`, then both with `--scheme dark`. The note parts prove `mobile-column`, `mobile-blocks`, and `mobile-editing`; `navbar` and `top-buttons` prove `mobile-raised` (see [Geometry against stock Obsidian](./stock-geometry.md)).
-- **Tones.** Run `obs layers --run agent --mobile --scheme light` and `--view live --mobile`, then dark.
-- **Joins.** Run `obs joins --run agent --mobile --scheme light` and `--view live --mobile`, then dark. The phone has no tab strip, so `cut` measures no tab there.
-- **States.** Run `obs editcheck --run agent --mobile --scheme light`, then dark. It runs the rows marked for the phone at 390x844. `reading-column` and `live-column` prove the column-edge part of `mobile-column`, `floating-header` proves the header part of `mobile-raised`, and `raised-surfaces` its palette part: on the phone Obsidian makes the palette translucent, gives it its own shadow, and rounds its input.
+- **Geometry.** Run `obs compare --base stock --mobile --scheme light` and `--view live --mobile`, then both with `--scheme dark`. The note parts prove `mobile-column`, `mobile-blocks`, and `mobile-editing`; `navbar` and `top-buttons` prove `mobile-raised` (see [Geometry against stock Obsidian](./stock-geometry.md)).
+- **Tones.** Run `obs layers --mobile --scheme light` and `--view live --mobile`, then dark.
+- **Joins.** Run `obs joins --mobile --scheme light` and `--view live --mobile`, then dark. The phone has no tab strip, so `cut` measures no tab there.
+- **States.** Run `obs editcheck --mobile --scheme light`, then dark. It runs the rows marked for the phone at 390x844. `reading-column` and `live-column` prove the column-edge part of `mobile-column`, `floating-header` proves the header part of `mobile-raised`, and `raised-surfaces` its palette part: on the phone Obsidian makes the palette translucent, gives it its own shadow, and rounds its input.
 - **Back to desktop.** The next `shot` without `--mobile` switches emulation off again.
 - **Proof.** Report each sub-feature with its capture path, and state that it was proven under emulation.
 

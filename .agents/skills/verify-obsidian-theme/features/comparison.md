@@ -18,12 +18,12 @@ Preconditions:
 - The other stylesheet exists as a file. Reading it is fine; `launch` copies it into the disposable vault and never writes to the source.
 
 - **Snippet run.** Run `obs launch --run vault --theme none --snippet ~/Vault/.obsidian/snippets/fieldnotes.css --cssclass fieldnotes-paper`, then `obs doctor --run vault`. Doctor lists `fieldnotes` under `enabledSnippets` and `cssTheme: ""`.
-- **Theme run.** Run `obs launch --run agent`, then `obs doctor --run agent`. Give it the same `--cssclass` when the comparison is about note styling, so both runs carry the same frontmatter.
+- **Theme run.** Run `obs launch`, then `obs doctor`. Give it the same `--cssclass` when the comparison is about note styling, so both runs carry the same frontmatter.
 - **Pairs.** For each view to compare, run the same `obs shot` options against `--run vault` and `--run agent`. Each run keeps its shots in its own `build/verify/<run>/shots/`.
-- **Geometry.** `obs compare --base vault --run agent` measures the parts of the two stylesheets against each other.
+- **Geometry.** `obs compare --base vault` measures the parts of the two stylesheets against each other.
 - **After editing the snippet.** `obs sync --run vault` copies it again; no relaunch.
 - **Proof.** Present the pairs together and name what differs, with capture paths.
-- **Cleanup.** `obs stop --run vault`, and `obs stop --run agent` if you launched it for this.
+- **Cleanup.** `obs stop --run vault`, and `obs stop` if you launched it for this.
 
 ## Gotchas
 

@@ -27,16 +27,16 @@ Preconditions:
 
 - Baseline preconditions hold for run `agent`.
 
-- **Lab note, light.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light`. The capture shows `read-title-props`, `read-headings`, `read-prose`, and the start of the `dna` block.
-- **Lab note, lower half.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light --scroll 620`. The capture shows `read-table`, `read-callouts` (warning), `read-code`, `read-tasks`.
-- **Element note.** Run `obs shot --run agent --note elements-ko --view reading --scheme light` and again with `--scroll 700` and `--scroll 1400`. Together they show `read-links-tags`, `read-inline`, all callout types, `read-quote-hr`, the two-line task, block math, every code language, and the right-aligned table.
-- **No properties.** Run `obs shot --run agent --note long-note --view reading --scheme light`. The capture shows `read-title-bare`.
+- **Lab note, light.** Run `obs shot --note lab-note-ko --view reading --scheme light`. The capture shows `read-title-props`, `read-headings`, `read-prose`, and the start of the `dna` block.
+- **Lab note, lower half.** Run `obs shot --note lab-note-ko --view reading --scheme light --scroll 620`. The capture shows `read-table`, `read-callouts` (warning), `read-code`, `read-tasks`.
+- **Element note.** Run `obs shot --note elements-ko --view reading --scheme light` and again with `--scroll 700` and `--scroll 1400`. Together they show `read-links-tags`, `read-inline`, all callout types, `read-quote-hr`, the two-line task, block math, every code language, and the right-aligned table.
+- **No properties.** Run `obs shot --note long-note --view reading --scheme light`. The capture shows `read-title-bare`.
 - **English.** Repeat the lab note and element note captures with `lab-note-en` and `elements-en`. Body text is Source Serif 4 throughout, and the headings, table, and callouts keep the rhythm of the Korean notes.
 - **Dark.** Repeat each capture with `--scheme dark`. The same elements keep their roles with the dark palette.
 - **Geometry.** For `read-title-props`, `read-headings`, `read-code`, `read-callouts`, and `read-tasks`, also run their parts with `obs compare` against a stock run: `--part title-rule --part properties --part heading --part code-top --part callout --part tasks`.
-- **Joins.** Run `obs joins --run agent --scheme light`, then `--scheme dark`, and both again with `--mobile`. Each instance prints `ok` when its stroke and mark meet within 0.5px; the crops in `build/verify/joins/` show each join at 2x.
+- **Joins.** Run `obs joins --scheme light`, then `--scheme dark`, and both again with `--mobile`. Each instance prints `ok` when its stroke and mark meet within 0.5px; the crops in `build/verify/joins/` show each join at 2x.
 - **Wrapped strikethrough.** `elements-ko` and `elements-en` hold a strikethrough after the editing-note paragraph that wraps at both sizes. A 2x crop of it shows the strike on every line and the loop once, after the last word.
-- **Table width.** `obs editcheck --run agent` measures `read-table`'s width against its content and the column as `reading-table`.
+- **Table width.** `obs editcheck` measures `read-table`'s width against its content and the column as `reading-table`.
 - **Column edge.** The same `editcheck` run measures everything the note column paints against its left edge as `reading-column`, which proves the column-edge parts of `read-title-props` and `read-tasks`. Add `--mobile` for the phone and `--note elements-ko` for the nested lists and the two-line task.
 - **Proof.** Look at every capture against the sub-feature list and report each sub-feature as holding or not, with the capture path.
 

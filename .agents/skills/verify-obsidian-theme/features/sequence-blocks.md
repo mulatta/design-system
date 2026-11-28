@@ -32,15 +32,15 @@ The sequence plugin (`obsidian/sequence-plugin/`, flake attribute `obsidian-sequ
 
 Preconditions:
 
-- Baseline preconditions hold for run `agent`, launched with `obs launch --run agent --plugin obsidian-sequence-plugin`.
-- `obs doctor --run agent` lists `sequence-blocks` in `enabledPlugins` and reports `installCurrent: true`. After an edit under `obsidian/sequence-plugin/`, run `obs sync --run agent`.
+- Baseline preconditions hold for run `agent`, launched with `obs launch --plugin obsidian-sequence-plugin`.
+- `obs doctor` lists `sequence-blocks` in `enabledPlugins` and reports `installCurrent: true`. After an edit under `obsidian/sequence-plugin/`, run `obs sync`.
 
-- **Every input shape, light.** Run `obs shot --run agent --note sequences --view reading --scheme light` and again with `--scroll 600` and `--scroll 1200`. Together they show `seq-lines`, `seq-groups`, `seq-pos`, `seq-header`, `seq-records`, `seq-cells`, `seq-column`, `seq-reflow`, and `seq-inline` on the last capture.
-- **Live Preview.** Run `obs shot --run agent --note sequences --view live --scheme light`. The capture shows `seq-live`.
+- **Every input shape, light.** Run `obs shot --note sequences --view reading --scheme light` and again with `--scroll 600` and `--scroll 1200`. Together they show `seq-lines`, `seq-groups`, `seq-pos`, `seq-header`, `seq-records`, `seq-cells`, `seq-column`, `seq-reflow`, and `seq-inline` on the last capture.
+- **Live Preview.** Run `obs shot --note sequences --view live --scheme light`. The capture shows `seq-live`.
 - **Dark.** Repeat the three reading captures with `--scheme dark` for `seq-dark`.
-- **Phone width.** Run `obs shot --run agent --note sequences --view reading --scheme light --mobile`, and again with `--scroll 700`, for `seq-phone`.
-- **Lab notes.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light` for a sequence block among prose.
-- **Layout and copy.** Run `obs seqcheck --run agent --view reading --scheme light`, again with `--size 1100x800`, again with `--view live --size 1100x800`, and again with `--view reading --mobile`. Each prints `SEQCHECK ok` or `SEQCHECK fail <count>` and writes `build/verify/agent/seqcheck-<view>-<scheme>-<size>[-mobile].json`. A `FAIL` line names the block, the invariant, and what was measured, without the rule. The invariants below are the rules, each with the sub-feature it proves. Every expectation is built from the fence's text and language in the note, never from the plugin's output. Lengths are CSS px.
+- **Phone width.** Run `obs shot --note sequences --view reading --scheme light --mobile`, and again with `--scroll 700`, for `seq-phone`.
+- **Lab notes.** Run `obs shot --note lab-note-ko --view reading --scheme light` for a sequence block among prose.
+- **Layout and copy.** Run `obs seqcheck --view reading --scheme light`, again with `--size 1100x800`, again with `--view live --size 1100x800`, and again with `--view reading --mobile`. Each prints `SEQCHECK ok` or `SEQCHECK fail <count>` and writes `build/verify/agent/seqcheck-<view>-<scheme>-<size>[-mobile].json`. A `FAIL` line names the block, the invariant, and what was measured, without the rule. The invariants below are the rules, each with the sub-feature it proves. Every expectation is built from the fence's text and language in the note, never from the plugin's output. Lengths are CSS px.
   - `rendered`: the fence has a rendered block. A fence without one fails here and runs no other invariant.
   - `not-clipped` proves `seq-column` in reading view, `seq-live` with `--view live`, and `seq-phone` with `--mobile`. No ancestor up to the view's scroller whose overflow is not `visible` cuts the block's left or right edge, and the block's left edge is not left of the scroller's.
   - `fits` proves `seq-lines`: the chosen line length fits without scrolling, at every size and with `--mobile`. The block has no horizontal scroll (`scrollWidth <= clientWidth + 1`).
@@ -68,7 +68,7 @@ Preconditions:
   - `copy-selection` proves the selection half of `seq-copy`, and that the header keeps its `>`. With the whole block selected, a `copy` event carrying a fresh `DataTransfer` yields FASTA text. Each record gives its `>` header line, when it has one, then its residues without whitespace or digits, and records are joined by newlines. A line that starts with `ORIGIN` or is `//` adds nothing.
   - `copy-command` proves `seq-command` with `--view live`. With the editor cursor on the fence's first residue line, the command `sequence-blocks:copy-sequence-block` is available, running it passes exactly the fence's text to the recorder, and one notice starting `Copied` shows. With the cursor on the nearest line above the fence that is outside every fence, the command's `checkCallback(true)` returns false and running it writes nothing. `executeCommandById` returns true whether or not the command ran, so the check reads availability from `checkCallback`.
 - **Tooltip and failure notice.** `seqcheck` checks their text but captures neither. Look at them in a probe run by `obs drive`: move the mouse onto a badge through CDP and wait a second for the tooltip, then replace `writeText` with a recorder that rejects and click the badge for the notice.
-- **Cut corner.** Run `obs joins --run agent --scheme light`, again with `--view live`, and both with `--mobile`. The `cut` row measures each block's top rule into its 45° cut, in `lab-note-ko` and `sequences`.
+- **Cut corner.** Run `obs joins --scheme light`, again with `--view live`, and both with `--mobile`. The `cut` row measures each block's top rule into its 45° cut, in `lab-note-ko` and `sequences`.
 - **Proof.** Look at every capture against the sub-feature list and report each sub-feature as holding or not, with the capture path.
 
 ## Gotchas

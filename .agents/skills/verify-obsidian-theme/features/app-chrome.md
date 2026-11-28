@@ -29,14 +29,14 @@ Preconditions:
 
 - Baseline preconditions hold for run `agent`.
 
-- **Frame.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light`. The capture shows `chrome-tree`, `chrome-sidebar-tabs`, `chrome-tabs`, `chrome-status`.
-- **Nested file.** Run `obs shot --run agent --note protocols/pcr-protocol --view reading --scheme light`. The capture shows the open folder's minus cell and the caret before the nested label.
-- **Palette.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light --open palette`. The capture shows `chrome-palette` over the note.
-- **Settings.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light --open settings`. `shot` captures the settings window, not the main window, and closes it afterwards. The capture shows `chrome-settings`.
-- **Search.** Run `obs shot --run agent --note lab-note-ko --view reading --scheme light --open search`. The capture shows `chrome-search` in the left sidebar. The next `shot` brings the file explorer back.
+- **Frame.** Run `obs shot --note lab-note-ko --view reading --scheme light`. The capture shows `chrome-tree`, `chrome-sidebar-tabs`, `chrome-tabs`, `chrome-status`.
+- **Nested file.** Run `obs shot --note protocols/pcr-protocol --view reading --scheme light`. The capture shows the open folder's minus cell and the caret before the nested label.
+- **Palette.** Run `obs shot --note lab-note-ko --view reading --scheme light --open palette`. The capture shows `chrome-palette` over the note.
+- **Settings.** Run `obs shot --note lab-note-ko --view reading --scheme light --open settings`. `shot` captures the settings window, not the main window, and closes it afterwards. The capture shows `chrome-settings`.
+- **Search.** Run `obs shot --note lab-note-ko --view reading --scheme light --open search`. The capture shows `chrome-search` in the left sidebar. The next `shot` brings the file explorer back.
 - **Dark.** Repeat each with `--scheme dark`.
-- **Geometry.** Run `obs compare --base stock --run agent --scheme light --part nav-active --part folder-row --part split-edge --part ribbon --part sidebar-tabs --part nav-header --part vault-bar --part doc-tab --part view-header`, then with `--scheme dark`.
-- **Focus and toggles.** Run `obs editcheck --run agent --scheme light`, then `--scheme dark`: `control-focus` and `text-focus` together prove `chrome-focus`, `toggle-states` proves the toggle part of `chrome-settings`, and `raised-surfaces` proves the paper, rule, shadow, and square corners of `chrome-palette`.
+- **Geometry.** Run `obs compare --base stock --scheme light --part nav-active --part folder-row --part split-edge --part ribbon --part sidebar-tabs --part nav-header --part vault-bar --part doc-tab --part view-header`, then with `--scheme dark`.
+- **Focus and toggles.** Run `obs editcheck --scheme light`, then `--scheme dark`: `control-focus` and `text-focus` together prove `chrome-focus`, `toggle-states` proves the toggle part of `chrome-settings`, and `raised-surfaces` proves the paper, rule, shadow, and square corners of `chrome-palette`.
 - **Shared line.** `pane-rules` in the same `editcheck` runs proves the shared line of `chrome-rules`.
 - **Proof.** Report each sub-feature with its capture path.
 
