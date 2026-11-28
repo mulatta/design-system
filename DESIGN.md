@@ -87,7 +87,7 @@ It serves one person's research notes, where long Korean prose, Latin species an
 A cool neutral paper with one printed blue and one correcting red; each scheme, `light` and `dark`, carries the full set.
 
 ### Primary
-- **Manuscript Rule Blue** (`rule`, `rule-soft`): the colour of the printed grid. Links, tags, the H2 marker, the title rule, the active tab's rule, the sequence block's top rule, folder markers in the file tree, the ring on raised mobile controls, focus rings, and the labels of callouts. A highlight is this blue at 22% over the page, 30% in the dark scheme, with a 1px underline in full blue. `rule-soft` is its hover and secondary-string tone.
+- **Manuscript Rule Blue** (`rule`, `rule-soft`): the colour of the printed grid. Links, tags, the H2 marker, the title rule, the active tab's rule, the sequence block's top rule, folder markers in the file tree, the ring on raised mobile controls, focus rings, and the labels of callouts. A highlight is this blue at 22% over the page, 30% in the dark scheme, with a 1px underline in full blue. `rule-soft` is the hover tone of controls and the tone of secondary strings. A link keeps its blue under the pointer, and its fine underline turns full blue, one line in reading view and the editor alike.
 
 ### Secondary
 - **Proofreader's Red** (`proof`): only for marks a proofreader would make on the sheet. The text caret, the active-file caret, the active tab's mark, the X and strike line of a done task, the strike and delete loop of deleted text, the marks around an editing note, and the rules and label of a warning callout.

@@ -6,7 +6,7 @@ Editing view is where the note is written: Live Preview renders most markdown in
 
 - `edit-live` renders headings, emphasis, links, and inline code like reading view; H2 carries the same hung square marker, without reading view's trailing rule.
 - `edit-footnote` sets a footnote reference in blue, raised and smaller, as reading view does. The editor shows it as typed, `[^1]`, where reading view prints `[1]`.
-- `edit-links` underlines a link as reading view does: blue text over a 1px cell-line line set 0.22em below it, in full blue under the pointer; an unresolved link is mute over a dotted line.
+- `edit-links` underlines a link as reading view does: blue text over a 1px cell-line line set 0.22em below it, in full blue under the pointer, one line and the same blue as reading view's; an unresolved link is mute over a dotted line.
 - `edit-wrap` breaks a line between words as reading view does, never inside a Hangul word; a string too long for the column still breaks.
 - `edit-markers` shows markdown markers (`#`, `*`, `` ` ``) in the faint colour.
 - `edit-inline` sets inline code in D2Coding on the tint inside a fine box, at reading view's size, with its backticks inside the same box on the line holding the caret, `==highlight==` as a blue wash over a 1px blue underline, and `~~strikethrough~~` in mute under a red strike that ends in the delete loop, as in reading view, once per strikethrough even when bold, code, or a link inside it splits it. The line holding the caret shows the raw `~~` and no loop. The editing note shows its `%%` marks in bold red and its text in mute; a comment inside a code block keeps the code comment colour.

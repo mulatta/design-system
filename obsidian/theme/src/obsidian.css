@@ -147,7 +147,8 @@ body,
 	--text-highlight-bg: color-mix(in srgb, var(--wg-rule) 22%, transparent);
 	--caret-color: var(--wg-proof);
 	--link-color: var(--wg-rule);
-	--link-color-hover: var(--wg-rule-soft);
+	--link-color-hover: var(--wg-rule);
+	--link-external-color-hover: var(--wg-rule);
 	--link-external-color: var(--wg-rule);
 	--link-unresolved-color: var(--wg-mute);
 	--link-unresolved-opacity: 1;

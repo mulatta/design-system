@@ -190,6 +190,10 @@
 	text-decoration-color: currentColor;
 }
 
+.markdown-source-view.mod-cm6 :is(.cm-hmd-internal-link, .cm-link):hover {
+	text-decoration-line: none;
+}
+
 .markdown-rendered a.internal-link.is-unresolved,
 .markdown-source-view.mod-cm6 .is-unresolved .cm-underline {
 	color: var(--link-unresolved-color);
