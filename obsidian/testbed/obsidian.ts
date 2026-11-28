@@ -4802,6 +4802,7 @@ type Pair = {
 	live: PairProbe;
 	props: string[];
 	nested?: true;
+	hover?: true;
 };
 
 type PairDiff = { pair: string; prop: string; reason: string };
@@ -4947,6 +4948,23 @@ const pairs: Pair[] = [
 		reading: { at: "a.external-link" },
 		live: { at: ".cm-link:not(.cm-hmd-footnote)", on: ".cm-underline" },
 		props: [...textProps, "decoration"],
+	},
+	{
+		id: "internal-link-hover",
+		hover: true,
+		reading: { at: "a.internal-link:not(.is-unresolved):hover" },
+		live: {
+			at: ".cm-hmd-internal-link:not(:has(.is-unresolved)):hover",
+			on: ".cm-underline",
+		},
+		props: ["color", "decoration", "underlines"],
+	},
+	{
+		id: "external-link-hover",
+		hover: true,
+		reading: { at: "a.external-link:hover" },
+		live: { at: ".cm-link:not(.cm-hmd-footnote):hover", on: ".cm-underline" },
+		props: ["color", "decoration", "underlines"],
 	},
 	{
 		id: "external-link-icon",
@@ -5397,6 +5415,13 @@ const installPairs = (page: Page) =>
 				if (/^border-(top|right|bottom|left)$/.test(prop))
 					return side(cs, prop);
 				if (prop === "decoration") return decoration(el, root);
+				if (prop === "underlines") {
+					let lines = 0;
+					for (let e: Element | null = el; e && e !== root; e = e.parentElement)
+						if (getComputedStyle(e).textDecorationLine.includes("underline"))
+							lines++;
+					return String(lines);
+				}
 				if (prop === "strike") return strike(el, root);
 				if (prop === "x") {
 					if (!pseudo) return px(visible(el, root).left - colLeft);
@@ -5778,6 +5803,40 @@ async function checkPairs(args: string[]): Promise<void> {
 					})),
 				] as const,
 			)) as Record<string, PairItem[]>;
+			for (const row of pairs.filter((p) => p.hover)) {
+				const probe = row[view];
+				const root =
+					view === "live"
+						? ".workspace-leaf.mod-active .markdown-source-view.is-live-preview"
+						: ".workspace-leaf.mod-active .markdown-reading-view";
+				const at = `${root} ${probe.at.replaceAll(":hover", "")}`;
+				const target = page
+					.locator(probe.on ? `${at} ${probe.on}` : at)
+					.first();
+				if ((await target.count()) === 0) continue;
+				for (let tries = 0; tries < 3; tries++) {
+					await page.mouse.move(0, 0);
+					await target.hover();
+					await page.waitForTimeout(300);
+					if (await page.locator(`${root} ${probe.at}`).count()) break;
+				}
+				const hovered = (await page.evaluate(
+					([view, rows]) => (window as any).__wgPairs(view, rows),
+					[
+						view,
+						[
+							{
+								id: row.id,
+								probe: row[view],
+								props: row.props,
+								nested: row.nested,
+							},
+						],
+					] as const,
+				)) as Record<string, PairItem[]>;
+				found[view][row.id] = hovered[row.id];
+				await page.mouse.move(0, 0);
+			}
 			code[view] = (await page.evaluate(
 				(view) => (window as any).__wgCode(view),
 				view,
