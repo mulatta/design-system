@@ -42,6 +42,8 @@ type RunState = {
 	startedAt: string;
 };
 
+const runOption = { type: "string", default: "agent" } as const;
+
 function fail(message: string): never {
 	console.error(`error: ${message}`);
 	process.exit(1);
@@ -282,7 +284,7 @@ async function conceal(page: Page): Promise<void> {
 async function sync(args: string[]): Promise<void> {
 	const { values } = parseArgs({
 		args,
-		options: { run: { type: "string", default: "main" } },
+		options: { run: runOption },
 	});
 	const state = readState(values.run);
 	if (!alive(state.pid))
@@ -333,7 +335,7 @@ async function launch(args: string[]): Promise<void> {
 	const { values } = parseArgs({
 		args,
 		options: {
-			run: { type: "string", default: "main" },
+			run: runOption,
 			theme: { type: "string", default: "wongoji" },
 			snippet: { type: "string", multiple: true, default: [] },
 			plugin: { type: "string", multiple: true, default: [] },
@@ -489,7 +491,7 @@ async function launch(args: string[]): Promise<void> {
 async function doctor(args: string[]): Promise<void> {
 	const { values } = parseArgs({
 		args,
-		options: { run: { type: "string", default: "main" } },
+		options: { run: runOption },
 	});
 	const state = readState(values.run);
 	const report: Record<string, unknown> = {
@@ -724,7 +726,7 @@ async function shot(args: string[]): Promise<void> {
 	const { values } = parseArgs({
 		args,
 		options: {
-			run: { type: "string", default: "main" },
+			run: runOption,
 			note: { type: "string" },
 			view: { type: "string", default: "reading" },
 			scheme: { type: "string", default: "light" },
@@ -1197,7 +1199,7 @@ async function compare(args: string[]): Promise<void> {
 		args,
 		options: {
 			base: { type: "string", default: "stock" },
-			run: { type: "string", default: "agent" },
+			run: runOption,
 			scheme: { type: "string", default: "light" },
 			part: { type: "string", multiple: true, default: [] },
 			view: { type: "string", default: "reading" },
@@ -1518,7 +1520,7 @@ async function layers(args: string[]): Promise<void> {
 	const { values } = parseArgs({
 		args,
 		options: {
-			run: { type: "string", default: "agent" },
+			run: runOption,
 			scheme: { type: "string", default: "light" },
 			note: { type: "string", default: "lab-note-ko" },
 			view: { type: "string", default: "reading" },
@@ -1880,7 +1882,7 @@ async function checkJoins(args: string[]): Promise<void> {
 	const { values } = parseArgs({
 		args,
 		options: {
-			run: { type: "string", default: "agent" },
+			run: runOption,
 			scheme: { type: "string", default: "light" },
 			view: { type: "string", default: "reading" },
 			mobile: { type: "boolean", default: false },
@@ -3298,13 +3300,12 @@ async function editcheck(args: string[]): Promise<void> {
 	const { values } = parseArgs({
 		args,
 		options: {
-			run: { type: "string" },
+			run: runOption,
 			scheme: { type: "string", default: "light" },
 			note: { type: "string", default: "lab-note-ko" },
 			mobile: { type: "boolean", default: false },
 		},
 	});
-	if (!values.run) fail("editcheck needs --run <run>");
 	const { layout, mobile, width, height } = screenFor(values.mobile);
 	const suffix = mobile ? `${values.scheme}-mobile` : values.scheme;
 	if (values.scheme !== "light" && values.scheme !== "dark")
@@ -3596,7 +3597,7 @@ async function seqcheck(args: string[]): Promise<void> {
 	const { values } = parseArgs({
 		args,
 		options: {
-			run: { type: "string" },
+			run: runOption,
 			note: { type: "string", default: "sequences" },
 			view: { type: "string", default: "reading" },
 			scheme: { type: "string", default: "light" },
@@ -3605,7 +3606,6 @@ async function seqcheck(args: string[]): Promise<void> {
 			"hide-right": { type: "boolean", default: false },
 		},
 	});
-	if (!values.run) fail("seqcheck needs --run <run>");
 	if (!["reading", "live"].includes(values.view))
 		fail(`unknown --view ${values.view} (reading|live)`);
 	const state = readState(values.run);
@@ -5561,7 +5561,7 @@ async function checkPairs(args: string[]): Promise<void> {
 	const { values } = parseArgs({
 		args,
 		options: {
-			run: { type: "string", default: "agent" },
+			run: runOption,
 			scheme: { type: "string", default: "light" },
 			note: { type: "string", default: "pairs" },
 			mobile: { type: "boolean", default: false },
@@ -5713,9 +5713,8 @@ async function checkPairs(args: string[]): Promise<void> {
 function stop(args: string[]): void {
 	const { values } = parseArgs({
 		args,
-		options: { run: { type: "string" } },
+		options: { run: runOption },
 	});
-	if (!values.run) fail("stop needs --run <run>; it never picks a run itself");
 	teardown(values.run, readState(values.run));
 }
 
@@ -5752,7 +5751,7 @@ async function drive(args: string[]): Promise<void> {
 		args,
 		allowPositionals: true,
 		options: {
-			run: { type: "string" },
+			run: runOption,
 			note: { type: "string" },
 			view: { type: "string", default: "reading" },
 			scheme: { type: "string", default: "light" },
@@ -5762,12 +5761,11 @@ async function drive(args: string[]): Promise<void> {
 		},
 	});
 	const [file, ...rest] = positionals;
-	if (!values.run || !file)
-		fail("usage: obsidian.ts drive --run <run> [options] <probe.ts> [args]");
 	const size = (values.size ?? (values.mobile ? "390x844" : "1440x900")).match(
 		/^(\d+)x(\d+)$/,
 	);
 	if (!size) fail(`--size must be <width>x<height>, not ${values.size}`);
+	if (!file) fail("usage: obsidian.ts drive [options] <probe.ts> [args]");
 	const state = readState(values.run);
 	if (!alive(state.pid))
 		fail(`run "${values.run}" is not live; launch it again`);
