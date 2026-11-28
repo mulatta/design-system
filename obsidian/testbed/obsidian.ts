@@ -1365,11 +1365,6 @@ const regions: Region[] = [
 	},
 	{ id: "status-bar", selector: ".status-bar" },
 	{
-		id: "property-key",
-		selector: inNote(".metadata-property-key"),
-		on: everywhere,
-	},
-	{
 		id: "code",
 		selector: {
 			reading: `${reading} .el-pre:not(.mod-frontmatter) pre`,
@@ -1416,7 +1411,6 @@ const boundaries: [string, string][] = [
 	["tab-strip", "view-header"],
 	["view-header", "note"],
 	["note", "status-bar"],
-	["note", "property-key"],
 	["note", "code"],
 	["note", "inline-code"],
 	["note", "table-head"],
@@ -2507,6 +2501,133 @@ const tableFits = async (page: Page, table: string, column: string) => {
 	};
 };
 
+const columnEdges = async (page: Page, view: View): Promise<Outcome> => {
+	const frame = await page.evaluate((view) => {
+		const leaf = ".workspace-leaf.mod-active";
+		const root = document.querySelector(
+			view === "live"
+				? `${leaf} .markdown-source-view.is-live-preview`
+				: `${leaf} .markdown-reading-view`,
+		);
+		const column = root?.querySelector<HTMLElement>(
+			view === "live" ? ".cm-sizer" : ".markdown-preview-sizer",
+		);
+		const scroller = root?.querySelector<HTMLElement>(
+			view === "live" ? ".cm-scroller" : ".markdown-preview-view",
+		);
+		if (!column || !scroller) return null;
+		const token = (name: string) => {
+			const probe = document.createElement("i");
+			probe.style.color = `var(--wg-${name})`;
+			document.body.append(probe);
+			const rgb = (getComputedStyle(probe).color.match(/[\d.]+/g) ?? [])
+				.slice(0, 3)
+				.map(Number);
+			probe.remove();
+			return rgb;
+		};
+		const box = scroller.getBoundingClientRect();
+		const col = column.getBoundingClientRect();
+		return {
+			x: box.left,
+			y: box.top,
+			width: scroller.clientWidth,
+			height: scroller.clientHeight,
+			left: col.left,
+			right: col.right,
+			cell: Number.parseFloat(
+				getComputedStyle(document.body).getPropertyValue("--wg-cell"),
+			),
+			sideways: scroller.scrollWidth - scroller.clientWidth,
+			pale: token("pale"),
+			paper: token("paper"),
+		};
+	}, view);
+	if (!frame)
+		return { pass: false, reason: "no note column is open", facts: {} };
+	const clip = {
+		x: frame.x,
+		y: frame.y,
+		width: frame.width,
+		height: frame.height,
+		scale: 2,
+	};
+	const cdp = await page.context().newCDPSession(page);
+	const { data } = (await cdp.send("Page.captureScreenshot", {
+		format: "png",
+		clip,
+	})) as { data: string };
+	await cdp.detach();
+	const lines = await page.evaluate(
+		async ([data, f]) => {
+			const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));
+			const bitmap = await createImageBitmap(
+				new Blob([bytes], { type: "image/png" }),
+			);
+			const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+			const ctx = canvas.getContext("2d") as OffscreenCanvasRenderingContext2D;
+			ctx.drawImage(bitmap, 0, 0);
+			const scale = bitmap.width / f.width;
+			const {
+				data: px,
+				width,
+				height,
+			} = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
+			const rows = [0.1, 0.5, 0.9].map((t) => Math.floor(height * t));
+			const far = (c: number, r: number, from: number[]) =>
+				Math.hypot(
+					...[0, 1, 2].map((k) => px[(r * width + c) * 4 + k] - from[k]),
+				);
+			const found: { x: number; width: number; pale: boolean }[] = [];
+			let start = -1;
+			for (let c = 0; c <= width; c++) {
+				const x = f.x + c / scale;
+				const beside = x < f.left - 1 || x > f.right + 1;
+				const drawn =
+					c < width && beside && rows.every((r) => far(c, r, f.paper) > 8);
+				if (drawn && start < 0) start = c;
+				if (!drawn && start >= 0) {
+					found.push({
+						x: f.x + start / scale,
+						width: (c - start) / scale,
+						pale: rows.every((r) => far(start, r, f.pale) <= 12),
+					});
+					start = -1;
+				}
+			}
+			return found;
+		},
+		[data, frame] as const,
+	);
+	const out = 3 * frame.cell;
+	const room =
+		frame.left - frame.x >= out && frame.x + frame.width - frame.right >= out;
+	const want = room ? [frame.left - out, frame.right + out - 1] : [];
+	const said = lines
+		.map(
+			(l) =>
+				`x ${l.x.toFixed(1)} ${l.width.toFixed(1)}px${l.pale ? "" : " not pale"}`,
+		)
+		.join(", ");
+	const placed =
+		lines.length === want.length &&
+		lines.every(
+			(l, i) => l.pale && l.width <= 1.5 && Math.abs(l.x - want[i]) <= 1,
+		);
+	const pass = placed && frame.sideways === 0;
+	return {
+		pass,
+		reason: pass
+			? room
+				? `a pale line stands ${out}px, three cells, outside each edge of the column`
+				: "the pane has no room for three cells beside the column, and no line is drawn"
+			: frame.sideways !== 0
+				? `the note scrolls ${frame.sideways}px sideways`
+				: `expected ${want.length ? `lines at x ${want.map((x) => x.toFixed(1)).join(" and ")}` : "no line beside the column"}, found ${said || "none"}`,
+		facts: { frame: { ...frame }, lines },
+	};
+};
+
 const insideColumn = async (page: Page, view: View): Promise<Outcome> => {
 	const m = await page.evaluate(async (view) => {
 		const leaf = ".workspace-leaf.mod-active";
@@ -3216,6 +3337,20 @@ const editChecks: EditCheck[] = [
 		on: everywhere,
 		shot: "[data-column-shot]",
 		run: (page) => insideColumn(page, "live"),
+	},
+	{
+		id: "reading-edges",
+		view: "reading",
+		on: everywhere,
+		shot: `${leaf} .markdown-reading-view`,
+		run: (page) => columnEdges(page, "reading"),
+	},
+	{
+		id: "live-edges",
+		view: "live",
+		on: everywhere,
+		shot: `${leaf} .markdown-source-view`,
+		run: (page) => columnEdges(page, "live"),
 	},
 	{
 		id: "floating-header",
@@ -4764,7 +4899,19 @@ const pairs: Pair[] = [
 		id: "highlight",
 		reading: { at: "mark" },
 		live: { at: ".cm-highlight:not(.cm-formatting)" },
-		props: [...textProps, "background-color", "decoration"],
+		props: [...textProps, "background-color", "box-shadow", "decoration"],
+	},
+	{
+		id: "end-cells",
+		reading: { at: ".mod-footer", pseudo: "::before" },
+		live: { at: ".cm-content", pseudo: "::after" },
+		props: [
+			"content",
+			"height",
+			"margin-top",
+			"background-image",
+			"mask-image",
+		],
 	},
 	{
 		id: "inline-code",

@@ -119,7 +119,7 @@ obs editcheck [--scheme light|dark] [--mobile] [--note lab-note-ko]
 
 `editcheck` puts the window in states a plain `shot` never reaches, because `shot` clears focus and never places the cursor, and measures one rule in each. It writes a 2x crop of each row's element as `editcheck-<scheme>[-mobile]-<row>.png`.
 
-The rows are `text-focus`, `note-text-focus`, `property-select`, `raised-surfaces`, `control-focus`, `pane-rules`, `reading-table`, `live-table`, `reading-column`, `live-column`, `floating-header`, `code-active-line`, `toggle-states`, and `embed-hover`. `note-text-focus` and `floating-header` run only on the phone, and `control-focus`, `pane-rules`, and `toggle-states` only on desktop. The feature file that names a row says what the row proves and what it cannot see. Search `features/` for the id.
+The rows are `text-focus`, `note-text-focus`, `property-select`, `raised-surfaces`, `control-focus`, `pane-rules`, `reading-table`, `live-table`, `reading-column`, `live-column`, `reading-edges`, `live-edges`, `floating-header`, `code-active-line`, `toggle-states`, and `embed-hover`. `note-text-focus` and `floating-header` run only on the phone, and `control-focus`, `pane-rules`, and `toggle-states` only on desktop. The feature file that names a row says what the row proves and what it cannot see. Search `features/` for the id.
 
 ### Check that the two views match
 

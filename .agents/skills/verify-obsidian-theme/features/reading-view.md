@@ -40,6 +40,8 @@ Preconditions:
 - **Wrapped strikethrough.** `elements-ko` and `elements-en` hold a strikethrough after the editing-note paragraph that wraps at both sizes. A 2x crop of it shows the strike on every line and the loop once, after the last word.
 - **Table width.** `obs editcheck` measures `read-table`'s width against its content and the column as `reading-table`.
 - **Column edge.** The same `editcheck` run measures everything the note column paints against its left edge as `reading-column`, which proves the column-edge parts of `read-title-props` and `read-tasks`. Add `--mobile` for the phone and `--note elements-ko` for the nested lists and the two-line task.
+- **Edges.** The same run finds the lines beside the column from painted pixels as `reading-edges`, which proves `read-edges`: on desktop both lines must stand three cells out, and on the phone none may.
+- **Sheet end.** Run `obs shot --note elements-ko --view reading --scheme light --scroll 99999`. The capture shows `read-end` under the footnotes.
 - **Proof.** Look at every capture against the sub-feature list and report each sub-feature as holding or not, with the capture path.
 
 ## Gotchas
