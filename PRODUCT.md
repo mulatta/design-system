@@ -61,7 +61,7 @@ Consumers, in priority order:
 
 ## Evidence on Hand
 
-No tokens, fonts, or themes exist yet. The system starts from nothing and carries no earlier visual direction. The repository holds the flake, formatter configuration, the Impeccable package, and the pinned `@google/design.md` linter.
+The tokens are written in DESIGN.md, the Wongoji system. The flake builds the embedded fonts (`fonts`), the Obsidian theme (`obsidian-theme`), its companion plugin for sequence blocks (`obsidian-sequence-plugin`), and the Impeccable package, and pins the `@google/design.md` linter. The devshell runs the theme in a disposable Obsidian vault for verification (`.agents/skills/verify-obsidian-theme`). No website consumer has shipped yet.
 
 ## Product Principles
 
