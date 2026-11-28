@@ -6,7 +6,7 @@ Reading view shows a rendered note in a calm reading column: the title in MaruBu
 
 - `read-title-props` shows the inline title over a rule that runs into its 45° cut, and the properties block with ruled rows, keys in mute on the page with no tint, Obsidian's own property icons, and square tags of one height, starting at the column edge where the title rule starts. Geometry: `geo-title-rule`, `geo-properties`. Joins: `cut`.
 - `read-title-bare` draws the same title rule and cut on a note without properties (`long-note`).
-- `read-headings` marks each H2 with a small filled blue square hung in the left margin, so the heading text starts at the body's left edge, and ends it with a fine trailing rule; H3 to H6 stay plain, H5 at H4's size in mute and H6 smaller again in mute. Geometry: `geo-heading`.
+- `read-headings` marks each H2 with a small filled blue square hung in the left margin, so the heading text starts at the body's left edge, and ends it with a fine trailing rule; H3 to H6 stay plain, H5 at H4's size in mute and H6 smaller again in mute; only the `pairs` note has H5 and H6. Geometry: `geo-heading`.
 - `read-prose` sets Korean in MaruBuri and Latin in Source Serif 4; `*gfp*`, `*Escherichia coli*` render italic; α and µ render in the Latin face.
 - `read-links-tags` shows resolved links in the accent with an offset underline, unresolved links muted and dotted, tags as square cells.
 - `read-inline` shows inline code on the tint inside a fine box, `==highlight==` as a blue wash over a 1px blue underline, and `~~strikethrough~~` in mute under a red strike that ends in a red delete loop curling up from the line. The loop's foot lies on the strike line. A strikethrough that wraps keeps its line on every line and draws the loop once, at its end. The editing note is hidden. Joins: `delete-loop`.
@@ -41,7 +41,8 @@ Preconditions:
 - **Table width.** `obs editcheck` measures `read-table`'s width against its content and the column as `reading-table`.
 - **Column edge.** The same `editcheck` run measures everything the note column paints against its left edge as `reading-column`, which proves the column-edge parts of `read-title-props` and `read-tasks`. Add `--mobile` for the phone and `--note elements-ko` for the nested lists and the two-line task.
 - **Edges.** The same run finds the lines beside the column from painted pixels as `reading-edges`, which proves `read-edges`: on desktop both lines must stand three cells out, and on the phone none may.
-- **Sheet end.** Run `obs shot --note elements-ko --view reading --scheme light --scroll 99999`. The capture shows `read-end` under the footnotes.
+- **Sheet end.** Run `obs shot --note elements-ko --view reading --scheme light --scroll 99999`. `shot` waits about 10 seconds for a scroll it cannot reach, warns `could not scroll to 99999`, and captures the end of the note, which shows `read-end` under the footnotes. `obs pairs`'s `end-cells` row holds the cells to Live Preview's.
+- **H5 and H6.** Run `obs pairs`; its `h5` and `h6` rows read the only H5 and H6 in the fixtures, in the `pairs` note. `obs shot --note pairs --view reading --scheme light` shows them.
 - **Proof.** Look at every capture against the sub-feature list and report each sub-feature as holding or not, with the capture path.
 
 ## Gotchas
