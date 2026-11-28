@@ -2621,6 +2621,99 @@ const floatingHeaderLines = async (page: Page): Promise<Outcome> => {
 	};
 };
 
+const paneRuleSlack = 4;
+
+const paneRules = async (page: Page): Promise<Outcome> => {
+	const rules = await page.evaluate(async () => {
+		const right = document.querySelector<HTMLElement>(
+			".workspace-split.mod-right-split",
+		);
+		const hidden = right?.style.display ?? "";
+		if (right) right.style.display = "";
+		await new Promise((r) =>
+			requestAnimationFrame(() => requestAnimationFrame(r)),
+		);
+		const drawn = (colour: string) =>
+			colour !== "transparent" && !/, 0\)$/.test(colour);
+		const found = [
+			...document.querySelectorAll<HTMLElement>(".workspace-tabs"),
+		].flatMap((pane, index) => {
+			const frame = pane.getBoundingClientRect();
+			const side = pane.closest(".mod-left-split")
+				? "left sidebar"
+				: pane.closest(".mod-right-split")
+					? "right sidebar"
+					: "note pane";
+			const all = [...pane.querySelectorAll<HTMLElement>("*")];
+			const scrollers = all.filter((el) =>
+				/auto|scroll/.test(getComputedStyle(el).overflowY),
+			);
+			return all.flatMap((el) => {
+				const box = el.getBoundingClientRect();
+				if (
+					!el.checkVisibility() ||
+					box.width < frame.width * 0.9 ||
+					scrollers.some((s) => s !== el && s.contains(el))
+				)
+					return [];
+				const cs = getComputedStyle(el);
+				const ys: number[] = [];
+				const top = Number.parseFloat(cs.borderTopWidth);
+				if (top > 0 && cs.borderTopStyle !== "none" && drawn(cs.borderTopColor))
+					ys.push(box.top + top);
+				if (
+					Number.parseFloat(cs.borderBottomWidth) > 0 &&
+					cs.borderBottomStyle !== "none" &&
+					drawn(cs.borderBottomColor)
+				)
+					ys.push(box.bottom);
+				for (const shadow of cs.boxShadow.split(/,(?![^(]*\))/)) {
+					const m = shadow.match(
+						/^\s*(.+?)\s+(-?[\d.]+)px (-?[\d.]+)px ([\d.]+)px ([\d.]+)px( inset)?\s*$/,
+					);
+					if (!m || !drawn(m[1]) || Number(m[4]) > 0 || Number(m[5]) > 0)
+						continue;
+					const dy = Number(m[3]);
+					if (dy === 0) continue;
+					if (m[6]) ys.push(dy < 0 ? box.bottom : box.top + dy);
+					else ys.push(dy > 0 ? box.bottom + dy : box.top);
+				}
+				const name = `${side} ${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 2).join(".")}`;
+				return ys.map((y) => ({ pane: index, name, y }));
+			});
+		});
+		if (right) right.style.display = hidden;
+		return found;
+	});
+	const panes = new Set(rules.map((r) => r.pane)).size;
+	if (panes < 2)
+		return {
+			pass: false,
+			reason: `${panes} pane(s) draw a horizontal rule, so there is no pair to compare`,
+			facts: { rules },
+		};
+	const pairs = rules.flatMap((a, i) =>
+		rules
+			.slice(i + 1)
+			.filter((b) => b.pane !== a.pane && Math.abs(a.y - b.y) < paneRuleSlack)
+			.map((b) => ({ a, b, apart: Math.abs(a.y - b.y) })),
+	);
+	const missed = pairs.filter((p) => p.apart >= 0.1);
+	return {
+		pass: missed.length === 0,
+		reason:
+			missed.length === 0
+				? `${rules.length} rules in ${panes} panes; the ${pairs.length} pair(s) within ${paneRuleSlack}px share a line`
+				: missed
+						.map(
+							(p) =>
+								`${p.a.name} ends at y ${p.a.y.toFixed(2)}, ${p.b.name} at y ${p.b.y.toFixed(2)}, ${p.apart.toFixed(2)}px apart`,
+						)
+						.join(" | "),
+		facts: { rules, pairs },
+	};
+};
+
 const toggleStep = 0.1;
 const thumbContrast = 3;
 
@@ -2902,6 +2995,12 @@ const editChecks: EditCheck[] = [
 		on: mobileOnly,
 		shot: ":focus",
 		run: (page) => ringsOnClick(page, ":read-write"),
+	},
+	{
+		id: "pane-rules",
+		view: "reading",
+		shot: `.mod-root ${leaf} .view-header`,
+		run: paneRules,
 	},
 	{
 		id: "property-select",

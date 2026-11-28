@@ -7,7 +7,7 @@ App chrome is everything around the note: the left ribbon, the sidebar with the 
 - `chrome-tree` lists notes and folders; a folder shows a blue cell in the gutter where stock draws its chevron, with a plus when collapsed and a minus when open, so folder and file names line up; the open note carries the red caret right before its bold label at any depth; no stray strips or columns narrow the list. Geometry: `geo-nav-active`, `geo-folder-row`, `geo-split-edge`.
 - `chrome-ribbon` shows the ribbon's icons in its own muted ink on the sidebar tone, with no line at its edge. Geometry: `geo-ribbon`.
 - `chrome-sidebar-tabs` shows the sidebar's own tab icons (files, search, bookmarks) without document-tab boxes. Geometry: `geo-sidebar-tabs`.
-- `chrome-rules` keeps every separator inside its own panel: the fine rule under the file-tree buttons ends at the sidebar's edge, and the vault bar at the bottom shows no line between help and settings. Geometry: `geo-nav-header`, `geo-vault-bar`.
+- `chrome-rules` keeps every separator inside its own panel: the fine rule under the file-tree buttons ends at the sidebar's edge, and the vault bar at the bottom shows no line between help and settings. Rules that neighbouring panes draw at one height meet on one line: the rule under the view header continues the one under the file-tree buttons. Geometry: `geo-nav-header`, `geo-vault-bar`.
 - `chrome-tabs` shows document tabs as square cells on the strip tone, sharing their borders; the active one is page-toned, has the accent top rule, a red proof mark before its title, and a cut corner whose diagonal meets the top rule and the right edge. Geometry: `geo-doc-tab`. Joins: `cut`.
 - `chrome-view-header` keeps stock's back and forward buttons, breadcrumb, and actions, over a fine rule. On the phone the header floats over the note and draws no rule (see [Mobile](./mobile.md)). Geometry: `geo-view-header`.
 - `chrome-focus` draws a 2px accent outline around a control reached with `Tab`, and none around a text field or the editable title, where the caret shows focus.
@@ -37,6 +37,7 @@ Preconditions:
 - **Dark.** Repeat each with `--scheme dark`.
 - **Geometry.** Run `obs compare --base stock --run agent --scheme light --part nav-active --part folder-row --part split-edge --part ribbon --part sidebar-tabs --part nav-header --part vault-bar --part doc-tab --part view-header`, then with `--scheme dark`.
 - **Focus and toggles.** Run `obs editcheck --run agent --scheme light`, then `--scheme dark`: `control-focus` and `text-focus` together prove `chrome-focus`, and `toggle-states` proves the toggle part of `chrome-settings`.
+- **Shared line.** `pane-rules` in the same `editcheck` runs proves the shared line of `chrome-rules`.
 - **Proof.** Report each sub-feature with its capture path.
 
 ## Gotchas
