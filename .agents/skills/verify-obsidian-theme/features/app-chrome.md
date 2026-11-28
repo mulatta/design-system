@@ -14,7 +14,7 @@ App chrome is everything around the note: the left ribbon, the sidebar with the 
 - `chrome-status` shows the status bar with tabular numerals and fine rules.
 - `chrome-palette` shows the command palette as a square, ruled modal with a visible selected row.
 - `chrome-settings` shows the settings window readable in both schemes, with the theme's fonts and accent. A toggle reads on or off at a glance: the on track is the accent, the off track a neutral, and the thumb stands out from both.
-- `chrome-search` shows the search pane with its square input; `--open search` opens it with an empty query, so results need a custom drive that types one.
+- `chrome-search` shows the search pane with its square input; `--open search` opens it with an empty query, so results need a probe run by `obs drive` that types one.
 
 ## How to get to it (user POV)
 

@@ -49,7 +49,7 @@ Preconditions:
   - `one-cut` proves the hover half of `seq-live`.
   - `copy-selection` proves the selection half of `seq-copy`, and that the header keeps its `>`.
   - `copy-command` proves `seq-command` with `--view live`.
-- **Tooltip and failure notice.** `seqcheck` checks their text but captures neither. Look at them in a custom drive with `playwright-core` `connectOverCDP`: move the mouse onto a badge through CDP and wait a second for the tooltip, then replace `writeText` with a recorder that rejects and click the badge for the notice.
+- **Tooltip and failure notice.** `seqcheck` checks their text but captures neither. Look at them in a probe run by `obs drive`: move the mouse onto a badge through CDP and wait a second for the tooltip, then replace `writeText` with a recorder that rejects and click the badge for the notice.
 - **Cut corner.** Run `obs joins --run agent --scheme light`, again with `--view live`, and both with `--mobile`. The `cut` row measures each block's top rule into its 45° cut, in `lab-note-ko` and `sequences`.
 - **Proof.** Look at every capture against the sub-feature list and report each sub-feature as holding or not, with the capture path.
 
@@ -58,5 +58,5 @@ Preconditions:
 - A run launched without `--plugin` shows plain code blocks. `doctor` then lists no `sequence-blocks` in `enabledPlugins`.
 - `sync` disables and re-enables the plugin, so an open note re-renders its blocks with the new code. Fixture notes still need a relaunch.
 - `seqcheck` replaces `navigator.clipboard.writeText` for its clicks and never writes the system clipboard. A hand-written drive must do the same: clicking a badge for real puts the sequence on the owner's clipboard.
-- `shot` captures show the badge at rest only. Its hover, focus, and copied states need a custom drive that forces `:hover` or `:focus-visible` with CDP, or clicks it with the recorder in place. In Live Preview the hovered captures `seqcheck` writes to `shots/seqcheck-*.png` show Obsidian's edit button at the block's top left, since `seqcheck` hovers the block's ancestors.
+- `shot` captures show the badge at rest only. Its hover, focus, and copied states need a probe run by `obs drive` that forces `:hover` or `:focus-visible` with CDP, or clicks it with the recorder in place. In Live Preview the hovered captures `seqcheck` writes to `shots/seqcheck-*.png` show Obsidian's edit button at the block's top left, since `seqcheck` hovers the block's ancestors.
 - `--scroll` values depend on the window height and on the note; check that each capture shows the intended block before reporting.

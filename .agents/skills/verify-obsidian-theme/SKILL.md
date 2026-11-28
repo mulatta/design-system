@@ -1,6 +1,6 @@
 ---
 name: verify-obsidian-theme
-description: Launch the devshell's Obsidian against a disposable vault with this repository's working-tree Wongoji theme (generated from DESIGN.md and obsidian/theme/src, plus the nix-built fonts) and capture screenshots of reading view, editing view, app chrome, and mobile, in light and dark, and compare component geometry part by part with stock Obsidian at 2x. Can also install the repository's sequence plugin (fasta, dna, rna, protein blocks) into the vault. Use to prove any change to the Obsidian theme or the sequence plugin, or to compare the theme with another stylesheet in the real app.
+description: Launch the devshell's Obsidian against a disposable vault with this repository's working-tree Wongoji theme (generated from DESIGN.md and obsidian/theme/src, plus the nix-built fonts) and capture screenshots of reading view, editing view, app chrome, and mobile, in light and dark, and compare component geometry part by part with stock Obsidian at 2x. Can also install the repository's sequence plugin (fasta, dna, rna, protein blocks) into the vault. Use to prove any change to the Obsidian theme or the sequence plugin, or to compare the theme with another stylesheet in the real app. This is the repository's own harness for driving Obsidian: a one-off probe of the live app runs through its `drive` command, not through a second driver.
 ---
 
 # Verify the Obsidian theme
@@ -10,7 +10,7 @@ The surface is Obsidian's desktop app, an Electron window. The thing under test 
 Every command runs from the repository root inside the devshell, so `obsidian`, `node`, and `playwright-core` are the flake's own:
 
 ```sh
-nix develop -c node obsidian/testbed/obsidian.ts <launch|doctor|shot|compare|layers|joins|editcheck|seqcheck|sync|stop> [options]
+nix develop -c node obsidian/testbed/obsidian.ts <launch|doctor|shot|drive|compare|layers|joins|editcheck|seqcheck|sync|stop> [options]
 ```
 
 Below, `obs` stands for that whole command. The same harness backs the owner's npm scripts (`npm run obsidian`, `obsidian:doctor`, `obsidian:shot`, `obsidian:compare`, `obsidian:layers`, `obsidian:sync`, `obsidian:stop`), so a run the owner started by hand is the same kind of run. `npm run obsidian` is `launch --foreground`: it stays in the terminal, streams Obsidian's log there and into `obsidian.log`, and tears the run down on Ctrl+C, hangup, or when Obsidian quits. Agents use plain `launch`, which detaches and returns after `READY`, and keep the owner's run for the owner: launch your own run name (for example `--run agent`) instead of driving `main` while the owner looks at it.
@@ -38,7 +38,7 @@ obs launch --run agent
 - The disposable Obsidian config sets `updateDisabled`, so the app makes no update request.
 - Runs are isolated by name. `--run a` and `--run b` can be live side by side. `launch` refuses a name whose recorded process is still alive.
 - Teardown is `obs stop --run <run>`.
-- Always pass `--run`. `doctor`, `shot`, and `sync` default to `main` and `compare`, `layers`, and `joins` to `agent`; `stop` and `seqcheck` refuse to run without `--run`, so they never touch the owner's run by omission. `editcheck` refuses too, since it clicks into the window and moves its focus.
+- Always pass `--run`. `doctor`, `shot`, and `sync` default to `main` and `compare`, `layers`, and `joins` to `agent`; `stop` and `seqcheck` refuse to run without `--run`, so they never touch the owner's run by omission. `editcheck` refuses too, since it clicks into the window and moves its focus, and so does `drive`, whose probe may do anything.
 - The owner may have run `main` live from `npm run obsidian`, on screen. Leave it alone: do not drive or stop it. Run `obs doctor --run agent` first; if it reports ok, reuse that invisible run instead of launching again, and leave it live for the next proof unless the task is over. Stop only runs you launched.
 
 ## Doctor
@@ -55,8 +55,9 @@ This changes nothing in the run and prints JSON. For a run with plugins it runs 
 - `cssTheme` is `Wongoji` when launched with the theme. A stock run reports `""`.
 - Every `--plugin` id is in `enabledPlugins`, the plugins Obsidian has loaded.
 - `installCurrent` is true: the theme in the live vault contains what `buildTheme()` makes from the working tree now, each snippet starts with its source file, and each plugin's files in the vault equal what `nix build .#<attr>` makes from the working tree now. False means an edit has not been synced; run `obs sync`.
+- `pageErrors` is empty. The harness records, in the page, every uncaught exception, unhandled promise rejection, and `console.error` call since `launch` or the last `sync`, each with its stack, and keeps the record across the reload that phone emulation makes. Obsidian catches an error a plugin throws while rendering and logs it this way, so a block can look right in a capture while its code failed. The record starts when a command first connects, so an error thrown before `launch` connects is missed, and so is one in the settings window, which is a second page.
 
-It also lists the open vault's notes, the enabled snippets, and the loaded plugins. Run it first whenever a shot looks wrong.
+It also lists the open vault's notes, the enabled snippets, and the loaded plugins. Run it first whenever a shot looks wrong, and after the last drive of a proof.
 
 ## Drive
 
@@ -178,10 +179,37 @@ obs seqcheck --run agent [--note sequences] [--view reading|live] [--scheme ligh
 
 It prints the report as JSON, one `FAIL block <n> <language>: <invariant>: <reason>` line per failure, `REPORT <path>`, and last `SEQCHECK ok` or `SEQCHECK fail <count>`; it exits 1 on any failure. The report goes to `build/verify/<run>/seqcheck-<view>-<scheme>-<size>[-mobile].json`, and a capture of each hovered block to `build/verify/<run>/shots/seqcheck-<view>-<scheme>-<size>[-mobile]-<index>.png`. A fence with no rendered block fails as `rendered`.
 
+### Run a probe
+
+```sh
+obs drive --run agent [--note <note> --view reading|live|source --scheme light|dark --mobile --size 1440x900 --hide-right] <probe.ts> [args]...
+```
+
+`drive` is the way to ask the live app a question no check answers yet: a measurement, a state reached by typing, hovering or scrolling, a capture of one part. It imports the probe file, which may sit anywhere, such as a scratch directory, and calls its default export. With `--note` it first puts the window in that note, view, scheme and layout as `shot` does; without it the window is left as the last command left it.
+
+```ts
+export default async ({ page, cdp, capture, prepare, args, state, browser }) => {
+	const bottom = await page.evaluate(
+		() => document.querySelector(".view-header")?.getBoundingClientRect().bottom,
+	);
+	const shot = await capture("view-header.png", { x: 340, y: 40, width: 400, height: 60 });
+	return { bottom, shot };
+};
+```
+
+- `page` is the Playwright page of the Obsidian window and `cdp` a CDP session on it, for `CSS.forcePseudoState` and the like. `state` is the run's `run.json`.
+- `capture(name, clip?)` writes a PNG to `build/verify/<run>/shots/<name>`, or to `name` when it is an absolute path, and returns the path. A clip is in CSS px and is captured at the scale `editcheck` uses; without one it captures the window.
+- `prepare({ note, view, scheme, mobile, ... })` changes the window's state again from inside the probe, starting from the command's options.
+- `args` are the words after the probe file.
+
+It prints what the probe returns as JSON, a `PAGE ERROR <first line>` for each error the page recorded during the probe, a `VAULT` line for each file it put back, since it restores the vault as `editcheck` does, and last `DRIVE ok` or `DRIVE fail`. It exits 1 when the probe throws or the page recorded an error.
+
+A probe that answers a question a second time is a check: give it a row in `editChecks` or a place in the command it belongs to. Do not connect to the run's port from a script of your own. Such a script misses the error record, the vault restore, and the invisible window, and breaks in a second worktree.
+
 ## Evidence
 
 - Shots land in `build/verify/<run>/shots/`. The name encodes the note, view, scheme, mobile, open panel, and scroll, unless `--out` is given. `seqcheck` writes its reports to `build/verify/<run>/`. Obsidian's own log is `build/verify/<run>/obsidian.log`; each `launch` of the same run name appends to it after a `--- launch <time> ---` line. `build/` is gitignored.
-- A proof captures the state a user sees after doing the action. Pick the note, view, and scheme the changed CSS affects. For hover or focus states, force the pseudo-class with CDP `CSS.forcePseudoState` rather than moving the mouse, for the reason `seqcheck` gives, in a custom drive with `playwright-core` `connectOverCDP` against the port in `build/verify/<run>/run.json`. Do not inject CSS: the theme must come from the launched files.
+- A proof captures the state a user sees after doing the action. Pick the note, view, and scheme the changed CSS affects. For hover or focus states, force the pseudo-class with CDP `CSS.forcePseudoState` rather than moving the mouse, for the reason `seqcheck` gives, in a probe run by `obs drive`. Do not inject CSS: the theme must come from the launched files.
 - Prove both schemes for any colour change, and add `--mobile --size 390x844` for anything inside the note column.
 - Judge size, position, and joins of components with `compare` against stock, not from a full-window capture: at 1x a broken corner or a box a few pixels short is too small to see.
 - Look at every capture before reporting it. A capture of the wrong note, a half-loaded window, or the default theme (`doctor` would show `cssTheme: ""`) proves nothing.

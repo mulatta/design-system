@@ -32,7 +32,7 @@ Preconditions:
 - **Live Preview.** Run `obs shot --run agent --note elements-ko --view live --scheme light`, and again with `--scroll 1600`. The captures show `edit-live`, `edit-inline`, `edit-tags`, and `edit-code-lines`.
 - **Source mode.** Run `obs shot --run agent --note elements-ko --view source --scheme light` and with `--scroll 900`. The captures show `edit-markers` and `edit-code-lines`.
 - **Dark.** Repeat both with `--scheme dark`.
-- **Caret.** `edit-caret` needs focus in the editor; write a custom drive over CDP (port in `build/verify/agent/run.json`) that clicks into a paragraph and captures. `shot` focuses the editor, but the caret blinks, so a plain `shot` may capture it switched off.
+- **Caret.** `edit-caret` needs focus in the editor; run a probe with `obs drive --run agent --note lab-note-ko --view live` that clicks into a paragraph and captures. `shot` focuses the editor, but the caret blinks, so a plain `shot` may capture it switched off.
 - **Geometry.** Run `obs compare --base stock --run agent --view live --scheme light`, then `--scheme dark`, against a stock run. The `title-rule`, `properties`, `heading`, `code-top`, `callout`, `table`, and `task-line` parts measure the Live Preview counterparts of the reading parts (see [Geometry against stock Obsidian](./stock-geometry.md)).
 - **Tones.** Run `obs layers --run agent --view live --scheme light`, then `--scheme dark`. `note | code`, `note | inline-code`, and `note | property-key` prove the tint of `edit-code-lines` and `edit-inline`.
 - **Joins.** Run `obs joins --run agent --view live`, and with `--mobile`. `delete-loop` proves the loop of `edit-inline` meets its strike.

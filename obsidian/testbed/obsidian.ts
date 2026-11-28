@@ -12,8 +12,8 @@ import {
 	writeSync,
 } from "node:fs";
 import { createServer } from "node:net";
-import { basename, dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import {
 	type Browser,
@@ -90,22 +90,48 @@ async function cdpVersion(
 	}
 }
 
+const recordErrors = () => {
+	const w = window as any;
+	if (w.__wgErrors) return;
+	const seen: string[] = [];
+	w.__wgErrors = seen;
+	const text = (v: unknown) =>
+		v instanceof Error ? (v.stack ?? v.message) : String(v);
+	window.addEventListener("error", (e) => {
+		if (e.error != null) seen.push(`uncaught ${text(e.error)}`);
+	});
+	window.addEventListener("unhandledrejection", (e) =>
+		seen.push(`unhandled rejection ${text(e.reason)}`),
+	);
+	const error = console.error;
+	console.error = (...args: unknown[]) => {
+		seen.push(`console.error ${args.map(text).join(" ")}`);
+		error.apply(console, args);
+	};
+};
+
+const pageErrors = (page: Page): Promise<string[]> =>
+	page.evaluate(() => [...((window as any).__wgErrors ?? [])]);
+
 async function connect(
 	state: RunState,
 ): Promise<{ browser: Browser; page: Page }> {
 	const browser = await chromium.connectOverCDP(
 		`http://127.0.0.1:${state.port}`,
 	);
+	const pages = () => browser.contexts().flatMap((c) => c.pages());
 	for (let i = 0; i < 120; i++) {
-		const page = browser
-			.contexts()
-			.flatMap((c) => c.pages())
-			.find((p) => p.url().startsWith("app://"));
-		if (page) return { browser, page };
+		const page = pages().find((p) => p.url().startsWith("app://"));
+		if (page) {
+			await page.addInitScript(recordErrors);
+			await page.evaluate(recordErrors);
+			return { browser, page };
+		}
 		await new Promise((r) => setTimeout(r, 250));
 	}
+	const open = pages().map((p) => p.url());
 	await browser.close();
-	fail("no Obsidian window appeared");
+	fail(`no Obsidian window appeared; open pages: ${open.join(", ") || "none"}`);
 }
 
 function frontmatterWithClasses(note: string, classes: string[]): string {
@@ -294,6 +320,9 @@ async function sync(args: string[]): Promise<void> {
 	).catch(async (error) => {
 		await browser.close();
 		fail(`Obsidian did not reload the synced plugins: ${error}`);
+	});
+	await page.evaluate(() => {
+		(window as any).__wgErrors.length = 0;
 	});
 	if (state.hidden) await conceal(page);
 	await browser.close();
@@ -496,6 +525,7 @@ async function doctor(args: string[]): Promise<void> {
 				};
 			}),
 		);
+		report.pageErrors = await pageErrors(page);
 		await browser.close();
 	}
 	report.installCurrent = installCurrent(state);
@@ -508,6 +538,7 @@ async function doctor(args: string[]): Promise<void> {
 		report.vaultPath === state.vault &&
 		(state.theme !== "wongoji" || report.cssTheme === "Wongoji") &&
 		state.plugins.every((p) => enabled.includes(p.id)) &&
+		(report.pageErrors as string[]).length === 0 &&
 		report.installCurrent === true;
 	console.log(JSON.stringify({ ok, ...report }, null, 2));
 	if (!ok) process.exit(1);
@@ -534,6 +565,7 @@ async function prepare(
 		() => (window as any).app.isMobile === true,
 	);
 	if (isMobile !== o.mobile) {
+		const before = await pageErrors(page);
 		await Promise.all([
 			page.waitForEvent("load", { timeout: 60000 }),
 			page.evaluate((m) => {
@@ -548,6 +580,10 @@ async function prepare(
 			},
 		);
 		await page.setViewportSize({ width, height });
+		await page.evaluate(recordErrors);
+		await page.evaluate((b) => {
+			(window as any).__wgErrors.unshift(...b);
+		}, before);
 	}
 	await page.keyboard.press("Escape");
 	return page
@@ -4645,6 +4681,99 @@ function teardown(run: string, state: RunState): void {
 	} catch {}
 }
 
+type Clip = { x: number; y: number; width: number; height: number };
+
+async function drive(args: string[]): Promise<void> {
+	const { values, positionals } = parseArgs({
+		args,
+		allowPositionals: true,
+		options: {
+			run: { type: "string" },
+			note: { type: "string" },
+			view: { type: "string", default: "reading" },
+			scheme: { type: "string", default: "light" },
+			size: { type: "string" },
+			mobile: { type: "boolean", default: false },
+			"hide-right": { type: "boolean", default: false },
+		},
+	});
+	const [file, ...rest] = positionals;
+	if (!values.run || !file)
+		fail("usage: obsidian.ts drive --run <run> [options] <probe.ts> [args]");
+	const size = (values.size ?? (values.mobile ? "390x844" : "1440x900")).match(
+		/^(\d+)x(\d+)$/,
+	);
+	if (!size) fail(`--size must be <width>x<height>, not ${values.size}`);
+	const state = readState(values.run);
+	if (!alive(state.pid))
+		fail(`run "${values.run}" is not live; launch it again`);
+	const module = await import(pathToFileURL(resolve(file)).href);
+	if (typeof module.default !== "function")
+		fail(`${file} has no default export to call`);
+	const before = vaultFiles(state.vault);
+	const { browser, page } = await connect(state);
+	const cdp = await page.context().newCDPSession(page);
+	const frame: Prepare = {
+		width: Number(size[1]),
+		height: Number(size[2]),
+		mobile: values.mobile,
+		note: values.note ?? null,
+		view: values.view,
+		scheme: values.scheme,
+		open: "none",
+		hideRight: values["hide-right"],
+	};
+	const known = (await pageErrors(page)).length;
+	let threw: unknown;
+	try {
+		if (values.note) {
+			const prepared = await prepare(page, frame);
+			if ("error" in prepared) fail(prepared.error);
+		}
+		const result = await module.default({
+			page,
+			cdp,
+			browser,
+			state,
+			args: rest,
+			prepare: (o: Partial<Prepare>) => prepare(page, { ...frame, ...o }),
+			capture: async (name: string, clip?: Clip) => {
+				const path = isAbsolute(name)
+					? name
+					: join(state.runDir, "shots", name);
+				const { data } = await cdp.send("Page.captureScreenshot", {
+					format: "png",
+					...(clip ? { clip: { ...clip, scale: 2 } } : {}),
+				});
+				mkdirSync(dirname(path), { recursive: true });
+				writeFileSync(path, Buffer.from(data, "base64"));
+				return path;
+			},
+		});
+		if (result !== undefined) console.log(JSON.stringify(result, null, 2));
+	} catch (error) {
+		threw = error;
+	}
+	const thrown = (await pageErrors(page)).slice(known);
+	await page.evaluate(async () => {
+		const app = (window as any).app;
+		for (const leaf of app.workspace.getLeavesOfType("markdown"))
+			await leaf.view.save?.();
+	});
+	for (const line of restoreVault(state.vault, before))
+		console.log(`VAULT ${line}`);
+	if (state.hidden) await conceal(page);
+	await browser.close();
+	for (const error of thrown) console.log(`PAGE ERROR ${error.split("\n")[0]}`);
+	if (threw !== undefined)
+		console.error(
+			threw instanceof Error ? (threw.stack ?? threw.message) : threw,
+		);
+	const ok = threw === undefined && thrown.length === 0;
+	console.log(ok ? "DRIVE ok" : "DRIVE fail");
+	if (!ok) process.exit(1);
+}
+
 const [command, ...rest] = process.argv.slice(2);
 switch (command) {
 	case "launch":
@@ -4674,11 +4803,14 @@ switch (command) {
 	case "seqcheck":
 		await seqcheck(rest);
 		break;
+	case "drive":
+		await drive(rest);
+		break;
 	case "stop":
 		stop(rest);
 		break;
 	default:
 		fail(
-			"usage: obsidian.ts <launch|doctor|shot|compare|layers|joins|editcheck|seqcheck|sync|stop> [options]",
+			"usage: obsidian.ts <launch|doctor|shot|drive|compare|layers|joins|editcheck|seqcheck|sync|stop> [options]",
 		);
 }
