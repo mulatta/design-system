@@ -138,6 +138,8 @@ Every component looks printed on the sheet or marked on it afterwards. Obsidian 
 
 **The Stock Geometry Rule.** A component keeps Obsidian's own size and position unless this document names the difference. Restyling never moves a box.
 
+**The Shared Line Rule.** Rules that neighbouring panes draw at one height meet on one line. The note's view header takes Obsidian's `--header-height`, 40px against stock's 38.3px, so its rule continues the one under the sidebar's pane header.
+
 ### Tabs
 - **Shape:** square cells sharing borders along the tab strip.
 - **Active:** a 2px Manuscript Rule Blue top rule that turns down the 45° cut, with a small red proof mark before the title.
