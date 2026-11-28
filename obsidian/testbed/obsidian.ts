@@ -115,6 +115,22 @@ const recordErrors = () => {
 const pageErrors = (page: Page): Promise<string[]> =>
 	page.evaluate(() => [...((window as any).__wgErrors ?? [])]);
 
+const seenAtConnect = new WeakMap<Page, number>();
+
+async function leave(
+	state: RunState,
+	browser: Browser,
+	page: Page,
+): Promise<string[]> {
+	const thrown = (await pageErrors(page))
+		.slice(seenAtConnect.get(page) ?? 0)
+		.map((e) => e.split("\n")[0] ?? e);
+	if (state.hidden) await conceal(page);
+	await browser.close();
+	for (const error of thrown) console.log(`PAGE ERROR ${error}`);
+	return thrown;
+}
+
 async function connect(
 	state: RunState,
 ): Promise<{ browser: Browser; page: Page }> {
@@ -127,6 +143,7 @@ async function connect(
 		if (page) {
 			await page.addInitScript(recordErrors);
 			await page.evaluate(recordErrors);
+			seenAtConnect.set(page, (await pageErrors(page)).length);
 			return { browser, page };
 		}
 		await new Promise((r) => setTimeout(r, 250));
@@ -830,9 +847,9 @@ async function shot(args: string[]): Promise<void> {
 		await page.screenshot({ path: name });
 		await page.keyboard.press("Escape");
 	}
-	if (state.hidden) await conceal(page);
-	await browser.close();
+	const thrown = await leave(state, browser, page);
 	console.log(`SHOT ${name}`);
+	if (thrown.length > 0) process.exit(1);
 }
 
 type View = "reading" | "live";
@@ -1223,6 +1240,7 @@ async function compare(args: string[]): Promise<void> {
 	mkdirSync(outDir, { recursive: true });
 	const runs = [values.base, values.run];
 	const results: Record<string, Record<string, Measured | null>> = {};
+	const thrown: string[] = [];
 	for (const run of runs) {
 		const state = readState(run);
 		if (!alive(state.pid)) fail(`run "${run}" is not live; launch it again`);
@@ -1259,8 +1277,7 @@ async function compare(args: string[]): Promise<void> {
 				Buffer.from(shot.data, "base64"),
 			);
 		}
-		if (state.hidden) await conceal(page);
-		await browser.close();
+		thrown.push(...(await leave(state, browser, page)));
 	}
 	writeFileSync(join(outDir, "metrics.json"), JSON.stringify(results, null, 2));
 	const round = (n: number) => Math.round(n * 2) / 2;
@@ -1317,6 +1334,7 @@ async function compare(args: string[]): Promise<void> {
 	}
 	console.log(lines.join("\n"));
 	console.log(`COMPARE ${outDir}`);
+	if (thrown.length > 0) process.exit(1);
 }
 
 type Region = {
@@ -1556,8 +1574,7 @@ async function layers(args: string[]): Promise<void> {
 				found[row.id] = await readRegion(page, selector);
 	}
 	await page.keyboard.press("Escape");
-	if (state.hidden) await conceal(page);
-	await browser.close();
+	const thrown = await leave(state, browser, page);
 
 	const threshold = Number(values.threshold);
 	const lines: string[] = [
@@ -1605,6 +1622,7 @@ async function layers(args: string[]): Promise<void> {
 		),
 	);
 	console.log(lines.join("\n"));
+	if (thrown.length > 0) process.exit(1);
 }
 
 type JoinKind = "cut" | "mark";
@@ -2011,11 +2029,10 @@ async function checkJoins(args: string[]): Promise<void> {
 		}
 	}
 	await page.keyboard.press("Escape");
-	if (state.hidden) await conceal(page);
-	await browser.close();
+	const thrown = await leave(state, browser, page);
 	const path = join(outDir, "joins.json");
 	writeFileSync(path, JSON.stringify(report, null, 2));
-	const failed = report.filter((r) => !r.pass).length;
+	const failed = report.filter((r) => !r.pass).length + thrown.length;
 	console.log(lines.join("\n"));
 	console.log(`REPORT ${path}`);
 	console.log(failed === 0 ? "JOINS ok" : `JOINS fail ${failed}`);
@@ -3383,19 +3400,17 @@ async function editcheck(args: string[]): Promise<void> {
 		undone = restoreVault(state.vault, before);
 	}
 	await page.keyboard.press("Escape");
-	if (state.hidden) await conceal(page);
-	await browser.close();
+	const thrown = await leave(state, browser, page);
 	for (const line of undone) console.log(`VAULT ${line}`);
 	const path = join(state.runDir, `editcheck-${suffix}.json`);
 	writeFileSync(path, JSON.stringify(report, null, 2));
-	const failed = Object.entries(report).filter(([, o]) => !o.pass);
+	const failed =
+		Object.values(report).filter((o) => !o.pass).length + thrown.length;
 	for (const [id, o] of Object.entries(report))
 		console.log(`${o.pass ? "ok  " : "FAIL"} ${id}: ${o.reason}`);
 	console.log(`REPORT ${path}`);
-	console.log(
-		failed.length === 0 ? "EDITCHECK ok" : `EDITCHECK fail ${failed.length}`,
-	);
-	if (failed.length > 0) process.exit(1);
+	console.log(failed === 0 ? "EDITCHECK ok" : `EDITCHECK fail ${failed}`);
+	if (failed > 0) process.exit(1);
 }
 
 type Fence = { language: string; line: number; source: string };
@@ -4571,8 +4586,7 @@ async function seqcheck(args: string[]): Promise<void> {
 	}
 	await page.keyboard.press("Escape");
 	await page.mouse.move(-10, -10);
-	if (state.hidden) await conceal(page);
-	await browser.close();
+	const thrown = await leave(state, browser, page);
 
 	const fullLines = edges.flatMap((e) => e.lines.filter((l) => l.full));
 	const fullResidues = [...new Set(fullLines.map((l) => l.residues))];
@@ -4628,16 +4642,16 @@ async function seqcheck(args: string[]): Promise<void> {
 		mobile: values.mobile,
 		blocks,
 		failures,
+		pageErrors: thrown,
 	};
 	const out = join(state.runDir, `seqcheck-${stem}.json`);
 	writeFileSync(out, JSON.stringify(report, null, 2));
 	console.log(JSON.stringify(report, null, 2));
 	for (const f of failures) console.log(`FAIL ${f}`);
 	console.log(`REPORT ${out}`);
-	console.log(
-		failures.length === 0 ? "SEQCHECK ok" : `SEQCHECK fail ${failures.length}`,
-	);
-	if (failures.length > 0) process.exit(1);
+	const failed = failures.length + thrown.length;
+	console.log(failed === 0 ? "SEQCHECK ok" : `SEQCHECK fail ${failed}`);
+	if (failed > 0) process.exit(1);
 }
 
 type PairProbe = {
@@ -5632,8 +5646,7 @@ async function checkPairs(args: string[]): Promise<void> {
 	}
 	await page.setViewportSize({ width, height });
 	await page.keyboard.press("Escape");
-	if (state.hidden) await conceal(page);
-	await browser.close();
+	const thrown = await leave(state, browser, page);
 
 	const results: PairResult[] = [];
 	for (const row of pairs) {
@@ -5698,6 +5711,7 @@ async function checkPairs(args: string[]): Promise<void> {
 	for (const line of undone) console.log(`VAULT ${line}`);
 	const path = join(state.runDir, `pairs-${suffix}.json`);
 	writeFileSync(path, JSON.stringify({ found, code, results }, null, 2));
+	failed += thrown.length;
 	console.log(lines.join("\n"));
 	console.log(`REPORT ${path}`);
 	console.log(failed === 0 ? "PAIRS ok" : `PAIRS fail ${failed}`);
@@ -5776,7 +5790,6 @@ async function drive(args: string[]): Promise<void> {
 		open: "none",
 		hideRight: values["hide-right"],
 	};
-	const known = (await pageErrors(page)).length;
 	let threw: unknown;
 	try {
 		if (values.note) {
@@ -5807,7 +5820,6 @@ async function drive(args: string[]): Promise<void> {
 	} catch (error) {
 		threw = error;
 	}
-	const thrown = (await pageErrors(page)).slice(known);
 	await page.evaluate(async () => {
 		const app = (window as any).app;
 		for (const leaf of app.workspace.getLeavesOfType("markdown"))
@@ -5815,9 +5827,7 @@ async function drive(args: string[]): Promise<void> {
 	});
 	for (const line of restoreVault(state.vault, before))
 		console.log(`VAULT ${line}`);
-	if (state.hidden) await conceal(page);
-	await browser.close();
-	for (const error of thrown) console.log(`PAGE ERROR ${error.split("\n")[0]}`);
+	const thrown = await leave(state, browser, page);
 	if (threw !== undefined)
 		console.error(
 			threw instanceof Error ? (threw.stack ?? threw.message) : threw,
