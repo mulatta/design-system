@@ -5,7 +5,7 @@ description: Launch the devshell's Obsidian against a disposable vault with this
 
 # Verify the Obsidian theme
 
-The surface is Obsidian's desktop app, an Electron window. The thing under test is the theme as the working tree generates it: `obsidian/theme/build.ts` reads the tokens in `DESIGN.md`, writes them as `--wg-*` variables, and appends the rule files in `obsidian/theme/src/`; the harness puts the embedded fonts from `nix build .#fonts` in front. `nix build .#obsidian-theme` builds the same file as the package a vault installs. A theme change is proven only by captures from this skill.
+The surface is Obsidian's desktop app, an Electron window. The thing under test is the Wongoji theme as the working tree generates it. A theme change is proven only by captures from this skill.
 
 Every command runs from the repository root inside the devshell, so `obsidian`, `node`, and `playwright-core` are the flake's own:
 
@@ -13,7 +13,7 @@ Every command runs from the repository root inside the devshell, so `obsidian`, 
 nix develop -c node obsidian/testbed/obsidian.ts <launch|doctor|shot|drive|compare|layers|joins|editcheck|pairs|seqcheck|sync|stop> [options]
 ```
 
-Below, `obs` stands for that whole command. The same harness backs the owner's npm scripts (`npm run obsidian`, `obsidian:doctor`, `obsidian:shot`, `obsidian:compare`, `obsidian:layers`, `obsidian:sync`, `obsidian:stop`), so a run the owner started by hand is the same kind of run. `npm run obsidian` is `launch --run main --foreground`: it stays in the terminal, streams Obsidian's log there and into `obsidian.log`, and tears the run down on Ctrl+C, hangup, or when Obsidian quits. Agents use plain `launch`, which detaches and returns after `READY`, and leave the run `main` to the owner.
+Below, `obs` stands for that whole command.
 
 ## Launch
 
@@ -21,21 +21,19 @@ Below, `obs` stands for that whole command. The same harness backs the owner's n
 obs launch
 ```
 
-- Writes a fresh vault and Electron user-data directory under `build/verify/<run>/`, copies the notes from `obsidian/testbed/notes/` with their folders, and, unless `--theme none`, builds `.#fonts` into `build/fonts` and installs the theme as `Wongoji`. Then it starts `obsidian --remote-debugging-port=<free port> --user-data-dir=build/verify/<run>/data`.
-- Ready means the line `READY run=<run> pid=<pid> port=<port> vault=<path>`. It prints only after Obsidian's workspace reports `layoutReady`, so the vault is open and the theme is applied. If CDP or the layout never comes up, `launch` tears the run down and exits non-zero, so a failed launch leaves no process behind.
-- Electron has no headless mode, so a plain `launch` makes its windows invisible instead: opacity 0, click-through, never focusable, always on top, on every Space. The window still paints, so captures work, and it never takes the owner's focus. Do not use `app.hide()` or move the window off screen: macOS stops painting a hidden or occluded window and the capture times out, and it clamps off-screen positions back on screen.
-- The window flashes on screen for a moment at launch, before it turns invisible, and again when `--open settings` opens the settings window. Every other step stays invisible.
-- `--visible` keeps a plain `launch` on screen. `--foreground` (the owner's `npm run obsidian`) is always visible.
+- `launch` writes a fresh vault from `obsidian/testbed/notes/` and a fresh Electron profile under `build/verify/<run>/`, so nothing in the vault survives a relaunch.
+- Ready means the line `READY run=<run> pid=<pid> port=<port> vault=<path>`. It prints once the vault is open, the theme is applied, and every plugin has loaded. A launch that fails tears the run down and exits non-zero, so it leaves nothing to clean.
+- A plain `launch` makes its windows invisible. They take no focus and still paint, so captures work. Do not hide the window with `app.hide()` or move it off screen, because macOS stops painting a hidden or occluded window and the capture times out.
+- `--visible` keeps the window on screen. `--foreground` is the owner's mode, visible and attached to the terminal until Obsidian quits.
 - Options:
   - `--theme wongoji|none`: `none` launches stock Obsidian.
   - `--snippet <file.css>`: repeatable, copied and enabled as a CSS snippet.
-  - `--plugin <flake-attr>`: repeatable. Builds `nix build .#<attr> -o build/plugins/<attr>`, reads the plugin id from the build's `manifest.json`, copies the build output into `.obsidian/plugins/<id>/`, and after `layoutReady` turns off restricted mode and enables the plugin. `READY` prints only once every plugin has loaded; a plugin that fails to load tears the run down like any failed launch. The repository's plugin is `--plugin obsidian-sequence-plugin` (id `sequence-blocks`).
+  - `--plugin <flake-attr>`: repeatable. Builds `.#<attr>` and enables it, and `READY` waits until it has loaded. The repository's plugin is `obsidian-sequence-plugin` (id `sequence-blocks`).
   - `--cssclass <class>`: added to every note's `cssclasses`.
   - `--scheme light|dark`: the scheme at start.
   - `--notes <dir>`: replaces the fixture notes.
-- After editing `DESIGN.md`, a file in `obsidian/theme/src/`, a `--snippet` file, `nix/fonts/`, or the source of a `--plugin` (for the sequence plugin, `obsidian/sequence-plugin/`), run `obs sync`. It rewrites the theme and snippets into the live vault, waits until Obsidian has loaded the new CSS, rebuilds and recopies each plugin, disables and re-enables it, waits until it has loaded again, and prints `SYNCED`. A run with only a theme, only snippets, or only plugins syncs what it has. No relaunch is needed. Notes are not synced; relaunch to pick up edited fixture notes.
-- The disposable Obsidian config sets `updateDisabled`, so the app makes no update request.
-- Runs are isolated by name. `--run a` and `--run b` can be live side by side. `launch` refuses a name whose recorded process is still alive.
+- After an edit to `DESIGN.md`, `obsidian/theme/src/`, a `--snippet` file, `nix/fonts/`, or a `--plugin` source such as `obsidian/sequence-plugin/`, run `obs sync`. It loads the edit into the live run and prints `SYNCED`. No relaunch is needed. Notes are not synced, so relaunch to pick up an edited fixture note.
+- Runs are isolated by name. `--run a` and `--run b` can be live side by side.
 - Every command defaults to `--run agent`, `stop` included. Pass `--run` only for a second run, which needs its own name.
 - The owner may have run `main` live from `npm run obsidian`, on screen. Leave it alone: do not drive or stop it. Run `obs doctor` first; if it reports ok, reuse that invisible run instead of launching again, and leave it live for the next proof unless the task is over. Stop only runs you launched.
 
@@ -45,15 +43,11 @@ obs launch
 obs doctor
 ```
 
-This changes nothing in the run and prints JSON. For a run with plugins it runs `nix build` for each, which is quick when the plugin source has not changed. `"ok": true` requires all of these:
-- The recorded process is alive.
-- The CDP endpoint answers with an `obsidian/<version>` user agent.
-- The workspace layout is ready.
+This changes nothing in the run, prints JSON, and exits 1 unless `"ok"` is true. When it is false, read these fields:
 - `vaultPath` is this run's disposable vault. A different path means you are attached to the wrong Obsidian; stop.
 - `cssTheme` is `Wongoji` when launched with the theme. A stock run reports `""`.
-- Every `--plugin` id is in `enabledPlugins`, the plugins Obsidian has loaded.
-- `installCurrent` is true: the theme in the live vault contains what `buildTheme()` makes from the working tree now, each snippet starts with its source file, and each plugin's files in the vault equal what `nix build .#<attr>` makes from the working tree now. False means an edit has not been synced; run `obs sync`.
-- `pageErrors` is empty. The harness records, in the page, every uncaught exception, unhandled promise rejection, and `console.error` call since `launch` or the last `sync`, each with its stack, and keeps the record across the reload that phone emulation makes. Obsidian catches an error a plugin throws while rendering and logs it this way, so a block can look right in a capture while its code failed. The record starts when a command first connects, so an error thrown before `launch` connects is missed, and so is one in the settings window, which is a second page.
+- `installCurrent` is true. False means an edit has not been synced, so run `obs sync`.
+- `pageErrors` is empty. It lists every uncaught exception, unhandled promise rejection, and `console.error` call in the page since `launch` or the last `sync`. Obsidian catches an error a plugin throws while rendering and logs it this way, so a block can look right in a capture while its code failed. The record misses an error thrown before `launch` connects, and one in the settings window, which is a second page.
 
 It also lists the open vault's notes, the enabled snippets, and the loaded plugins. Run it first whenever a shot looks wrong, and after the last drive of a proof.
 
@@ -70,28 +64,13 @@ obs shot --note "<basename or path>" --view reading|live|source --scheme light|d
   [--size <width>x<height>] [--scroll <px>] [--open none|palette|settings|search] [--mobile] [--hide-right] [--out <file.png>]
 ```
 
-Defaults: `--view reading`, `--scheme light` (this overrides the scheme `launch` started with), `--scroll 0`, `--open none`. A value outside these lists, or a malformed size or scroll, fails before anything is captured.
+Defaults: `--view reading`, `--scheme light` (this overrides the scheme `launch` started with), `--scroll 0`, `--open none`.
 
-Each `shot` call does the following, in order:
-1. Connects over CDP and sets the viewport.
-2. Toggles mobile emulation if `--mobile` differs from the current state. This reloads the window, and the helper waits for the reload.
-3. Presses Escape, and on desktop brings the file explorer back to the front of the left sidebar, or on mobile closes both drawers, so a panel an earlier shot opened does not carry over.
-4. Opens the note in the active leaf. `reading` is preview, `live` is Live Preview, `source` is source mode.
-5. Switches the color scheme through Obsidian's own `app.changeTheme`.
-6. Hides the right sidebar with `--hide-right`, and shows it again without.
-7. Scrolls the view's own scroller (`.markdown-preview-view` for reading, `.cm-scroller` for live and source) to `--scroll`, 0 included, retrying until the position holds for three polls. A note reopened in the same leaf keeps its old position otherwise. If the note is too short it prints a warning and captures anyway.
-8. Opens the palette, settings, or search through Obsidian commands, after the scroll so the scroll targets the note. For the palette and search it waits until the panel has stayed on screen for half a second, runs the command again up to three times if it has not, and fails if it never does.
-9. Waits for fonts to finish loading, then captures the window and presses Escape. With `--open settings` it captures Obsidian's separate settings window instead, after clearing its search box and setting `--size` on it, then closes that window.
+Each `shot` sets the whole state: the layout, the note, the view, the scheme, the right sidebar, the scroll position, and the panel. It closes a panel or drawer an earlier shot opened, so shots do not depend on their order. `--mobile` reloads the window when it changes the layout.
 
 `--note` is the note's basename without `.md`, or its vault path (`protocols/pcr-protocol`). Without `--note` it opens the first note by path.
 
-Fixture notes, in `obsidian/testbed/notes/`. The lab and element notes come in a Korean (`-ko`) and an English (`-en`) version with the same structure, so a change to Latin text or to Hangul can be checked on its own:
-- `lab-note-ko`, `lab-note-en`: a mixed lab note with prose, gene names in italics, an inline primer, math, a `dna` block of two primers, a table, a warning callout, a python block, tasks, and a quote.
-- `elements-ko`, `elements-en`: headings 1 to 4, inline marks, an editing note (`%%`), a strikethrough long enough to wrap, resolved and unresolved links, a tag, a footnote, nested lists, tasks including a two-line one, note, tip, danger, quote, summary, todo, and important callouts, a blockquote, a horizontal rule, block math, nix/typescript/bash/yaml code, and three tables: a short right-aligned one, one of long sentences that fills the column, and one with a primer sequence too wide for any column, which scrolls.
-- `pairs`: one or more of every device `pairs` compares, among them headings 1 to 6, a quote nested in a blockquote, an embedded note, and code in typescript, python, bash, yaml, and nix. Its last line is empty, so the caret has a place outside every mark.
-- `long-note`: 30 H2 sections of plain paragraphs, for anything that must still hold after Obsidian unloads off-screen sections.
-- `protocols/pcr-protocol`: a note inside a folder, so the file tree shows a folder row and a nested file.
-- `sequences`: one sequence block per input shape the sequence plugin accepts: a `fasta` record on one 174 nt line, `fasta` wrapped at 70 and at 80, a multi-FASTA block of 42, 60, and 132 nt records, a `dna` block without a header, a 214 aa `protein` block, a 60 nt guide in an `rna` block, a 96 aa protein and a 24-residue degenerate primer in `fasta` blocks, a GenBank `ORIGIN` paste of 150 nt with its position numbers and `//` line in a `dna` block, and an inline primer in prose. It renders as plain code unless the run has `--plugin obsidian-sequence-plugin`. All sequences are synthetic.
+The fixture notes are listed in `features/README.md`, and `doctor` lists the notes of the open vault.
 
 ### Compare with stock Obsidian
 
@@ -100,7 +79,7 @@ obs launch --run stock --theme none
 obs compare --base stock --scheme light|dark [--view reading|live] [--mobile] [--part <id>]... [--size <width>x<height>]
 ```
 
-`compare` puts both runs in the same state, captures named parts of the window at 2x, and prints each part's box differences in CSS px against the base run. `--view` opens each part's note in reading view (the default) or Live Preview. Each run of `compare` empties `build/verify/compare/<view>[-mobile]/<scheme>/` and writes `<part>.<run>.png`, `metrics.json`, and `index.html` there, plus `compare.png`, one sheet with every pair, when `IMPECCABLE_BROWSER` is set (the devshell sets it). Copy the directory away before a second `compare` in the same place and scheme if you need both. The parts and what each must show are in `features/stock-geometry.md`; the part list lives in the `parts` table in `obsidian/testbed/obsidian.ts`. A row's `root` is one selector for app chrome, measured in any view, or a selector per view (`inNote` builds the same selector for both); `on` lists the layouts it runs on, desktop when absent. A view or layout a row does not name skips that row. Add a row there when a new component needs a geometry check.
+`compare` puts both runs in the same state, captures named parts of the window at 2x, and prints each part's box differences in CSS px against the base run. `--view` opens each part's note in reading view (the default) or Live Preview. The parts and what each must show are in `features/stock-geometry.md`. The part list is the `parts` table in `obsidian/testbed/obsidian.ts`. Add a row there when a new component needs a geometry check.
 
 ### Measure tonal layers
 
@@ -108,7 +87,7 @@ obs compare --base stock --scheme light|dark [--view reading|live] [--mobile] [-
 obs layers --scheme light|dark [--view reading|live] [--mobile] [--note lab-note-ko] [--threshold 0.025]
 ```
 
-`layers` measures in reading view or, with `--view live`, in Live Preview. It reads each named region's painted background, its OKLCH lightness, and its visible borders and shadow, then prints the lightness difference at each boundary and flags those below the threshold. The regions and boundaries are the `regions` and `boundaries` tables in `obsidian/testbed/obsidian.ts`; a region names its selector and layouts the way a `compare` part does, and a boundary prints only where both of its regions apply. What each must show is in `features/tonal-layers.md`. Output JSON goes to `build/verify/layers/<run>-<view>[-mobile]-<scheme>.json`.
+`layers` reads each named region's painted background and its OKLCH lightness, in reading view or, with `--view live`, in Live Preview. It prints the lightness difference at each boundary and flags those below the threshold. The regions and boundaries are the `regions` and `boundaries` tables in `obsidian/testbed/obsidian.ts`. What each must show is in `features/tonal-layers.md`. Output JSON goes to `build/verify/layers/<run>-<view>[-mobile]-<scheme>.json`.
 
 ### Check joins
 
@@ -116,10 +95,10 @@ obs layers --scheme light|dark [--view reading|live] [--mobile] [--note lab-note
 obs joins --scheme light|dark [--view reading|live] [--mobile]
 ```
 
-`joins` measures where two pieces the theme paints apart must meet: a stroke and the mark it runs into. These marks are pseudo-elements, gradients, and masks with no box, so `joins` reads painted pixels. For every instance of each row in each of the row's notes, it captures a crop around the join at scale 2, decodes it in the page with a canvas, and finds the pixel rows painted in the instance's colour at a sample before the join and one after it. A `mark` row names its colour, a CSS colour such as `var(--wg-proof)` resolved on the element in the current scheme. A `cut` row reads it from the frame. A `mark` row compares the whole band, so the strike line and the loop's foot must share both edges. A `cut` row, a straight rule running into the 45° cut, compares only the top edge, after shifting the diagonal back by its slope. Bands more than 0.5 CSS px apart fail. The rows are the `joins` table in `obsidian/testbed/obsidian.ts`; a row names its notes, its selector per view, and its layouts the way a `compare` part does. A `mark` row's selector names its instances. A `cut` row's selector is only the scope: it finds its frames by kind, as every element in the scope, or its `::before` or `::after`, whose computed `background-image` has a `linear-gradient(225deg, …)` layer, the way the theme draws every cut. The colour is that gradient's first opaque stop and the cut's size its layer's `background-size`, so a new frame cut at 45° is measured without a new row. A hand list of frames named the title, callouts, code blocks, and the tab, and missed the sequence block. A row finds every instance in its notes by scrolling through each note, not only the first instance.
+`joins` measures where two pieces the theme paints apart must meet: a stroke and the mark it runs into. These marks are pseudo-elements, gradients, and masks with no box, so `joins` reads painted pixels, and it fails a join whose two sides lie more than 0.5 CSS px apart. The rows are the `joins` table in `obsidian/testbed/obsidian.ts`.
 
-- `delete-loop` (`mark`, reading view and Live Preview): the strike line of each `del`, or of each `.cm-strikethrough` that carries a loop, and the foot of the delete loop after it, in `elements-ko` and `elements-en`, the wrapped strikethrough included. A row whose notes show no mark at all fails.
-- `cut` (`cut`, reading view and Live Preview): the top rule and the diagonal of every frame cut at 45° in the window, in `lab-note-ko`, `elements-ko`, `long-note` (the title without properties), and `sequences`. That is the active tab on desktop, the title rule (the title's `::after`), and every sequence block, which a run reaches only with `--plugin obsidian-sequence-plugin`. Each line names the element by tag and classes, with the pseudo-element when the cut is drawn on one. A note with no such frame fails.
+- `delete-loop` (reading view and Live Preview): the strike line of each strikethrough and the foot of the delete loop after it, in `elements-ko` and `elements-en`, the wrapped strikethrough included.
+- `cut` (reading view and Live Preview): the top rule and the diagonal of every frame cut at 45°, in `lab-note-ko`, `elements-ko`, `long-note`, and `sequences`. That is the active tab on desktop, the title rule, and every sequence block, which a run reaches only with `--plugin obsidian-sequence-plugin`. The row finds its frames by kind, as every element or pseudo-element whose computed `background-image` has a `linear-gradient(225deg, …)` layer, so a new frame cut at 45° is measured without a new row. A hand list of frames named the title, callouts, code blocks, and the tab, and missed the sequence block.
 
 Each line names one instance, with both bands in CSS px from the top of the element's line or box and their difference. The report and each instance's crop go to `build/verify/joins/<run>-<view>[-mobile]-<scheme>/`, which each run empties first.
 
@@ -129,7 +108,7 @@ Each line names one instance, with both bands in CSS px from the top of the elem
 obs editcheck [--scheme light|dark] [--mobile] [--note lab-note-ko]
 ```
 
-`editcheck` puts the window in states a plain `shot` never reaches, because `shot` clears focus and never places the cursor, and measures one invariant in each. The checks are the `editChecks` table in `obsidian/testbed/obsidian.ts`; a row's `on` lists the layouts it runs on, desktop when absent. Add a row there when a bug shows up in a state no check reaches. A row finds its targets in the DOM by kind, as `text-focus` takes every editing root, never from a list of selectors for the instances already seen: a hand list proved only the instance a user had reported, and the next instance of the same kind was found by the user again.
+`editcheck` puts the window in states a plain `shot` never reaches, because `shot` clears focus and never places the cursor, and measures one invariant in each. The checks are the `editChecks` table in `obsidian/testbed/obsidian.ts`, and every call runs every row of its layout. Add a row there when a bug shows up in a state no check reaches. A row finds its targets in the DOM by kind, as `text-focus` takes every editing root, never from a list of selectors for the instances already seen: a hand list proved only the instance a user had reported, and the next instance of the same kind was found by the user again.
 
 - `text-focus`: with the search panel open, it clicks every visible editing root in the window, a read-write element whose parent is not read-write, (the search field, the tab title, the inline title, each property's name and value, and each editor) at a point on plain text, not on a link or widget. Each click must put focus on read-write text and change neither its nor any ancestor's outline, box-shadow, or background from before the click; the caret already shows where focus is. The pointer moves off the window before the measurement, so a hover style does not count. A target that a re-render removes before its click, or that another element covers at every point tried, is skipped and counted in the result. On the phone the search drawer covers the note, so this check reaches only the search field there.
 - `note-text-focus` (phone only): the same check with no panel open, so it reaches the inline title, each property's name and value, and the editor under phone emulation.
@@ -144,8 +123,6 @@ obs editcheck [--scheme light|dark] [--mobile] [--note lab-note-ko]
 - `toggle-states` (desktop only; the phone opens settings on its tab list, with no toggle on screen): it opens the settings window, measures every enabled toggle on its open tab in both states on a copy beside it, and closes the window. The on and off tracks must differ by at least 0.1 in OKLCH lightness, the thumb must reach 3:1 contrast (WCAG 1.4.11) on the on track, and differ from the off track by at least 0.1. WCAG's 3:1 holds only for the thumb on the on track because stock Obsidian misses it elsewhere: on 2026-11-27 stock measured 2.45:1 (light) and 2.47:1 (dark) between its tracks, and 1.40:1 for its white thumb on the light off track. The 0.1 step sits under stock's weakest pair, that thumb at 0.112; stock's tracks differ by 0.235. The crop is the first toggle in the settings window.
 - `embed-hover`: it scrolls Live Preview from top to bottom and, for every embed widget (`.cm-embed-block`: a callout, a math block, a table), forces `:hover` on the widget and on its edit button with CDP `CSS.forcePseudoState`, for the reason under Evidence. The widget and every element down to its frame, the first element inside it that paints a background or a top border, may draw no outline and no box-shadow. The edit button, where the widget has one, must lie inside the frame and start below the frame's top rule, and on a frame cut at 45° its gaps from the frame's top and right edges must add up to the cut's size or more, which keeps it off the diagonal. The capture is the first failing widget, or else the first with an edit button, still hovered.
 
-A row with `open: "settings"` runs against the settings window, Obsidian's separate page on desktop or its modal under phone emulation, and `editcheck` closes that window after the row.
-
 Each line names one check with its measurement. The report goes to `build/verify/<run>/editcheck-<scheme>[-mobile].json`, and a 2x capture of each check's element to `build/verify/<run>/shots/editcheck-<scheme>[-mobile]-<check>.png`.
 
 ### Check that the two views match
@@ -154,13 +131,13 @@ Each line names one check with its measurement. The report goes to `build/verify
 obs pairs [--scheme light|dark] [--mobile] [--note pairs]
 ```
 
-`pairs` holds the theme to one rule: a device looks the same in reading view and in Live Preview while the caret is outside it. It opens the note in reading view and then in Live Preview, puts the caret on the note's empty last line, makes the window tall enough that each view renders the whole note, and reads every device's computed style in both.
+`pairs` holds the theme to one rule: a device looks the same in reading view and in Live Preview while the caret is outside it.
 
-The rows are the `pairs` table in `obsidian/testbed/obsidian.ts`. A row names one part of a device, a selector for it in each view, and the properties that carry its design: the text colour and font, the background, each border side, the text decoration, the clip path, and offsets measured from the note column: `x` and `right` for a box, `text-x` for where its text starts, and `wrap-x` for where a wrapped line starts. A row finds every instance of its kind in the DOM and pairs the instances of the two views in document order. It fails when the counts differ or the note has no instance. CodeMirror splits some devices into several elements: a tag is two spans and a block is a run of lines. A row's `more` joins those elements into one instance, whose left edge comes from the first element and whose right edge comes from the last. A computed length must match within 0.01 px and a measured one within 0.5 px.
+The rows are the `pairs` table in `obsidian/testbed/obsidian.ts`. A row finds every instance of its kind in the DOM and pairs the instances of the two views in document order.
 
 The rows cover the paragraph, headings 1 to 6 and the H2 marker, bold, italic, strikethrough and its delete loop, highlight, inline code, internal, unresolved, and external links, the tag, the footnote reference, list items, bullets, and numbers, open and done tasks, the blockquote and a quote nested in it, the divider, the code block and its text, the table with its head and cells, the callout, and the embed.
 
-Code tokens are compared character by character. The check pairs the code blocks of the two views in order and, for each character, takes the colour, weight, and slant of the token that holds it. It prints one line per pair of token classes, such as `typescript keyword as keyword "export"`, so a class that one highlighter has and the other lacks shows up by name.
+Code tokens are compared character by character. The check prints one line per pair of token classes, such as `typescript keyword as keyword "export"`, so a class that one highlighter has and the other lacks shows up by name.
 
 A difference the editor needs is declared in the `pairDiffs` table with its reason. It prints as a `diff` line with both values and the reason, so no difference passes without a line. `DESIGN.md` lists the same differences under "Reading and editing"; a row added to one goes into the other.
 
@@ -173,7 +150,7 @@ obs seqcheck [--note sequences] [--view reading|live] [--scheme light|dark] \
   [--size <width>x<height>] [--mobile] [--hide-right]
 ```
 
-`seqcheck` needs a run launched with `--plugin obsidian-sequence-plugin`. It prepares the window as `shot` does, reads the note from the run's vault, and finds each `fasta`, `dna`, `rna`, and `protein` fence in it. For each fence it scrolls the rendered block into view, because reading view and CodeMirror drop off-screen blocks from the DOM. Then it forces the block and each of its ancestors up to the view's scroller into the hover state with CDP `CSS.forcePseudoState`, as a pointer over the block would, measures it, and checks nineteen invariants, plus `badge-overlap` in a block of two or more records and `live-source` and `copy-command` in Live Preview. The run emulates `prefers-reduced-motion: reduce`. The copy control is each record's length badge, in both views. Every press goes through a `writeText` recorder that the check puts in place for the press and removes afterwards, so the system clipboard is never written, and the check removes the notices the press shows.
+`seqcheck` needs a run launched with `--plugin obsidian-sequence-plugin`. It finds each `fasta`, `dna`, `rna`, and `protein` fence in the note and checks nineteen invariants on the block it renders, plus `badge-overlap` in a block of two or more records and `live-source` and `copy-command` in Live Preview. Every press goes through a `writeText` recorder, so the system clipboard is never written.
 
 - `not-clipped`: no ancestor up to the view's scroller whose overflow is not `visible` cuts the block's left or right edge, and the block's left edge is not left of the scroller's.
 - `fits`: the block has no horizontal scroll (`scrollWidth <= clientWidth + 1`), on desktop and with `--mobile`.
@@ -241,7 +218,7 @@ A probe that answers a question a second time is a check: give it a row in `edit
 obs stop
 ```
 
-This sends SIGTERM to the process group `launch` started, from the pid in `run.json`, and sends SIGKILL to the same group after 10 s. Then it deletes the run's `vault/`, `data/`, and `run.json`. It keeps `shots/`, the report JSON files, and `obsidian.log`. It never kills by process name, so the user's own Obsidian is untouched. Delete `build/verify/<run>/` by hand when the evidence is no longer needed.
+This stops the process group `launch` started for the run and deletes the run's `vault/`, `data/`, and `run.json`. It keeps `shots/`, the report JSON files, and `obsidian.log`. It never kills by process name, so the user's own Obsidian is untouched. Delete `build/verify/<run>/` by hand when the evidence is no longer needed.
 
 ## Helpers
 
