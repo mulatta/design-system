@@ -706,20 +706,16 @@ async function settingsPage(
 function checkShotOptions(v: {
 	view: string;
 	scheme: string;
-	size: string;
 	scroll: string;
 	open: string;
-}): [number, number] {
+}): void {
 	if (!["reading", "live", "source"].includes(v.view))
 		fail(`unknown --view ${v.view} (reading|live|source)`);
 	if (!["light", "dark"].includes(v.scheme))
 		fail(`unknown --scheme ${v.scheme} (light|dark)`);
 	if (!isPanel(v.open))
 		fail(`unknown --open ${v.open} (${Object.keys(panels).join("|")})`);
-	const size = /^(\d+)x(\d+)$/.exec(v.size);
-	if (!size) fail(`bad --size ${v.size} (WIDTHxHEIGHT, e.g. 1440x900)`);
 	if (!/^\d+$/.test(v.scroll)) fail(`bad --scroll ${v.scroll} (pixels)`);
-	return [Number(size[1]), Number(size[2])];
 }
 
 async function shot(args: string[]): Promise<void> {
@@ -730,7 +726,7 @@ async function shot(args: string[]): Promise<void> {
 			note: { type: "string" },
 			view: { type: "string", default: "reading" },
 			scheme: { type: "string", default: "light" },
-			size: { type: "string", default: "1440x900" },
+			size: { type: "string" },
 			scroll: { type: "string", default: "0" },
 			open: { type: "string", default: "none" },
 			mobile: { type: "boolean", default: false },
@@ -741,7 +737,8 @@ async function shot(args: string[]): Promise<void> {
 	const state = readState(values.run);
 	if (!alive(state.pid))
 		fail(`run "${values.run}" is not live; launch it again`);
-	const [width, height] = checkShotOptions(values);
+	checkShotOptions(values);
+	const { width, height } = screenFor(values.mobile, values.size);
 	const { browser, page } = await connect(state);
 	const result = await prepare(page, {
 		width,
@@ -3601,7 +3598,7 @@ async function seqcheck(args: string[]): Promise<void> {
 			note: { type: "string", default: "sequences" },
 			view: { type: "string", default: "reading" },
 			scheme: { type: "string", default: "light" },
-			size: { type: "string", default: "1440x900" },
+			size: { type: "string" },
 			mobile: { type: "boolean", default: false },
 			"hide-right": { type: "boolean", default: false },
 		},
@@ -3611,11 +3608,8 @@ async function seqcheck(args: string[]): Promise<void> {
 	const state = readState(values.run);
 	if (!alive(state.pid))
 		fail(`run "${values.run}" is not live; launch it again`);
-	const [width, height] = checkShotOptions({
-		...values,
-		scroll: "0",
-		open: "none",
-	});
+	checkShotOptions({ ...values, scroll: "0", open: "none" });
+	const { width, height } = screenFor(values.mobile, values.size);
 	const { browser, page } = await connect(state);
 	const prepared = await prepare(page, {
 		width,
@@ -3709,7 +3703,7 @@ async function seqcheck(args: string[]): Promise<void> {
 			.then((h) => h.jsonValue())
 			.catch(() => null);
 
-	const stem = `${values.view}-${values.scheme}-${values.size}${values.mobile ? "-mobile" : ""}`;
+	const stem = `${values.view}-${values.scheme}-${width}x${height}${values.mobile ? "-mobile" : ""}`;
 	const note = readFileSync(join(state.vault, prepared.note), "utf8");
 	const fences = sequenceFences(note);
 	const blocks: Record<string, unknown>[] = [];
@@ -4630,7 +4624,7 @@ async function seqcheck(args: string[]): Promise<void> {
 		note: prepared.note,
 		view: values.view,
 		scheme: values.scheme,
-		size: values.size,
+		size: `${width}x${height}`,
 		mobile: values.mobile,
 		blocks,
 		failures,
@@ -5761,11 +5755,8 @@ async function drive(args: string[]): Promise<void> {
 		},
 	});
 	const [file, ...rest] = positionals;
-	const size = (values.size ?? (values.mobile ? "390x844" : "1440x900")).match(
-		/^(\d+)x(\d+)$/,
-	);
-	if (!size) fail(`--size must be <width>x<height>, not ${values.size}`);
 	if (!file) fail("usage: obsidian.ts drive [options] <probe.ts> [args]");
+	const { width, height } = screenFor(values.mobile, values.size);
 	const state = readState(values.run);
 	if (!alive(state.pid))
 		fail(`run "${values.run}" is not live; launch it again`);
@@ -5776,8 +5767,8 @@ async function drive(args: string[]): Promise<void> {
 	const { browser, page } = await connect(state);
 	const cdp = await page.context().newCDPSession(page);
 	const frame: Prepare = {
-		width: Number(size[1]),
-		height: Number(size[2]),
+		width,
+		height,
 		mobile: values.mobile,
 		note: values.note ?? null,
 		view: values.view,
